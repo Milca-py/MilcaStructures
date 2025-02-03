@@ -18,9 +18,3 @@ Para instalar la librería, simplemente clona el repositorio y asegúrate de ten
 git clone https://github.com/tu_usuario/tu_repositorio.git
 cd tu_repositorio
 pip install -r requirements.txt
-
-
-
----
-
-Este `README.md` te proporciona un inicio claro y detallado para que otros usuarios o desarrolladores puedan entender y utilizar tu librería. Puedes copiar y pegar este código directamente en tu archivo `README.md`. Si necesitas agregar más detalles o funcionalidades específicas, ¡no dudes en ajustar el contenido!
