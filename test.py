@@ -122,32 +122,36 @@
 #     1,
 #     ElementType.FRAME,
 #     Node(1,Vertex(0, 0)),
-#     Node(2,Vertex(4, 3)),
-#     RectangularSection("seccion1", ConcreteMaterial("concreto", 210e9, 0.3, 25e3), 0.3, 0.6)
+#     Node(2,Vertex(400, 300)),
+#     RectangularSection("seccion1", ConcreteMaterial("concreto", 30, 0.15, 2400), 40, 50)
 #     )
 
 
 # print(el.length)
 # print(el.angle_x_axis*180/3.1416)
-# # print(el.node_i.vertex.coordinates)
-# # print(el.node_j.vertex.coordinates)
-# # print(el.section.area)
-# # print(el.node_idi)
-# # print(el.node_idj)
-# # print(el.node_map)
-# # print(el.dof_map)
-# # print(el.stiffness_matrix)
+# print(el.node_i.vertex.coordinates)
+# print(el.node_j.vertex.coordinates)
+# print(el.section.area)
+# print(el.node_idi)
+# print(el.node_idj)
+# print(el.node_map)
+# print(el.dof_map)
+# print(el.stiffness_matrix)
 
-# # print(el.distributed_load.to_dict())
+# print(el.distributed_load.to_dict())
 
 # el.compile_stiffness_matrix()
-# # print(el._stiffness_matrix)
+# print(el._stiffness_matrix)
+
+# import pandas as pd
+# pd = pd.DataFrame(el._stiffness_matrix)
+# pd.to_excel("stiffness_matrix.xlsx")
 
 # el.compile_transformation_matrix()
-# # print(el._transformation_matrix)
+# print(el._transformation_matrix)
 
 # el.add_distributed_load(DistributedLoad(20, 20))
-# # print(el._distributed_load.to_dict())
+# print(el._distributed_load.to_dict())
 # el.compile_load_vector()
 # print(el._load_vector)
 
@@ -171,15 +175,66 @@
 
 
 from core.system import SystemMilcaModel
+import pandas as pd
+# from main import SytemMilcaModel
 
-sys = SystemMilcaModel()
-
-
-
-
-
+# crear el modelo estructural
+model = SystemMilcaModel()
 
 
+E = 30
+v = 0.15
+g = 0
+b = 40
+h = 50
+
+
+# agregar materiales
+model.add_material(name="concreto", modulus_elasticity=E,
+                   poisson_ratio=v, specific_weight=g)
+
+# # agregar secciones
+model.add_rectangular_section("seccion1", "concreto", b, h)
+
+# # agregar nodos
+model.add_node(1, (0, 0))
+model.add_node(2, (0, 300))
+model.add_node(3, (250, 400))
+model.add_node(4, (500, 300))
+model.add_node(5, (500, 0))
+
+
+# # agregar elementos
+model.add_element(1, "FRAME", 1, 2, "seccion1")
+model.add_element(2, "FRAME", 2, 3, "seccion1")
+model.add_element(3, "FRAME", 3, 4, "seccion1")
+model.add_element(4, "FRAME", 4, 5, "seccion1")
+
+# # agregar restricciones
+model.add_restraint(1, (True, True, True))
+model.add_restraint(4, (True, True, True))
+
+# # agregar patrones de carga
+model.add_load_pattern(name="muerta")
+
+# agregar cargas puntuales
+# model.add_point_load(2, "muerta", fx=100)
+model.add_distributed_load(2, "muerta", "LOCAL", -50, -50)
+model.add_distributed_load(3, "muerta", "LOCAL", -50, -50)
+
+# resolver el modelo
+model.solve()
+
+
+
+# ==============================
+# =====     PLOTTER       =====
+# ==============================
+
+from display.ploter import Plotter
+plotter = Plotter(model)
+
+plotter.plot_structure()
 
 
 

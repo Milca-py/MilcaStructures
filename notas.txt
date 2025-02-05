@@ -44,3 +44,4 @@ ME QUEDE EN .................
 - corregir la fucnion loads_to_global_system() en load pattern
 - corregir system_componets.py
 - corregir system.py 
+- falta logica para convertir sistemas de coordenadas de loas caragas distribuidas
