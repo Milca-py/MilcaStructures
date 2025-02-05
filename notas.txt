@@ -1,0 +1,47 @@
+crear validadores: (PARA TODOS LOS TIPOS DE CLASES PARA USARLO EN LA CLASE SYSTEM) ok dentro de system
+
+def validador_element_type(arg: str):
+    if "TRUSS":
+        return ElementType.FRAME
+    if "FRAME"
+        return ElementType.FRAME
+
+
+dentro de LOAD PATTERN:
+- transformar todas las cargas a sistema global
+
+implementar una logica rubusta para cargas distribuidas
+- crear una fucnion que tranforme cargas a sistema global
+
+
+
+\validaciones de len()
+\validaciones de suma o reemplazar
+\validaciones SYSTEM coordenadas
+
+
+corregir todo con QWEN Y DEEPSEEK
+
+las cargas distribuidas todavia no tienen logica para suma, resta, mul, div, etc, por que se complica su calculo para calcular diagrams de N, V, M, Y. [asi que por el momento solo se pueden asignar una sola carga por el elemento, asignar otra lo reeplzará mas no se agregara o se añadirá, asi tambien faltaria implenetar reemplce = True, parametro] [los metodos especiales solo estan implenetados para hacer opraciones con numeros escalares mas no con instancias del la clase misma]
+
+
+implementar:
+ - clase results,
+ - desing, 
+ - analysis, 
+ - load case,
+ - load combination,
+
+
+
+las cargas puntuales pueden ser de tipo local con un angulo o global sin angulo o por defecto auque se indique no se usa
+
+
+ME QUEDE EN .................
+
+- implementacion de cargas distribuidad en load pattern y system y element y demas a considerar
+- carags distribuidad incglinada con angulo tranformar a ejes locales 
+- corregir la fucnion loads_to_global_system() en load pattern
+- corregir system_componets.py
+- corregir system.py 
+- falta logica para convertir sistemas de coordenadas de loas caragas distribuidas
