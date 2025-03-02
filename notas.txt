@@ -45,3 +45,48 @@ ME QUEDE EN .................
 - corregir system_componets.py
 - corregir system.py 
 - falta logica para convertir sistemas de coordenadas de loas caragas distribuidas
+- odenar los resultados : desplazaments and reactions
+
+
+
+
+para temas de optimizacion almacenar los restraints en una lista o dicionario para intruducir condicones de frontera antes de asignarlos a los odos mismos
+falta implenetar vector de cargas para momento distribuida
+
+
+
+
+
+/mi_software
+│── /src                     # Código fuente principal
+│   │── /core                # Lógica principal del software
+│   │── /modules             # Módulos específicos del software
+│   │── /services            # Servicios y lógica de negocio
+│   │── /controllers         # Controladores (si aplica)
+│   │── /models              # Modelos de datos
+│   │── /views               # Interfaces gráficas (si aplica)
+│   │── /utils               # Funciones auxiliares y herramientas
+│── /assets                  # Recursos gráficos, multimedia, etc.
+│   │── /icons               # Íconos de la aplicación
+│   │── /images              # Imágenes generales
+│   │── /fonts               # Tipografías personalizadas
+│── /config                  # Configuración del software
+│   │── settings.py          # Configuraciones generales
+│   │── database.yml         # Configuración de base de datos
+│── /tests                   # Pruebas automatizadas
+│   │── /unit                # Pruebas unitarias
+│   │── /integration         # Pruebas de integración
+│── /docs                    # Documentación técnica
+│   │── /api                 # Documentación de API
+│   │── /guides              # Guías de usuario
+│── /scripts                 # Scripts para automatización
+│── /logs                    # Registros del sistema
+│── /bin                     # Ejecutables o scripts CLI
+│── /static                  # Archivos estáticos (CSS, JS, etc.)
+│── .gitignore               # Archivos a excluir en Git
+│── README.md                # Descripción del proyecto
+│── requirements.txt         # Dependencias del proyecto (Python)
+│── setup.py                 # Instalador del software (Python)
+│── LICENSE                  # Licencia del proyecto
+│── Dockerfile               # Configuración para Docker (si aplica)
+│── Makefile                 # Tareas de automatización (si aplica)

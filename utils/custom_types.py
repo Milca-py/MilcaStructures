@@ -40,15 +40,14 @@ class DirectionType(Enum):
     """Direcciones en el sistema global y local."""
     X = 'X'
     Y = 'Y'
-    Z = 'Z'
     X_PROJ = 'X_PROJ'
     Y_PROJ = 'Y_PROJ'
-    Z_PROJ = 'Z_PROJ'
     GRAVITY = 'GRAVITY'
     GRAVITY_PROJ = 'GRAVITY_PROJ'
-    LOCAL_1 = 'LOCAL_1'
-    LOCAL_2 = 'LOCAL_2'
-    LOCAL_3 = 'LOCAL_3'
+    MOMENT = 'MOMENT'
+    LOCAL_1 = 'LOCAL_1' # AXIAL
+    LOCAL_2 = 'LOCAL_2' # SHEAR
+    LOCAL_3 = 'LOCAL_3' # MOMENT
 
 
 class CodeType(Enum):

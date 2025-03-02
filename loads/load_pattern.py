@@ -1,20 +1,30 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING
 import warnings
 import numpy as np
 
 from loads import PointLoad, DistributedLoad
-from utils import(
-    LoadPatternType,
-    CoordinateSystemType,
-    State,
-)
+from utils import LoadPatternType, CoordinateSystemType, State, DirectionType, LoadType
 
 if TYPE_CHECKING:
     from core.system import SystemMilcaModel
 
-
 class LoadPattern:
-    """Clase que representa un patrón de carga en el modelo estructural."""
+    """
+    Representa un patrón de carga en un modelo estructural.
+    
+    Esta clase gestiona la aplicación y transformación de cargas puntuales y distribuidas
+    en un sistema estructural, permitiendo su manipulación en diferentes sistemas de coordenadas.
+    
+    Atributos:
+        name (str): Nombre identificativo del patrón de carga.
+        load_type (LoadPatternType): Tipo de carga (por defecto LoadPatternType.DEAD).
+        self_weight_multiplier (float): Factor multiplicador del peso propio.
+        auto_load_pattern (bool): Indica si el patrón se genera automáticamente.
+        create_load_case (bool): Indica si se debe crear un caso de carga asociado.
+        state (State): Estado actual del patrón de carga.
+        point_loads_map (Dict[int, PointLoad]): Mapeo de cargas puntuales por ID de nodo.
+        distributed_loads_map (Dict[int, DistributedLoad]): Mapeo de cargas distribuidas por ID de elemento.
+    """
 
     def __init__(
         self,
@@ -24,24 +34,35 @@ class LoadPattern:
         auto_load_pattern: bool = False,
         create_load_case: bool = False,
         state: State = State.ACTIVE,
+        system: "SystemMilcaModel" = None
     ) -> None:
         """
-        Inicializa un patrón de carga.
+        Inicializa un nuevo patrón de carga con los parámetros especificados.
 
         Args:
-            name (str): Nombre del patrón de carga.
-            load_type (LoadPatternType, opcional): Tipo de carga (default: DEAD).
-            self_weight_multiplier (float, opcional): Multiplicador del peso propio (default: 0.0).
-            auto_load_pattern (bool, opcional): Indica si el patrón de carga se genera automáticamente.
-            create_load_case (bool, opcional): Indica si se crea un caso de carga asociado.
-            state (State, opcional): Estado del patrón de carga (default: ACTIVE).
+            name: Nombre identificativo del patrón de carga.
+            load_type: Tipo de carga a aplicar.
+            self_weight_multiplier: Factor multiplicador para el peso propio.
+            auto_load_pattern: Si True, el patrón se genera automáticamente.
+            create_load_case: Si True, se crea un caso de carga asociado.
+            state: Estado inicial del patrón de carga.
+
+        Raises:
+            ValueError: Si el nombre está vacío o el multiplicador es negativo.
         """
-        self.name: str = name
-        self.load_type: LoadPatternType = load_type
-        self.self_weight_multiplier: float = float(self_weight_multiplier)
-        self.auto_load_pattern: bool = auto_load_pattern
-        self.create_load_case: bool = create_load_case
-        self.state: State = state
+        if not name.strip():
+            raise ValueError("El nombre del patrón de carga no puede estar vacío")
+        if self_weight_multiplier < 0:
+            raise ValueError("El multiplicador de peso propio no puede ser negativo")
+
+        self._system = system
+
+        self.name = name
+        self.load_type = load_type
+        self.self_weight_multiplier = float(self_weight_multiplier)
+        self.auto_load_pattern = auto_load_pattern
+        self.create_load_case = create_load_case
+        self.state = state
 
         self.point_loads_map: Dict[int, PointLoad] = {}
         self.distributed_loads_map: Dict[int, DistributedLoad] = {}
@@ -50,122 +71,273 @@ class LoadPattern:
         self,
         node_id: int,
         forces: PointLoad,
-        CSys: CoordinateSystemType = CoordinateSystemType.GLOBAL,
-        angle: float = 0.0,
+        csys: CoordinateSystemType = CoordinateSystemType.GLOBAL,
+        angle_rot: Optional[float] = None,
         replace: bool = False,
     ) -> None:
         """
-        Agrega o reemplaza una carga puntual en el nodo especificado.
+        Agrega o actualiza una carga puntual en un nodo específico.
 
         Args:
-            node_id (int): ID del nodo al que se asigna la carga.
-            forces (PointLoad): Carga puntual aplicada.
-            CSys (CoordinateSystemType, opcional): Sistema de coordenadas de la carga (default: GLOBAL).
-            angle (float, opcional): Ángulo de rotación en radianes (default: 0.0).
-            replace (bool, opcional): Si es True, reemplaza la carga existente en el nodo (default: False).
+            node_id: Identificador del nodo objetivo.
+            forces: Carga puntual a aplicar.
+            csys: Sistema de coordenadas de la carga.
+            angle_rot: Ángulo de rotación en radianes (solo para sistema LOCAL).
+            replace: Si True, reemplaza cualquier carga existente en el nodo.
 
         Raises:
-            TypeError: Si `forces` no es una instancia de `PointLoad`.
-            ValueError: Si `CSys` no es GLOBAL o LOCAL.
+            TypeError: Si forces no es del tipo PointLoad.
+            ValueError: Si el sistema de coordenadas es inválido o el ángulo es incorrecto.
         """
         if not isinstance(forces, PointLoad):
-            raise TypeError("La carga debe ser un objeto de tipo PointLoad.")
+            raise TypeError("forces debe ser una instancia de PointLoad")
 
-        if CSys == CoordinateSystemType.LOCAL:
-            forces = loads_to_global_system(forces, angle)
-        elif CSys != CoordinateSystemType.GLOBAL:
-            raise ValueError("El sistema de coordenadas debe ser LOCAL o GLOBAL.")
+        if csys not in (CoordinateSystemType.GLOBAL, CoordinateSystemType.LOCAL):
+            raise ValueError("Sistema de coordenadas debe ser GLOBAL o LOCAL")
+
+        transformed_forces = forces
+        if csys == CoordinateSystemType.GLOBAL:
+            if angle_rot is not None:
+                warnings.warn("El ángulo de rotación se ignora en sistema GLOBAL")
+        elif csys == CoordinateSystemType.LOCAL:
+            if angle_rot is None:
+                raise ValueError("Se debe indicar el angulo de rotacion en sistema LOCAL")
+            transformed_forces = loads_to_global_system(forces, angle_rot)
 
         if replace:
-            self.point_loads_map[node_id] = forces
+            self.point_loads_map[node_id] = transformed_forces
         else:
-            self.point_loads_map[node_id] = self.point_loads_map.get(node_id, PointLoad()) + forces
+            existing_load = self.point_loads_map.get(node_id, PointLoad())
+            self.point_loads_map[node_id] = existing_load + transformed_forces
 
     def add_distributed_load(
         self,
         element_id: int,
-        load: DistributedLoad,
-        CSys: CoordinateSystemType = CoordinateSystemType.LOCAL,
-        angle: float = 0.0,
+        load_start: float,
+        load_end: float,
+        csys: CoordinateSystemType = CoordinateSystemType.LOCAL,
+        direction: DirectionType = DirectionType.LOCAL_2,
+        load_type: LoadType = LoadType.FORCE,
         replace: bool = False,
     ) -> None:
         """
-        Agrega o reemplaza una carga distribuida en el elemento especificado.
+        Agrega o actualiza una carga distribuida en un elemento específico.
 
         Args:
-            element_id (int): ID del elemento al que se asigna la carga.
-            load (DistributedLoad): Carga distribuida aplicada.
-            CSys (CoordinateSystemType, opcional): Sistema de coordenadas de la carga (default: GLOBAL).
-            angle (float, opcional): Ángulo de rotación en radianes (default: 0.0).
-            replace (bool, opcional): Si es True, reemplaza la carga existente en el elemento (default: False).
+            element_id: Identificador del elemento objetivo.
+            load: Carga distribuida a aplicar.
+            csys: Sistema de coordenadas de la carga.
+            replace: Si True, reemplaza cualquier carga existente en el elemento.
+            direction: Dirección de aplicación de la carga.
 
         Raises:
-            TypeError: Si `load` no es una instancia de `DistributedLoad`.
-            ValueError: Si `CSys` no es GLOBAL o LOCAL.
+            TypeError: Si load no es del tipo DistributedLoad.
+            ValueError: Si el sistema de coordenadas es inválido.
         """
-        if not isinstance(load, DistributedLoad):
-            raise TypeError("La carga debe ser un objeto de tipo DistributedLoad.")
-
-        if CSys == CoordinateSystemType.LOCAL:
-            pass
-            # load = loads_to_global_system(load, angle)
-        elif CSys != CoordinateSystemType.GLOBAL:
-            raise ValueError("El sistema de coordenadas debe ser LOCAL o GLOBAL.")
+        
+        transformed_load = distributed_load_to_local_system(
+            system=self._system,    # hace referencia a la clase Model
+            load_start=load_start,
+            load_end=load_end,
+            csys=csys,
+            direction=direction,
+            load_type=load_type,
+            element_id=element_id
+        )
 
         if replace:
-            self.distributed_loads_map[element_id] = load
+            self.distributed_loads_map[element_id] = transformed_load
         else:
-            self.distributed_loads_map[element_id] = load #self.distributed_loads_map.get(element_id, DistributedLoad()) + load        
+            existing_load = self.distributed_loads_map.get(element_id, DistributedLoad())
+            self.distributed_loads_map[element_id] = existing_load + transformed_load
 
     def assign_loads_to_nodes(self, system: "SystemMilcaModel") -> None:
         """
-        Asigna las cargas puntuales a los nodos del modelo.
+        Asigna las cargas puntuales a los nodos correspondientes del sistema.
 
         Args:
-            system (SystemMilcaModel): Modelo estructural.
-
-        Raises:
-            Warning: Si algún nodo no existe en el modelo.
+            system: Modelo estructural que contiene los nodos.
         """
         for node_id, load in self.point_loads_map.items():
             node = system.node_map.get(node_id)
             if node:
                 node.add_forces(load)
             else:
-                warnings.warn(f"El nodo {node_id} no existe en el modelo estructural.", UserWarning)
+                warnings.warn(f"Nodo {node_id} no encontrado en el sistema")
 
     def assign_loads_to_elements(self, system: "SystemMilcaModel") -> None:
         """
-        Asigna las cargas distribuidas a los elementos del modelo.
+        Asigna las cargas distribuidas a los elementos correspondientes del sistema.
 
         Args:
-            system (SystemMilcaModel): Modelo estructural.
-
-        Raises:
-            Warning: Si algún elemento no existe en el modelo.
+            system: Modelo estructural que contiene los elementos.
         """
         for element_id, load in self.distributed_loads_map.items():
             element = system.element_map.get(element_id)
             if element:
                 element.add_distributed_load(load)
             else:
-                warnings.warn(f"El elemento {element_id} no existe en el modelo estructural.", UserWarning)
+                warnings.warn(f"Elemento {element_id} no encontrado en el sistema")
+
+
+
+
+def distributed_load_to_local_system(
+    system: "SystemMilcaModel",
+    load_start: float,
+    load_end: float,
+    csys: CoordinateSystemType,
+    direction: DirectionType,
+    load_type: LoadType,
+    element_id: int
+) -> DistributedLoad:
+    """
+    Transforma una carga distribuida del sistema global al sistema local del elemento.
+
+    Args:
+        system: Modelo estructural que contiene el elemento.
+        load: Carga distribuida a transformar.
+        direction: Dirección de aplicación de la carga.
+        element_id: Identificador del elemento.
+
+    Returns:
+        DistributedLoad: Carga transformada al sistema local del elemento.
+
+    Raises:
+        ValueError: Si la dirección especificada no es válida.
+    """
+    
+    if csys == CoordinateSystemType.LOCAL:
+        if load_type == LoadType.FORCE:
+            if direction ==DirectionType.LOCAL_1:
+                return DistributedLoad(
+                    q_i=0,
+                    q_j=0,
+                    p_i=load_start,
+                    p_j=load_end,
+                    m_i=0,
+                    m_j=0
+                )
+            elif direction == DirectionType.LOCAL_2:
+                return DistributedLoad(
+                    q_i=load_start,
+                    q_j=load_end,
+                    p_i=0,
+                    p_j=0,
+                    m_i=0,
+                    m_j=0
+                )
+            elif direction == DirectionType.LOCAL_3:
+                raise ValueError("Dirección de carga no válida")
+        elif load_type == LoadType.MOMENT:
+            if direction == DirectionType.LOCAL_1:
+                raise ValueError("Dirección de carga no válida")
+            elif direction == DirectionType.LOCAL_2:
+                raise ValueError("Dirección de carga no válida")
+            elif direction == DirectionType.LOCAL_3:
+                return DistributedLoad(
+                    q_i=0,
+                    q_j=0,
+                    p_i=0,
+                    p_j=0,
+                    m_i=load_start,
+                    m_j=load_end
+                )
+                
+
+    
+    if csys == CoordinateSystemType.GLOBAL:
+        angle = system.element_map[element_id].angle_x_axis
+        cos_a, sin_a = np.cos(angle), np.sin(angle)
+        li, lj =load_start, load_end
+        if load_type == LoadType.FORCE:
+            if direction == DirectionType.X:
+                return DistributedLoad(
+                    q_i=li * sin_a,
+                    q_j=lj * sin_a,
+                    p_i=li * cos_a,
+                    p_j=lj * cos_a,
+                    m_i=0,
+                    m_j=0
+                )
+
+            elif direction == DirectionType.Y:
+                return DistributedLoad(
+                    q_i=li * cos_a,
+                    q_j=lj * cos_a,
+                    p_i=li * sin_a,
+                    p_j=lj * sin_a,
+                    m_i=0,
+                    m_j=0
+                )
+
+            elif direction == DirectionType.GRAVITY:
+                return DistributedLoad(
+                    q_i=-li * cos_a,
+                    q_j=-lj * cos_a,
+                    p_i=-li * sin_a,
+                    p_j=-lj * sin_a,
+                    m_i=0,
+                    m_j=0
+                )
+
+            elif direction == DirectionType.X_PROJ:
+                return DistributedLoad(
+                    q_i=li * sin_a * sin_a,
+                    q_j=lj * sin_a * sin_a,
+                    p_i=li * cos_a * sin_a,
+                    p_j=lj * cos_a * sin_a,
+                    m_i=0,
+                    m_j=0
+                )
+
+            elif direction == DirectionType.Y_PROJ:
+                return DistributedLoad(
+                    q_i=li * cos_a * cos_a,
+                    q_j=lj * cos_a * cos_a,
+                    p_i=li * sin_a * cos_a,
+                    p_j=lj * sin_a * cos_a,
+                    m_i=0,
+                    m_j=0
+                )
+
+            elif direction == DirectionType.GRAVITY_PROJ:
+                return DistributedLoad(
+                    q_i=-li * cos_a * cos_a,
+                    q_j=-lj * cos_a * cos_a,
+                    p_i=-li * sin_a * cos_a,
+                    p_j=-lj * sin_a * cos_a,
+                    m_i=0,
+                    m_j=0
+                )
+            
+            else:
+                raise ValueError("Dirección de carga no válida")
+            
+        if load_type == LoadType.MOMENT and direction == DirectionType.MOMENT:
+            return DistributedLoad(
+                q_i=0,
+                q_j=0,
+                p_i=0,
+                p_j=0,
+                m_i=li,
+                m_j=lj
+            )
 
 def loads_to_global_system(load: PointLoad, angle: float) -> PointLoad:
     """
-    Convierte una carga puntual de coordenadas locales a globales.
+    Transforma una carga puntual del sistema local al sistema global.
 
     Args:
-        load (PointLoad): Carga puntual.
-        angle (float): Ángulo de rotación en radianes.
+        load: Carga puntual a transformar.
+        angle: Ángulo de rotación en radianes.
 
     Returns:
-        PointLoad: Carga puntual en coordenadas globales.
+        PointLoad: Carga transformada al sistema global.
     """
     cos_a, sin_a = np.cos(angle), np.sin(angle)
-
     return PointLoad(
         fx=load.fx * cos_a - load.fy * sin_a,
         fy=load.fx * sin_a + load.fy * cos_a,
-        mz=load.mz  # Si el momento necesita transformación adicional, modificar aquí.
+        mz=load.mz
     )

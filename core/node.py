@@ -1,10 +1,10 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 import numpy as np
 from loads.load import PointLoad
-from utils.vertex import Vertex
 
 if TYPE_CHECKING:
     from utils.custom_types import Restraints
+    from utils.vertex import Vertex
 
 class Node:
     """
@@ -61,7 +61,3 @@ class Node:
 
     def __str__(self) -> str:
         return f"Node {self.id}: {self.vertex}, Restraints: {self.restraints}, Forces: {self.forces}"
-    
-    
-    
-

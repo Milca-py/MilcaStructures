@@ -1,45 +1,46 @@
 import numpy as np
 
 def local_stiffness_matrix(
-    modulus_elasticity: float,
-    moment_of_inertia: float,
-    area: float,
-    length: float,
-    poisson_ratio: float,
-    timoshenko_coefficient: float,
-    def_shear: bool = False
+    E: float,  # Módulo de Young
+    I: float,  # Momento de inercia
+    A: float,  # Área de la sección
+    L: float,  # Longitud del elemento
+    v: float,  # Coeficiente de Poisson
+    k: float,  # Coeficiente de Timoshenko
+    shear_effect: bool = True  # Efectos por cortante
 ) -> np.ndarray:
-    """Matriz de rigidez elemental para un elemento de viga.
+    """Matriz de rigidez local de una viga.
 
     Args:
-        modulus_elasticity (float): Módulo de Young.
-        moment_of_inertia (float): Momento de inercia.
-        area (float): Área de la sección transversal.
-        length (float): Longitud del elemento.
-        poisson_ratio (float): Coeficiente de Poisson.
-        timoshenko_coefficient (float): Factor de corrección por cortante.
-        def_shear (bool, opcional): Considerar deformaciones por cortante.
+        E (float): Módulo de elasticidad.
+        I (float): Momento de inercia.
+        A (float): Área transversal.
+        L (float): Longitud del elemento.
+        v (float): Coef. de Poisson.
+        κ (float): Factor de Timoshenko.
+        shear_effect (bool): Si es True, incluye cortante.
 
     Returns:
-        np.ndarray: Matriz de rigidez elemental.
+        np.ndarray: Matriz de rigidez 6x6.
     """
-    shear_modulus = modulus_elasticity / (2 * (1 + poisson_ratio))  # Cálculo de G
-    shear_deflection = 12 * modulus_elasticity * moment_of_inertia / (length**2 * area * timoshenko_coefficient * shear_modulus) if def_shear else 0
+    G = E / (2 * (1 + v))  # Módulo de corte
+    φ = (12 * E * I) / (L**2 * A * k * G) if shear_effect else 0  # Corrección por cortante
 
-    k11 = modulus_elasticity * area / length
-    k22 = 12 * modulus_elasticity * moment_of_inertia / (length**3 * (1 + shear_deflection))
-    k23 = 6 * modulus_elasticity * moment_of_inertia / (length**2 * (1 + shear_deflection))
-    k33 = (4 + shear_deflection) * modulus_elasticity * moment_of_inertia / (length * (1 + shear_deflection))
-    k66 = (2 - shear_deflection) * modulus_elasticity * moment_of_inertia / (length * (1 + shear_deflection))
+    k11 = E * A / L
+    k22 = 12 * E * I / (L**3 * (1 + φ))
+    k23 = 6 * E * I / (L**2 * (1 + φ))
+    k33 = (4 + φ) * E * I / (L * (1 + φ))
+    k66 = (2 - φ) * E * I / (L * (1 + φ))
 
     return np.array([
-        [ k11,   0,    0,   -k11,   0,    0 ],
+        [ k11,   0,    0,   -k11,   0,    0   ],
         [  0,   k22,  k23,    0,   -k22,  k23 ],
         [  0,   k23,  k33,    0,   -k23,  k66 ],
-        [-k11,   0,    0,    k11,   0,    0 ],
+        [-k11,   0,    0,    k11,   0,    0   ],
         [  0,  -k22, -k23,    0,    k22, -k23 ],
         [  0,   k23,  k66,    0,   -k23,  k33 ]
     ])
+
 
 
 def transformation_matrix(
@@ -64,24 +65,55 @@ def transformation_matrix(
     ])
 
 
-def trapezoidal_load_vector(
-    load_start: float,
-    load_end: float,
-    length: float
-) -> np.ndarray:
-    """Vector de cargas equivalentes para carga trapezoidal en un elemento.
+def trapezoidal_load_vector(q_i: float, q_j: float, L: float) -> np.ndarray:
+    """Vector de fuerzas nodales equivalentes para una carga trapezoidal.
 
     Args:
-        load_start (float): Carga en el nodo inicial.
-        load_end (float): Carga en el nodo final.
-        length (float): Longitud del elemento.
+        q_i (float): Intensidad de carga en el nodo inicial.
+        q_j (float): Intensidad de carga en el nodo final.
+        L (float): Longitud del elemento.
 
     Returns:
-        np.ndarray: Vector de fuerzas nodales equivalentes.
+        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
     """
-    Fi = 7 / 20 * load_start * length + 3 / 20 * load_end * length
-    Mi = 1 / 20 * load_start * length**2 + 1 / 30 * load_end * length**2
-    Fj = 3 / 20 * load_start * length + 7 / 20 * load_end * length
-    Mj = -(1 / 30 * load_start * length**2 + 1 / 20 * load_end * length**2)
-    
-    return np.array([0, Fi, Mi, 0, Fj, Mj])
+
+    F_i = (7 * q_i + 3 * q_j) * L / 20
+    M_i = (q_i / 20 + q_j / 30) * L**2 
+    F_j = (3 * q_i + 7 * q_j) * L / 20
+    M_j = -((q_i / 30 + q_j / 20) * L**2 )
+
+    return np.array([0, F_i, M_i, 0, F_j, M_j])
+
+
+def axial_linear_force(p_i: float, p_j: float, L: float) -> np.ndarray:
+    """Vector de fuerzas nodales equivalentes para una carga axial lineal.
+
+    Args:
+        p_i (float): Carga axial en el nodo inicial.
+        p_j (float): Carga axial en el nodo final.
+        L (float): Longitud del elemento.
+
+    Returns:
+        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
+    """
+    F_i = -(2 * p_i + p_j) * L / 6
+    F_j = -(p_i + 2 * p_j) * L / 6
+
+    return np.array([F_i, 0, 0, F_j, 0, 0])
+
+
+def moment_linear_force(m_i: float, m_j: float, L: float) -> np.ndarray:
+    """Vector de fuerzas nodales equivalentes para una carga de momento lineal.
+
+    Args:
+        m_i (float): Momento en el nodo inicial.
+        m_j (float): Momento en el nodo final.
+        L (float): Longitud del elemento.
+
+    Returns:
+        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
+    """
+    F_i = (m_i + m_j) / 2
+    M_i = (m_i - m_j) * L / 12
+
+    return np.array([0, F_i, M_i, 0, F_i, -M_i])

@@ -5,6 +5,7 @@ from core.material import Material, GenericMaterial
 from core.section import Section, RectangularSection
 from core.node import Node
 from core.element import Element
+from utils.vertex import Vertex
 
 from loads import LoadPattern, PointLoad, DistributedLoad
 
@@ -13,9 +14,10 @@ from utils.custom_types import (
     CoordinateSystemType,
     State,
     ElementType,
+    DirectionType,
+    LoadType,
     to_enum,
 )
-from utils.vertex import Vertex
 
 if TYPE_CHECKING:
     from utils.custom_types import Restraints, VertexLike
@@ -24,8 +26,9 @@ from components.system_components import (
     calculate_load_vector,
     assemble_global_stiffness_matrix,
     solve,
-    process_conditions,
 )
+
+from display.values import Plotter
 
 
 class SystemMilcaModel:
@@ -53,6 +56,10 @@ class SystemMilcaModel:
         self.displacements: Optional[np.ndarray] = None
         self.reactions: Optional[np.ndarray] = None
 
+        # ploter
+        self.plotter: Optional[Plotter] = None
+
+        
     def add_material(
         self,
         name: str,
@@ -173,7 +180,8 @@ class SystemMilcaModel:
             self_weight_multiplier,
             auto_load_pattern,
             create_load_case,
-            lp_state
+            lp_state,
+            self
         )
     
     def add_point_load(
@@ -184,7 +192,7 @@ class SystemMilcaModel:
         fx: float = 0.0,
         fy: float = 0.0,
         mz: float = 0.0,
-        angle: float = 0.0,
+        angle_rot: Optional[float] = None,
         replace: bool = False
     ) -> None:
         """
@@ -202,11 +210,11 @@ class SystemMilcaModel:
         """
         csys_enum = to_enum(CSys, CoordinateSystemType)
         self.load_pattern_map[load_pattern_name].add_point_load(
-            node_id,
-            PointLoad(fx=fx, fy=fy, mz=mz),
-            csys_enum,
-            angle,
-            replace
+            node_id=node_id,
+            forces=PointLoad(fx=fx, fy=fy, mz=mz),
+            csys=csys_enum,
+            angle_rot=angle_rot,
+            replace=replace
         )
     
     def add_distributed_load(
@@ -214,10 +222,12 @@ class SystemMilcaModel:
         element_id: int,
         load_pattern_name: str,
         CSys: str = "GLOBAL",
-        q_i: float = 0.0,
-        q_j: float = 0.0,
-        angle: float = 0.0,
-        replace: bool = False
+        load_start: float = 0.0,
+        load_end: float = 0.0,
+        replace: bool = False,
+        direction: str = "LOCAL_2",
+        load_type: str = "FORCE"
+        
     ) -> None:
         """
         Asigna una carga distribuida a un elemento dentro de un patrón de carga.
@@ -228,16 +238,21 @@ class SystemMilcaModel:
             CSys (str, opcional): Sistema de coordenadas ("GLOBAL" o "LOCAL"). Default es "GLOBAL".
             q_i (float, opcional): Magnitud de la carga en el nodo inicial.
             q_j (float, opcional): Magnitud de la carga en el nodo final.
-            angle (float, opcional): Ángulo de rotación en radianes.
             replace (bool, opcional): Si se reemplaza la carga existente. Default es False.
+            
         """
         csys_enum = to_enum(CSys, CoordinateSystemType)
+        direction_enum = to_enum(direction, DirectionType)
+        load_type_enum = to_enum(load_type, LoadType)
+        
         self.load_pattern_map[load_pattern_name].add_distributed_load(
-            element_id,
-            DistributedLoad(q_i=q_i, q_j=q_j),
-            csys_enum,
-            angle,
-            replace
+            element_id=element_id,
+            load_start=load_start,
+            load_end=load_end,
+            load_type=load_type_enum,
+            csys=csys_enum,
+            replace=replace,
+            direction=direction_enum
         )
     
     def solve(self) -> None:
@@ -263,3 +278,18 @@ class SystemMilcaModel:
         
         # Resolver el sistema de ecuaciones
         self.displacements, self.reactions = solve(self)
+
+    def show_structure(self, show: bool = True) -> None:
+        """
+        Muestra la estructura del modelo.
+        """
+        if self.plotter is None:
+            self.plotter = Plotter(self)  # Inicializar solo cuando se use
+        self.plotter.plot_structure(show=show)
+
+
+
+
+
+
+

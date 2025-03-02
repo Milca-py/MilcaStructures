@@ -248,7 +248,7 @@ class Vertex:
 
 
 def vertex_range(v1: Vertex, v2: Vertex, n: int) -> list:
-    """Crear una lista de n objetos Vertex entre dos objetos Vertex
+    """Crear una lista de n + 1 objetos Vertex entre dos objetos Vertex
 
     Args:
         v1 (Vertex): Vertex inicial
@@ -256,7 +256,7 @@ def vertex_range(v1: Vertex, v2: Vertex, n: int) -> list:
         n (int): Número de objetos Vertex a crear
 
     Returns:
-        list: Lista de n objetos Vertex entre v1 y v2
+        list: Lista de n + 1 objetos Vertex entre v1 y v2
     """
     dv = v2 - v1
     return [v1 + dv * i / n for i in range(n + 1)]

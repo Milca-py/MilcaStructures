@@ -5,7 +5,9 @@ from loads.load import DistributedLoad
 from components.element_components import (
     local_stiffness_matrix,
     transformation_matrix,
-    trapezoidal_load_vector
+    trapezoidal_load_vector,
+    axial_linear_force,
+    moment_linear_force
 )
 
 if TYPE_CHECKING:
@@ -50,12 +52,7 @@ class Element:
         self.load_vector_global: Optional[np.ndarray] = None
 
         self.distributed_load: DistributedLoad = DistributedLoad()
-        
-        # self.compile_stiffness_matrix()
-        # self.compile_transformation_matrix()
-        # self.compile_load_vector()
-        # self.compile_stiffness_matrix_global()
-        # self.compile_load_vector_global()
+
 
     @property
     def length(self) -> float:
@@ -76,18 +73,18 @@ class Element:
         Args:
             load (DistributedLoad): Carga distribuida a aplicar.
         """
-        self.distributed_load = load
+        self.distributed_load += load
 
     def compile_stiffness_matrix(self) -> None:
         """Compila la matriz de rigidez local del elemento."""
         self._stiffness_matrix = local_stiffness_matrix(
-            modulus_elasticity=self.section.material.modulus_elasticity,
-            moment_of_inertia=self.section.moment_of_inertia,
-            area=self.section.area,
-            length=self.length,
-            poisson_ratio=self.section.material.poisson_ratio,
-            timoshenko_coefficient=self.section.timoshenko_coefficient,
-            def_shear=True,
+            E=self.section.material.modulus_elasticity,
+            I=self.section.moment_of_inertia,
+            A=self.section.area,
+            L=self.length,
+            v=self.section.material.poisson_ratio,
+            k=self.section.timoshenko_coefficient,
+            shear_effect=True,
         )
 
     def compile_transformation_matrix(self) -> None:
@@ -99,9 +96,17 @@ class Element:
     def compile_load_vector(self) -> None:
         """Determina el vector de fuerzas equivalentes debido a la carga distribuida."""
         self._load_vector = trapezoidal_load_vector(
-            load_start=self.distributed_load.q_i,
-            load_end=self.distributed_load.q_j,
-            length=self.length
+            q_i=self.distributed_load.q_i,
+            q_j=self.distributed_load.q_j,
+            L=self.length
+        ) + axial_linear_force(
+            p_i=self.distributed_load.m_i,
+            p_j=self.distributed_load.m_j,
+            L=self.length
+        ) + moment_linear_force(
+            m_i=self.distributed_load.m_i,
+            m_j=self.distributed_load.m_j,
+            L=self.length
         )
 
     def compile_stiffness_matrix_global(self) -> None:

@@ -11,3 +11,12 @@ from .system_components import (
     calculate_load_vector,
     assemble_global_stiffness_matrix
 )
+
+
+from .element_components import (
+    local_stiffness_matrix,
+    transformation_matrix,
+    trapezoidal_load_vector,
+    axial_linear_force,
+    moment_linear_force
+)

@@ -1,6 +1,5 @@
 from .vertex import (
     Vertex,
-    det_coordinates,
     vertex_range
 )
 from .custom_types import (
