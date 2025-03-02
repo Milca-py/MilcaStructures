@@ -72,8 +72,8 @@ model.solve()
 
 # # Mostrar la estructura sin mostrar la figura inmediatamente
 model.show_structure(show=False)
-for ax in model.plotter.fig.axes:
-    ax.axis("off")  # Ocultar ejes
+# for ax in model.plotter.fig.axes:
+#     ax.axis("off")  # Ocultar ejes
 # model.show_structure()
 
 

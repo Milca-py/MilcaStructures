@@ -131,9 +131,9 @@ class Plotter:
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
         # ploteo de las cargas puntuales
-        self._plot_point_loads(axes_i=axes_i, color="blue")
+        self._plot_point_loads(axes_i=axes_i, color="red")
         # ploteo de las cargas distribuidas
-        self._plot_distributed_loads(axes_i=axes_i, color="blue")
+        self._plot_distributed_loads(axes_i=axes_i, color="red")
         if show:
             plt.show()
 
@@ -353,8 +353,43 @@ class Plotter:
                 raise NotImplementedError("Momentos distribuidos no implementados.")
 
 
-def plot_values_deflection():
-    pass
+def plot_values_deflection(
+    element: "Element", factor: float, linear: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Determines the plotting values for deflection
+
+    Args:
+        element (Element): Element to plot
+        factor (float): Factor by which to multiply the plotting values perpendicular to the elements axis.
+        linear (bool, optional): If True, the bending in between the elements is determined. Defaults to False.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: x and y values
+    """
+    ux1 = element.node_1.ux * factor
+    uy1 = -element.node_1.uy * factor
+    ux2 = element.node_2.ux * factor
+    uy2 = -element.node_2.uy * factor
+
+    x1 = element.vertex_1.x + ux1
+    y1 = element.vertex_1.y + uy1
+    x2 = element.vertex_2.x + ux2
+    y2 = element.vertex_2.y + uy2
+
+    if element.type == "general" and not linear:
+        assert element.deflection is not None
+        n = len(element.deflection)
+        x_val = np.linspace(x1, x2, n)
+        y_val = np.linspace(y1, y2, n)
+
+        x_val = x_val + element.deflection * math.sin(element.angle) * factor
+        y_val = y_val + element.deflection * -math.cos(element.angle) * factor
+
+    else:  # truss element has no bending
+        x_val = np.array([x1, x2])
+        y_val = np.array([y1, y2])
+
+    return x_val, y_val
 
 
 def plot_values_bending_moment():

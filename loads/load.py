@@ -230,8 +230,8 @@ class DistributedLoad(Load):
     Representa una carga distribuida en un elemento estructural 2D.
     
     Esta clase modela cargas distribuidas con valores iniciales (i) y finales (j):
-    - q: Carga distribuida perpendicular al eje de la viga (cortante)
-    - p: Carga distribuida axial a lo largo del eje x de la viga
+    - q: Carga distribuida perpendicular al eje de la viga
+    - p: Carga distribuida axial a lo largo del eje de la viga
     - m: Momento distribuido que genera rotación alrededor del eje z
     
     Attributes:

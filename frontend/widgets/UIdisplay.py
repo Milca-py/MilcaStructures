@@ -84,7 +84,7 @@ class MatplotlibCanvas(tk.Frame):
 
 def create_plot_window(fig):
     root = tk.Tk()
-    root.title("Ploting Milca System")
+    root.title("Milca System Plotter")
     root.geometry("1200x800")
     
     # Set window icon

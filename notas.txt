@@ -1,30 +1,3 @@
-crear validadores: (PARA TODOS LOS TIPOS DE CLASES PARA USARLO EN LA CLASE SYSTEM) ok dentro de system
-
-def validador_element_type(arg: str):
-    if "TRUSS":
-        return ElementType.FRAME
-    if "FRAME"
-        return ElementType.FRAME
-
-
-dentro de LOAD PATTERN:
-- transformar todas las cargas a sistema global
-
-implementar una logica rubusta para cargas distribuidas
-- crear una fucnion que tranforme cargas a sistema global
-
-
-
-\validaciones de len()
-\validaciones de suma o reemplazar
-\validaciones SYSTEM coordenadas
-
-
-corregir todo con QWEN Y DEEPSEEK
-
-las cargas distribuidas todavia no tienen logica para suma, resta, mul, div, etc, por que se complica su calculo para calcular diagrams de N, V, M, Y. [asi que por el momento solo se pueden asignar una sola carga por el elemento, asignar otra lo reeplzará mas no se agregara o se añadirá, asi tambien faltaria implenetar reemplce = True, parametro] [los metodos especiales solo estan implenetados para hacer opraciones con numeros escalares mas no con instancias del la clase misma]
-
-
 implementar:
  - clase results,
  - desing, 
@@ -33,60 +6,86 @@ implementar:
  - load combination,
 
 
-
-las cargas puntuales pueden ser de tipo local con un angulo o global sin angulo o por defecto auque se indique no se usa
-
-
 ME QUEDE EN .................
-
-- implementacion de cargas distribuidad en load pattern y system y element y demas a considerar
-- carags distribuidad incglinada con angulo tranformar a ejes locales 
-- corregir la fucnion loads_to_global_system() en load pattern
-- corregir system_componets.py
-- corregir system.py 
-- falta logica para convertir sistemas de coordenadas de loas caragas distribuidas
 - odenar los resultados : desplazaments and reactions
+- para GUID usar parametro de clase en system
+- usar MatrixException, excepciones
 
 
 
 
-para temas de optimizacion almacenar los restraints en una lista o dicionario para intruducir condicones de frontera antes de asignarlos a los odos mismos
-falta implenetar vector de cargas para momento distribuida
 
 
 
 
 
-/mi_software
-│── /src                     # Código fuente principal
-│   │── /core                # Lógica principal del software
-│   │── /modules             # Módulos específicos del software
-│   │── /services            # Servicios y lógica de negocio
-│   │── /controllers         # Controladores (si aplica)
-│   │── /models              # Modelos de datos
-│   │── /views               # Interfaces gráficas (si aplica)
-│   │── /utils               # Funciones auxiliares y herramientas
-│── /assets                  # Recursos gráficos, multimedia, etc.
-│   │── /icons               # Íconos de la aplicación
-│   │── /images              # Imágenes generales
-│   │── /fonts               # Tipografías personalizadas
-│── /config                  # Configuración del software
-│   │── settings.py          # Configuraciones generales
-│   │── database.yml         # Configuración de base de datos
-│── /tests                   # Pruebas automatizadas
-│   │── /unit                # Pruebas unitarias
-│   │── /integration         # Pruebas de integración
-│── /docs                    # Documentación técnica
-│   │── /api                 # Documentación de API
-│   │── /guides              # Guías de usuario
-│── /scripts                 # Scripts para automatización
-│── /logs                    # Registros del sistema
-│── /bin                     # Ejecutables o scripts CLI
-│── /static                  # Archivos estáticos (CSS, JS, etc.)
-│── .gitignore               # Archivos a excluir en Git
-│── README.md                # Descripción del proyecto
-│── requirements.txt         # Dependencias del proyecto (Python)
-│── setup.py                 # Instalador del software (Python)
-│── LICENSE                  # Licencia del proyecto
-│── Dockerfile               # Configuración para Docker (si aplica)
-│── Makefile                 # Tareas de automatización (si aplica)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PARA EL 3D =================================================
+
+
+clases:
+
+Element:
+    self.id = Element.id
+    Element.id += 1
+    self.start_node = start_node
+    self.end_node = end_node
+    self.section = section
+    self.material = material
+    self.length = 
+    @property
+    def degrees_of_freedom(self):
+    @property
+    def matrix(self): = A.T @ K @ A
+
+
+
+DegreeOfFreedom:
+    self.id = DegreeOfFreedom.id
+    DegreeOfFreedom.id += 1
+    self.__displacement_value = 0
+    self.__restrained = False
+    self.__force = 0
+
+
+    @property
+    def displacement(self):
+
+    @property
+    def force(self):
+
+    @property
+    def restrained(self):
+
+    @property
+    def displaced(self):
+
+
+
+class Node:
+    self.id = Node.__node_id
+    Node.__node_id += 1
+    self._x = x
+    self._y = y
+    self._z = z
+    self.dof_1 = DegreeOfFreedom()
+    self.dof_2 = DegreeOfFreedom()
+    self.dof_3 = DegreeOfFreedom()
+    self.dof_4 = DegreeOfFreedom()
+    self.dof_5 = DegreeOfFreedom()
+    self.dof_6 = DegreeOfFreedom()
+
+
