@@ -1,6 +1,8 @@
 from typing import List, Dict, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from core.system import SystemMilcaModel
+    from utils import TypeAnalysis
+
 
 
 class Analysis:
@@ -35,4 +37,11 @@ class StaticAnalysis:
         self.time_step = 0
         self.time_steps
 
-TypeAnalysis = Union[DynamicsAnalysis, StaticAnalysis]
+class OrderAnalysis:
+    "Clase que contiene las opciones de análisis de orden."
+    def __init__(self, system: 'SystemMilcaModel'):
+        self.system = system
+        self.type = 'first_order'
+        self.time = 0
+        self.time_step = 0
+        self.time_steps

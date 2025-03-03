@@ -4,12 +4,14 @@ import numpy as np
 
 if TYPE_CHECKING:
     from utils.vertex import Vertex
+    from core.analysis import DynamicsAnalysis, StaticAnalysis
 
 
 # Tipos básicos
 NumberLike = Union[float, int, np.number]
 VertexLike = Union[Sequence[Union[float, int]], np.ndarray, 'Vertex']
 SequenceLike = Union[Sequence[Union[float, int]], np.ndarray]
+TypeAnalysis = Union["DynamicsAnalysis", "StaticAnalysis"]
 
 # Definición de ejes y restricciones
 AxisNumber = Literal[1, 2, 3]
