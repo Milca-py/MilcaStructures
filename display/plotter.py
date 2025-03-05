@@ -31,7 +31,7 @@ from display.load import (
 
 
 
-class PlottingValues:
+class PlotterValues:
     def __init__(self, system: 'SystemMilcaModel'):
         self.system = system
 
@@ -90,7 +90,7 @@ class Plotter:
     def __init__(self, system: 'SystemMilcaModel'):
         self.system = system
         self.options = GraphicOption(self.system)
-        self.values = PlottingValues(self.system)
+        self.values = PlotterValues(self.system)
         self.axes: List["Axes"] = []
         self.fig: Optional["Figure"] = None
         self.__start_plot(self.options.figsize)

@@ -33,7 +33,7 @@ class Node:
         self.dof: np.ndarray = np.array([
             self.id * 3 - 2,  # DOF en x
             self.id * 3 - 1,  # DOF en y
-            self.id * 3       # DOF en theta
+            self.id * 3 - 0   # DOF en theta
         ], dtype=int)
 
         self.forces: PointLoad = PointLoad()  # Carga inicializada en 0
@@ -54,9 +54,6 @@ class Node:
         Args:
             forces (PointLoad): Carga puntual aplicada al nodo.
         """
-        if not isinstance(forces, PointLoad):
-            raise TypeError("Las fuerzas deben ser una instancia de PointLoad.")
-
         self.forces += forces
 
     def __str__(self) -> str:

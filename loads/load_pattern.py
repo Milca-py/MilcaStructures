@@ -14,27 +14,17 @@ class LoadPattern:
     
     Esta clase gestiona la aplicación y transformación de cargas puntuales y distribuidas
     en un sistema estructural, permitiendo su manipulación en diferentes sistemas de coordenadas.
-    
-    Atributos:
-        name (str): Nombre identificativo del patrón de carga.
-        load_type (LoadPatternType): Tipo de carga (por defecto LoadPatternType.DEAD).
-        self_weight_multiplier (float): Factor multiplicador del peso propio.
-        auto_load_pattern (bool): Indica si el patrón se genera automáticamente.
-        create_load_case (bool): Indica si se debe crear un caso de carga asociado.
-        state (State): Estado actual del patrón de carga.
-        point_loads_map (Dict[int, PointLoad]): Mapeo de cargas puntuales por ID de nodo.
-        distributed_loads_map (Dict[int, DistributedLoad]): Mapeo de cargas distribuidas por ID de elemento.
     """
 
     def __init__(
         self,
         name: str,
-        load_type: LoadPatternType = LoadPatternType.DEAD,
+        pattern_type: LoadPatternType = LoadPatternType.DEAD,
         self_weight_multiplier: float = 0.0,
         auto_load_pattern: bool = False,
         create_load_case: bool = False,
         state: State = State.ACTIVE,
-        system: "SystemMilcaModel" = None
+        system: Optional["SystemMilcaModel"] = None
     ) -> None:
         """
         Inicializa un nuevo patrón de carga con los parámetros especificados.
@@ -58,7 +48,7 @@ class LoadPattern:
         self._system = system
 
         self.name = name
-        self.load_type = load_type
+        self.pattern_type = pattern_type
         self.self_weight_multiplier = float(self_weight_multiplier)
         self.auto_load_pattern = auto_load_pattern
         self.create_load_case = create_load_case

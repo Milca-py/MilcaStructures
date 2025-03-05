@@ -8,7 +8,7 @@ mediante el método de rigidez y análisis matricial.
 from .system_components import (
     solve,
     process_conditions,
-    calculate_load_vector,
+    assemble_global_load_vector,
     assemble_global_stiffness_matrix
 )
 
@@ -16,7 +16,5 @@ from .system_components import (
 from .element_components import (
     local_stiffness_matrix,
     transformation_matrix,
-    trapezoidal_load_vector,
-    axial_linear_force,
-    moment_linear_force
+    local_load_vector
 )

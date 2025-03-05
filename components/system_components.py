@@ -8,7 +8,7 @@ import numpy as np
 if TYPE_CHECKING:
     from core.system import SystemMilcaModel
 
-def calculate_load_vector(modelo: "SystemMilcaModel") -> np.ndarray:
+def assemble_global_load_vector(modelo: "SystemMilcaModel") -> np.ndarray:
     """Calcula el vector de carga global del sistema.
 
     Args:
@@ -29,14 +29,13 @@ def calculate_load_vector(modelo: "SystemMilcaModel") -> np.ndarray:
 
     # Agregar las cargas MEP que estaban almacendos en los elementos
     for elemento in modelo.element_map.values():
-        elemento.compile_stiffness_matrix()
+        # compilamos las matrices de fuerzas global
         elemento.compile_transformation_matrix()
-        elemento.compile_load_vector()
-        elemento.compile_stiffness_matrix_global()
-        elemento.compile_load_vector_global()
+        elemento.compile_local_load_vector()
+        elemento.compile_global_load_vector()
 
-        f = elemento.load_vector_global
-        dof = elemento._dof_map
+        f = elemento.global_load_vector
+        dof = elemento.dof_map
         F[dof-1] += f
 
     return F
@@ -55,8 +54,10 @@ def assemble_global_stiffness_matrix(modelo: "SystemMilcaModel") -> np.ndarray:
 
     # Ensamblar la matriz de rigidez global
     for elemento in modelo.element_map.values():
-        k = elemento.stiffness_matrix_global
-        dof = elemento._dof_map
+        elemento.compile_local_stiffness_matrix()
+        elemento.compile_global_stiffness_matrix()
+        k = elemento.global_stiffness_matrix
+        dof = elemento.dof_map
         for i in range(6):
             for j in range(6):
                 K[dof[i]-1, dof[j]-1] += k[i, j]
@@ -86,12 +87,29 @@ def process_conditions(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarr
 
     # Identificar grados de libertad libres
     dofs_libres = np.where(~restricciones)[0]
+    dofs_restringidos = np.where(restricciones)[0]
 
-    # Reducir la matriz de rigidez y el vector de fuerzas
-    K_red = modelo.global_stiffness_matrix[np.ix_(dofs_libres, dofs_libres)]
-    F_red = modelo.global_force_vector[dofs_libres]
+    # Reducir la matriz de rigidez 
+    
+    #     | Kd   Kdc |
+    # K = |          |
+    #     | Kcd   Kc |
+    
+    K_d = modelo.global_stiffness_matrix[np.ix_(dofs_libres, dofs_libres)]
+    K_dc = modelo.global_stiffness_matrix[np.ix_(dofs_libres, dofs_restringidos)]
+    K_cd = modelo.global_stiffness_matrix[np.ix_(dofs_restringidos, dofs_libres)]
+    K_c = modelo.global_stiffness_matrix[np.ix_(dofs_restringidos, dofs_restringidos)]
+    
+    # Reducir el vector de fuerzas
+    
+    #     | Fd |
+    # F = |    |
+    #     | Fc |
+    
+    F_d = modelo.global_force_vector[dofs_libres]
+    F_c = modelo.global_force_vector[dofs_restringidos]
 
-    return K_red, F_red, dofs_libres
+    return K_d, K_dc, K_cd, K_c, F_d, F_c, dofs_libres, dofs_restringidos
 
 def solve(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarray]:
     """Resuelve el sistema de ecuaciones F = KU.
@@ -104,10 +122,11 @@ def solve(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarray]:
         - Desplazamientos nodales.
         - Reacciones en los apoyos.
     """
-    K_red, F_red, dofs_libres = process_conditions(modelo)
+    K_d, _, _, _, F_d, _, dofs_libres, _ = process_conditions(modelo)
+
 
     # Resolver el sistema de ecuaciones
-    U_red = np.linalg.solve(K_red, F_red)
+    U_red = np.linalg.solve(K_d, F_d)
 
     # Colocar los desplazamientos en los grados de libertad libres
     nn = len(modelo.node_map)

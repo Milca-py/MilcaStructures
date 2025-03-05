@@ -1,5 +1,9 @@
 import numpy as np
+from functools import lru_cache
 
+CACHE_COPIES = 320
+
+@lru_cache(CACHE_COPIES)
 def local_stiffness_matrix(
     E: float,  # Módulo de Young
     I: float,  # Momento de inercia
@@ -42,7 +46,7 @@ def local_stiffness_matrix(
     ])
 
 
-
+@lru_cache(CACHE_COPIES)
 def transformation_matrix(
     angle: float
 ) -> np.ndarray:
@@ -65,59 +69,7 @@ def transformation_matrix(
     ])
 
 
-def trapezoidal_load_vector(q_i: float, q_j: float, L: float) -> np.ndarray:
-    """Vector de fuerzas nodales equivalentes para una carga trapezoidal.
-
-    Args:
-        q_i (float): Intensidad de carga en el nodo inicial.
-        q_j (float): Intensidad de carga en el nodo final.
-        L (float): Longitud del elemento.
-
-    Returns:
-        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
-    """
-
-    F_i = (7 * q_i + 3 * q_j) * L / 20
-    M_i = (q_i / 20 + q_j / 30) * L**2 
-    F_j = (3 * q_i + 7 * q_j) * L / 20
-    M_j = -((q_i / 30 + q_j / 20) * L**2 )
-
-    return np.array([0, F_i, M_i, 0, F_j, M_j])
-
-
-def axial_linear_force(p_i: float, p_j: float, L: float) -> np.ndarray:
-    """Vector de fuerzas nodales equivalentes para una carga axial lineal.
-
-    Args:
-        p_i (float): Carga axial en el nodo inicial.
-        p_j (float): Carga axial en el nodo final.
-        L (float): Longitud del elemento.
-
-    Returns:
-        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
-    """
-    F_i = -(2 * p_i + p_j) * L / 6
-    F_j = -(p_i + 2 * p_j) * L / 6
-
-    return np.array([F_i, 0, 0, F_j, 0, 0])
-
-
-def moment_linear_force(m_i: float, m_j: float, L: float) -> np.ndarray:
-    """Vector de fuerzas nodales equivalentes para una carga de momento lineal.
-
-    Args:
-        m_i (float): Momento en el nodo inicial.
-        m_j (float): Momento en el nodo final.
-        L (float): Longitud del elemento.
-
-    Returns:
-        np.ndarray: Vector de fuerzas nodales [Fxi, Fyi, Mi, Fxj, Fyj, Mj].
-    """
-    F_i = (m_i + m_j) / 2
-    M_i = (m_i - m_j) * L / 12
-
-    return np.array([0, F_i, M_i, 0, F_i, -M_i])
-
+@lru_cache(CACHE_COPIES)
 def local_load_vector(
     L: float,  # Longitud del elemento
     phi: float,  # Aporte de cortante

@@ -503,32 +503,6 @@ def set_cell_tags(self, item_id, column, tags):
 # Añadir el método al treeview
 ttk.Treeview.set_cell_tags = set_cell_tags
 
-
-def main():
-    # Iniciar con array desde argumento o sin array
-    if len(sys.argv) > 1:
-        try:
-            array = np.load(sys.argv[1])
-            app = ExcelStyleArrayViewer(array)
-        except:
-            app = ExcelStyleArrayViewer()
-    else:
-        app = ExcelStyleArrayViewer()
-    
-    # Centrar ventana
-    app.update_idletasks()
-    width = app.winfo_width()
-    height = app.winfo_height()
-    x = (app.winfo_screenwidth() // 2) - (width // 2)
-    y = (app.winfo_screenheight() // 2) - (height // 2)
-    app.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-    
-    app.mainloop()
-
-
-if __name__ == "__main__":
-    main()
-
 def mostrar_array(array, zero_threshold=False, round_values=False, decimal_places=4):
     """
     Muestra un array NumPy en una interfaz gráfica

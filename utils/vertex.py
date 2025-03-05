@@ -61,7 +61,6 @@ class Vertex:
         """
         return float(self.coordinates[1])
 
-    @property
     def modulus(self) -> float:
         """Magnitud del vector desde el origen hasta el Vertex
 
@@ -69,7 +68,7 @@ class Vertex:
             float: Magnitud del vector desde el origen hasta el Vertex
         """
         return float(np.sqrt(np.sum(self.coordinates**2)))
-    @property
+    
     def unit(self) -> Vertex:
         """Vector unitario desde el origen hasta el Vertex
 

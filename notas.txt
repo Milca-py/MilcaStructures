@@ -15,7 +15,12 @@ ME QUEDE EN .................
 
 
 
-
+FALTA IMPLEMENTACIONES PARA: -------------
+- peso propio
+- active de load pattern
+- auto load pattern y case
+- pattern type
+- element type
 
 
 

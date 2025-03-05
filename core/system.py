@@ -23,13 +23,16 @@ if TYPE_CHECKING:
     from utils.custom_types import Restraints, VertexLike
 
 from components.system_components import (
-    calculate_load_vector,
+    assemble_global_load_vector,
     assemble_global_stiffness_matrix,
     solve,
 )
 
-from display.values import Plotter
+from display.plotter import Plotter, PlotterValues
 
+from core.results import Results
+
+from core.analysis import Analysis
 
 class SystemMilcaModel:
     """
@@ -52,12 +55,20 @@ class SystemMilcaModel:
         self.global_force_vector: Optional[np.ndarray] = None
         self.global_stiffness_matrix: Optional[np.ndarray] = None
 
+        # Análisis
+        self.analysis: Optional[Analysis] = Analysis(self)
+
         # Resultados
         self.displacements: Optional[np.ndarray] = None
         self.reactions: Optional[np.ndarray] = None
-
+        
+        self.results: Optional[Results] = None
+        
         # ploter
         self.plotter: Optional[Plotter] = None
+        
+        # plotter values
+        self.plotter_values: Optional[PlotterValues] = None 
 
         
     def add_material(
@@ -108,13 +119,12 @@ class SystemMilcaModel:
             id (int): Identificador del nodo.
             vertex (VertexLike): Coordenadas del nodo (convertibles a Vertex).
         """
-        vertex = Vertex(vertex)
-        self.node_map[id] = Node(id, vertex)
+        self.node_map[id] = Node(id, Vertex(vertex))
     
     def add_element(
         self,
         id: int,
-        type: str,
+        # type: str,
         node_i_id: int,
         node_j_id: int,
         section_name: str
@@ -129,13 +139,13 @@ class SystemMilcaModel:
             node_j_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
         """
-        element_type = to_enum(type, ElementType)
+        # element_type = to_enum(type, ElementType)
         self.element_map[id] = Element(
-            id,
-            element_type,
-            self.node_map[node_i_id],
-            self.node_map[node_j_id],
-            self.section_map[section_name]
+            id=id,
+            type=ElementType.FRAME,
+            node_i=self.node_map[node_i_id],
+            node_j=self.node_map[node_j_id],
+            section=self.section_map[section_name]
         )
 
     def add_restraint(
@@ -155,11 +165,11 @@ class SystemMilcaModel:
     def add_load_pattern(
         self,
         name: str,
-        load_type: str = "DEAD",
-        self_weight_multiplier: float = 0.0,
-        auto_load_pattern: bool = False,
-        create_load_case: bool = False,
-        state: str = "ACTIVE"
+        # pattern_type: str = "DEAD",
+        # self_weight_multiplier: float = 0.0,
+        # auto_load_pattern: bool = False,
+        # create_load_case: bool = False,
+        # state: str = "ACTIVE"
     ) -> None:
         """
         Agrega un patrón de carga al modelo.
@@ -172,16 +182,16 @@ class SystemMilcaModel:
             create_load_case (bool, opcional): Si se crea un caso de carga asociado. Default es False.
             state (str, opcional): Estado del patrón (se convertirá a State). Default es "ACTIVE".
         """
-        lp_type = to_enum(load_type, LoadPatternType)
-        lp_state = to_enum(state, State)
+        # lpattern_type = to_enum(pattern_type, LoadPatternType)
+        # lp_state = to_enum(state, State)
         self.load_pattern_map[name] = LoadPattern(
             name,
-            lp_type,
-            self_weight_multiplier,
-            auto_load_pattern,
-            create_load_case,
-            lp_state,
-            self
+            # lpattern_type,
+            # self_weight_multiplier,
+            # auto_load_pattern,
+            # create_load_case,
+            # lp_state,
+            system=self
         )
     
     def add_point_load(
@@ -270,7 +280,7 @@ class SystemMilcaModel:
         lp.assign_loads_to_elements(self)
         
         # Calcular el vector de fuerzas global y la matriz de rigidez global
-        self.global_force_vector = calculate_load_vector(self)
+        self.global_force_vector = assemble_global_load_vector(self)
         self.global_stiffness_matrix = assemble_global_stiffness_matrix(self)
 
         # Se puede aplicar el procesamiento de condiciones de frontera si se requiere:
@@ -278,6 +288,12 @@ class SystemMilcaModel:
         
         # Resolver el sistema de ecuaciones
         self.displacements, self.reactions = solve(self)
+        
+        # acutalizar estado de análisis
+        self.analysis.options.status = True
+        self.results = Results(self)
+        self.plotter = Plotter(self)
+        self.plotter_values = PlotterValues(self)
 
     def show_structure(self, show: bool = True) -> None:
         """

@@ -4,7 +4,8 @@ if TYPE_CHECKING:
 
 
 class Results:
-    "Clase que extrae, organiza y almacena los resultados de las simulaciones."
+    "Clase que extrae, organiza y almacena los resultados de una simulacion."
     def __init__(self, system: 'SystemMilcaModel'):
         self.system = system
-        self.results = {}
+        self.reactions = self.system.reactions
+        self.desplacements = self.system.displacements
