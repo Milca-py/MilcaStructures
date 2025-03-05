@@ -69,7 +69,7 @@ model.add_point_load(3, "Live Load", "GLOBAL", 10, 0, 0)
 model.add_point_load(4, "Live Load", "GLOBAL", 20, 0, 0)
 
 model.add_distributed_load(7, "Live Load", "LOCAL", -5, -5)
-model.add_distributed_load(8, "Live Load", "LOCAL", 0, -6)
+model.add_distributed_load(8, "Live Load", "LOCAL", 2, -6)
 model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
 
 model.solve()
@@ -91,8 +91,8 @@ k_global = model.global_stiffness_matrix
 
 
 
-array = k_global
-app = mostrar_array(array, zero_threshold=True, round_values=True, decimal_places=0)
+# array = k_global
+# app = mostrar_array(array, zero_threshold=True, round_values=True, decimal_places=0)
 
 
 

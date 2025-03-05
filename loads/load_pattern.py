@@ -243,7 +243,6 @@ def distributed_load_to_local_system(
                     m_i=load_start,
                     m_j=load_end
                 )
-                
 
     
     if csys == CoordinateSystemType.GLOBAL:

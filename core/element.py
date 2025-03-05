@@ -100,8 +100,8 @@ class Element:
             q_j=self.distributed_load.q_j,
             L=self.length
         ) + axial_linear_force(
-            p_i=self.distributed_load.m_i,
-            p_j=self.distributed_load.m_j,
+            p_i=self.distributed_load.p_i,
+            p_j=self.distributed_load.p_j,
             L=self.length
         ) + moment_linear_force(
             m_i=self.distributed_load.m_i,

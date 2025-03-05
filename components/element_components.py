@@ -117,3 +117,52 @@ def moment_linear_force(m_i: float, m_j: float, L: float) -> np.ndarray:
     M_i = (m_i - m_j) * L / 12
 
     return np.array([0, F_i, M_i, 0, F_i, -M_i])
+
+def local_load_vector(
+    L: float,  # Longitud del elemento
+    phi: float,  # Aporte de cortante
+    q_i: float,  # intensidad de carga transversal en el nodo i
+    q_j: float,  # intensidad de carga transversal en el nodo j
+    p_i: float,  # intensidad de carga axial en el nodo i
+    p_j: float,  # intensidad de carga axial en el nodo j
+) -> np.ndarray:
+    """
+    Calcula el vector de carga local para un elemento de longitud L
+    con un coeficiente de Timoshenko phi y cargas distribuidas q_i y q_j.
+    
+    Args:
+        L (float): Longitud del elemento.
+        phi (float): Aporte de cortante.
+        q_i (float): Carga distribuida en el nodo inicial.
+        q_j (float): Carga distribuida en el nodo final.
+        p_i (float): Carga axial en el nodo inicial.
+        p_j (float): Carga axial en el nodo final.
+    
+    Returns:
+        np.ndarray: Vector de carga local.
+    """
+    A = (q_j - q_i) / L
+    B = q_i
+
+    M = np.array([
+        [L**2, L],
+        [L**3 * (2 - phi) / 12, L**2 / 2]
+    ])
+
+    N = np.array([
+        A * L**4 / 24 + B * L**3 / 6,
+        A * L**5 * (0.6 - phi) / 72 + B * L**4 * (1 - phi) / 24
+    ])
+
+    C = np.linalg.solve(M, N)  # Más eficiente que inv(M) @ N
+
+    Q = np.array([
+        -(2 * p_i + p_j) * L / 6,
+        C[0],
+        C[1],
+        -(p_i + 2 * p_j) * L / 6,
+        -A * L**2 / 2 - B * L + C[0],
+        -(A * L**2 / 6 - B * L**2 / 2 + C[0] * L + C[1]),
+    ])
+    
+    return Q

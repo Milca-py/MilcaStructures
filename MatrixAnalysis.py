@@ -193,12 +193,12 @@ for i in range(N_b):
 T = np.zeros((N_b, 6, 6))
 for i in range(N_b):
     T[i] = np.array([
-        [np.cos(theta_x[i]), np.sin(theta_x[i]), 0, 0, 0, 0],
-        [-np.sin(theta_x[i]), np.cos(theta_x[i]), 0, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 0, np.cos(theta_x[i]), np.sin(theta_x[i]), 0],
-        [0, 0, 0, -np.sin(theta_x[i]), np.cos(theta_x[i]), 0],
-        [0, 0, 0, 0, 0, 1]
+        [np.cos(theta_x[i]),    np.sin(theta_x[i]), 0, 0,                   0,                  0],
+        [-np.sin(theta_x[i]),   np.cos(theta_x[i]), 0, 0,                   0,                  0],
+        [0,                     0,                  1, 0,                   0,                  0],
+        [0,                     0,                  0, np.cos(theta_x[i]),  np.sin(theta_x[i]), 0],
+        [0,                     0,                  0, -np.sin(theta_x[i]), np.cos(theta_x[i]), 0],
+        [0,                     0,                  0, 0,                   0,                  1]
     ])
 # matriz que identifica las reacciones en los nodos
 Mre = np.zeros((N_n, 3))
