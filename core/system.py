@@ -298,7 +298,7 @@ class SystemMilcaModel:
         self.results = Results(self)
         self.plotter = Plotter(self)
         self.plotter_values = PlotterValues(self)
-        self.post_processing = PostProcessing(self)
+        # self.post_processing = PostProcessing(self)
 
     def show_structure(
         self,

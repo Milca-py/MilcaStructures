@@ -28,6 +28,7 @@ FALTA IMPLEMENTACIONES PARA: -------------
 
 # DEFECTOS ---------------
 - se tiene que resolver antes de graficar
+- que cada calase almacene datos, en lugar de ello solo sean macros que asignen datos a clases de elementos y nudos y systema
 
 
 
@@ -36,6 +37,24 @@ FALTA IMPLEMENTACIONES PARA: -------------
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+# subir a gitbub:
+git checkout main
+git pull origin main
+git add .
+git commit -m "Mensaje descriptivo del cambio"
+git push origin main  # O la rama en la que trabajas
 
 
 

@@ -1,4 +1,4 @@
-from function.widgets import InternalForceDiagramWidget, DiagramConfig
+from frontend.widgets.widgets import InternalForceDiagramWidget, DiagramConfig
 import pandas as pd
 from scipy.integrate import quad
 import numpy as np
@@ -768,15 +768,15 @@ X_p_F = X_ppp_c[0:, :N_b]
 Y_p_F = X_ppp_c[0:, N_b:2*N_b]
 
 # # PLOTEO DEL DIAGRAMA DE FUERZAS AXIALES
-plt.figure(figsize=(9, 9))
-plt.plot(X_c, Y_c, color='b')
-plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
-# plt.plot(xif, yif, color='#fff7e3', linewidth=2, alpha=0.1)
-plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
-plt.plot(X_p_F, Y_p_F, color='b')
-plt.axis('equal')
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(9, 9))
+# plt.plot(X_c, Y_c, color='b')
+# plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
+# # plt.plot(xif, yif, color='#fff7e3', linewidth=2, alpha=0.1)
+# plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
+# plt.plot(X_p_F, Y_p_F, color='b')
+# plt.axis('equal')
+# plt.tight_layout()
+# plt.show()
 
 # I) FUERZAS CORTANTES EN TODOS LOS ELEMENTOS:
 X_pp_c = np.zeros((nnp+2, 2*N_b))
@@ -829,13 +829,13 @@ Y_F = X_pp_c[0:, N_b:2*N_b]
 # df1.to_excel("Matriz2.xlsx", index=False, header=False)
 
 # PLOTEO DEL DIAGRAMA DE FUERZAS CORTANTES
-plt.figure(figsize=(9, 9))
-plt.plot(X_c, Y_c, color='b')
-plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
-plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
-plt.axis('equal')
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(9, 9))
+# plt.plot(X_c, Y_c, color='b')
+# plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
+# plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
+# plt.axis('equal')
+# plt.tight_layout()
+# plt.show()
 
 
 # J) MOMENTOS FLECTORES EN TODOS LOS ELEMENTOS:
@@ -885,13 +885,13 @@ Y_F = X_pp_c[0:, N_b:2*N_b]
 
 
 # PLOTEO DEL DIAGRAMA DE MOMENTOS FLECTORES
-plt.figure(figsize=(9, 9))
-plt.plot(X_c, Y_c, color='b')
-plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
-plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
-plt.axis('equal')
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(9, 9))
+# plt.plot(X_c, Y_c, color='b')
+# plt.plot(X_F, Y_F, color='r', linestyle='dashed', linewidth=1, alpha=0.5)
+# plt.fill(X_F, Y_F, color='#fff7e3', alpha=0.3)
+# plt.axis('equal')
+# plt.tight_layout()
+# plt.show()
 
 
 # DESPLAZAMIENTOS:
@@ -944,12 +944,12 @@ X_F = X_pp_c[0:, :N_b]
 Y_F = X_pp_c[0:, N_b:2*N_b]
 
 # PLOTEO DEL DIAGRAMA DE DESPLAZAMIENTOS
-plt.figure(figsize=(9, 9))
-plt.plot(X_F, Y_F, color='b')
-plt.plot(X_c, Y_c, color='#8d8d8d', linestyle='dashed', linewidth=1, alpha=0.5)
-plt.axis('equal')
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(9, 9))
+# plt.plot(X_F, Y_F, color='b')
+# plt.plot(X_c, Y_c, color='#8d8d8d', linestyle='dashed', linewidth=1, alpha=0.5)
+# plt.axis('equal')
+# plt.tight_layout()
+# plt.show()
 
 # K) DESPLAZAMIENTOS Y REACCIONES EN UN PUNTO:
 Apo = 4

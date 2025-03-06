@@ -56,15 +56,20 @@ class Element:
 
         self.distributed_load: DistributedLoad = DistributedLoad() # en sistemas de coordenadas locales
 
-
         # resultados
         self.desplacement: Optional[np.ndarray] = None
         self.internal_forces: Optional[np.ndarray] = None
         
         
-        
-        # other prostessing
+        # resultados del postprocesamiento
         self.integration_coefficients: Optional[np.ndarray] = None
+        self.axial_force: Optional[np.ndarray] = None
+        self.shear_force: Optional[np.ndarray] = None
+        self.bending_moment: Optional[np.ndarray] = None
+        self.deflection: Optional[np.ndarray] = None
+        self.slope: Optional[np.ndarray] = None
+        self.deformed_shape: Optional[np.ndarray] = None
+
 
     @property
     def length(self) -> float:

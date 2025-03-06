@@ -1,15 +1,18 @@
 
+from utils import rotate_xy, traslate_xy
+from typing import TYPE_CHECKING
+from core.post_processing import (
+    values_axial_force,
+    values_shear_force,
+    values_bending_moment,
+    values_slope,
+    values_deflection,
+    values_deformed
+)
 import numpy as np
 from typing import TYPE_CHECKING, Optional, Tuple, List
 import matplotlib.pyplot as plt
 from display.options import GraphicOption
-
-if TYPE_CHECKING:
-    from core.system import SystemMilcaModel
-
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
-
 
 from display.suports import (
     support_ttt,
@@ -29,6 +32,17 @@ from display.load import (
     moment_n_arrow
 )
 
+if TYPE_CHECKING:
+    from core.system import SystemMilcaModel
+
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+
+    from core.element import Element
+    from core.system import SystemMilcaModel
+
+
+
 
 
 class PlotterValues:
@@ -46,31 +60,32 @@ class PlotterValues:
         node_values = {}
         for node in self.system.node_map.values():
             node_values[node.id] = (node.vertex.x, node.vertex.y)
-        
+
         # obtener los valores para graficar los elementos {id: [(x1, y1), (x2, y2)]}
         element_values = {}
         for element in self.system.element_map.values():
             node_i, node_j = element.node_i, element.node_j
-            element_values[element.id] = [(node_i.vertex.x, node_i.vertex.y), (node_j.vertex.x, node_j.vertex.y)]
-        
+            element_values[element.id] = [
+                (node_i.vertex.x, node_i.vertex.y), (node_j.vertex.x, node_j.vertex.y)]
+
         # obtener los elementos {id: {q_i, q_j, p_i, p_j, m_i, m_j}}
         load_elements = {}
         for load_pattern in self.system.load_pattern_map.values():
             for id_element, load in load_pattern.distributed_loads_map.items():
                 load_elements[id_element] = load.to_dict()
-                        
+
         # y nodos cargados {id: {fx, fy, mz}}
         load_nodes = {}
         for load_pattern in self.system.load_pattern_map.values():
             for id_node, load in load_pattern.point_loads_map.items():
                 load_nodes[id_node] = load.to_dict()
-        
+
         # obtener los nodos restrigidos {id: (restricciones)}
         restrained_nodes = {}
         for node in self.system.node_map.values():
             if node.restraints != (False, False, False):
                 restrained_nodes[node.id] = node.restraints
-        
+
         return node_values, element_values, load_elements, load_nodes, restrained_nodes
 
     def axial_force(self):
@@ -127,20 +142,21 @@ class Plotter:
         color_point_loads="blue",
         color_distributed_loads="blue",
         show: bool = True
-        ) -> None:
-        
+    ) -> None:
+
         # ploteo de los nodos y elementos
-        self._plot_nodes(axes_i=axes_i, labels=labels_nodes, color_node=color_nodes, color_labels=color_labels_node)
-        self._plot_element(axes_i=axes_i, labels=labels_elements, color_element=color_elements, color_labels=color_labels_element)
+        self._plot_nodes(axes_i=axes_i, labels=labels_nodes,
+                         color_node=color_nodes, color_labels=color_labels_node)
+        self._plot_element(axes_i=axes_i, labels=labels_elements,
+                           color_element=color_elements, color_labels=color_labels_element)
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
-        # ploteo de las cargas puntuales
-        self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
-        # ploteo de las cargas distribuidas
-        self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
+        # # ploteo de las cargas puntuales
+        # self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
+        # # ploteo de las cargas distribuidas
+        # self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
         if show:
             plt.show()
-
 
     def axial_force(self):
         "Grafica las fuerzas axiales"
@@ -159,116 +175,117 @@ class Plotter:
 
     def results_plot(self):
         "Grafica los LA ESTRUCTURA, DFA, DFC, DMF, DG, DEFORMADA"
-    
+
     def _plot_element(
         self,
         labels: bool = False,
         axes_i: int = 0,
         color_element: str = "blue",
         color_labels: str = "red"
-        ) -> None:
-        # ploteo de los elementos 
+    ) -> None:
+        # ploteo de los elementos
         for id_element, element in self.values.structure()[1].items():
             self.axes[axes_i].plot([element[0][0], element[1][0]], [element[0][1], element[1][1]],
-                                color=color_element,
-                                lw=1)
-        
+                                   color=color_element,
+                                   lw=1)
+
             # ploteo de las etiquetas de los elementos
             if labels:
                 self.axes[axes_i].text(
-                    (element[0][0] + element[1][0]) / 2, 
-                    (element[0][1] + element[1][1]) / 2, 
-                    f"{id_element}", 
-                    fontsize=8, 
+                    (element[0][0] + element[1][0]) / 2,
+                    (element[0][1] + element[1][1]) / 2,
+                    f"{id_element}",
+                    fontsize=8,
                     color=color_labels,
-                    # ha="center", 
+                    # ha="center",
                     # va="center"
-                    )
-    
+                )
+
     def _plot_nodes(
         self,
         labels: bool = False,
         axes_i: int = 0,
         color_node: str = "red",
         color_labels: str = "red"
-        ) -> None:
+    ) -> None:
         # ploteo de los nodos
         for id_node, node in self.values.structure()[0].items():
             self.axes[axes_i].plot(node[0], node[1],
-                color=color_node,
-                )            
-            
+                                   color=color_node,
+                                   )
+
             # ploteo de las etiquetas de los nodos
             if labels:
                 self.axes[axes_i].text(
-                    node[0], node[1], 
-                    f"{id_node}", 
-                    fontsize=8, 
+                    node[0], node[1],
+                    f"{id_node}",
+                    fontsize=8,
                     color=color_labels,
-                    #ha="center", 
-                    #va="center"
+                    # ha="center",
+                    # va="center"
                 )
 
     def _plot_supports(
         self,
         axes_i: int = 0,
         color: str = "green",
-        ) -> None:
+    ) -> None:
         # ploteo de los apoyos
         for id_node, restrains in self.values.structure()[4].items():
             if restrains == (True, True, True):
-                support_ttt(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_ttt(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (False, False, True):
-                support_fft(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_fft(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (False, True, False):
-                support_ftf(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_ftf(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (True, False, False):
-                support_tff(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_tff(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (False, True, True):
-                support_ftt(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_ftt(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (True, False, True):
-                support_tft(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_tft(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (True, True, False):
-                support_ttf(self.axes[axes_i], 
-                            self.values.structure()[0][id_node][0], 
-                            self.values.structure()[0][id_node][1], 
+                support_ttf(self.axes[axes_i],
+                            self.values.structure()[0][id_node][0],
+                            self.values.structure()[0][id_node][1],
                             self.options.support_size,
                             color)
             elif restrains == (False, False, False):
                 pass
             else:
-                raise ValueError("Restricciones no válidas, no se puede plotear el apoyo.")
+                raise ValueError(
+                    "Restricciones no válidas, no se puede plotear el apoyo.")
 
     def _plot_point_loads(
         self,
         axes_i: int = 0,
         color: str = "blue",
         label: bool = False
-        ) -> None:
+    ) -> None:
         # ploteo de las cargas puntuales
         for id_node, load in self.values.structure()[3].items():
             coords = self.values.structure()[0][id_node]
@@ -321,12 +338,14 @@ class Plotter:
         axes_i: int = 0,
         color: str = "blue",
         label: bool = True
-        ) -> None:
+    ) -> None:
         # ploteo de las cargas distribuidas
         for id_element, load in self.values.structure()[2].items():
             coords = self.values.structure()[1][id_element]
-            length = np.sqrt((coords[1][0] - coords[0][0])**2 + (coords[1][1] - coords[0][1])**2)
-            angle_rotation = np.arctan2(coords[1][1] - coords[0][1], coords[1][0] - coords[0][0])
+            length = np.sqrt((coords[1][0] - coords[0][0])
+                             ** 2 + (coords[1][1] - coords[0][1])**2)
+            angle_rotation = np.arctan2(
+                coords[1][1] - coords[0][1], coords[1][0] - coords[0][0])
             if load["q_i"] != 0 or load["q_j"] != 0:
                 graphic_n_arrow(
                     x=coords[0][0],
@@ -374,59 +393,68 @@ class Plotter:
                 #     angle_rotation=angle_rotation,
                 #     clockwise=True
                 # )
-                raise NotImplementedError("Momentos distribuidos no implementados.")
+                raise NotImplementedError(
+                    "Momentos distribuidos no implementados.")
 
 
-def plot_values_deflection(
-    element: "Element", factor: float, linear: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Determines the plotting values for deflection
-
-    Args:
-        element (Element): Element to plot
-        factor (float): Factor by which to multiply the plotting values perpendicular to the elements axis.
-        linear (bool, optional): If True, the bending in between the elements is determined. Defaults to False.
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: x and y values
-    """
-    ux1 = element.node_1.ux * factor
-    uy1 = -element.node_1.uy * factor
-    ux2 = element.node_2.ux * factor
-    uy2 = -element.node_2.uy * factor
-
-    x1 = element.vertex_1.x + ux1
-    y1 = element.vertex_1.y + uy1
-    x2 = element.vertex_2.x + ux2
-    y2 = element.vertex_2.y + uy2
-
-    if element.type == "general" and not linear:
-        assert element.deflection is not None
-        n = len(element.deflection)
-        x_val = np.linspace(x1, x2, n)
-        y_val = np.linspace(y1, y2, n)
-
-        x_val = x_val + element.deflection * math.sin(element.angle) * factor
-        y_val = y_val + element.deflection * -math.cos(element.angle) * factor
-
-    else:  # truss element has no bending
-        x_val = np.array([x1, x2])
-        y_val = np.array([y1, y2])
-
-    return x_val, y_val
+    def show_diagrams(self, type: str, axes_i: int = 0, fill: bool = True, npp: int = 40, escala: int = 0.03, show: bool = True) -> None:
+        # create_new_figure(self.fig)
+        
+        for element in self.system.element_map.values():
+            plotting_element_diagrams(self.axes[axes_i], element, type, fill, npp, escala)
+        if show:
+            plt.show()
+    
+    def show_deformed(self, escala: float = 1,  axes_i: int = 0, show: bool = True) -> None:
+        for element in self.system.element_map.values():
+            x, y = values_deformed(element, escala)
+            self.axes[axes_i].plot(x, y, lw=1, color='orange')
+        if show:
+            plt.show()
 
 
-def plot_values_bending_moment():
-    pass
+def create_new_figure(fig: "Figure") -> None:
+    """Crea una nueva figura de Matplotlib"""
+    
+    plt.close("all")
+    fig = plt.figure(figsize=(10, 10))
+    plt.tight_layout()
+    plt.axis('equal')
+    return fig
 
 
-def plot_values_axial_force(element, factor: float, n: int) -> Tuple[np.ndarray, np.ndarray]:
-    pass
+def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
+                              fill: bool, npp: int, escala: int) -> None:
+
+    if type == "axial_force":
+        x, n = values_axial_force(element, escala, npp)
+    elif type == "shear_force":
+        x, n = values_shear_force(element, escala, npp)
+    elif type == "bending_moment":
+        x, n = values_bending_moment(element, escala, npp)
+        n = -n
+    elif type == "spin":
+        x, n = values_spin(element, escala, npp)
+    elif type == "deflection":
+        x, n = values_deflection(element, escala, npp)
+    else:
+        raise ValueError("Tipo de diagrama no válido, los tipos válidos son: 'axial_force', 'shear_force', 'bending_moment', 'spin' y 'deflection'.")
+
+    coord_elem = np.array([np.array([element.node_i.vertex.coordinates]),
+                           np.array([element.node_j.vertex.coordinates])])
+
+    Nxy = np.column_stack((x, n))
+    Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+    Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+    Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+    Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+    ax.plot(Nxy[:, 0], Nxy[:, 1], label="Axial Force", lw=0.5, color='orange')
+    if fill:
+        NNxy = np.append(Nxy, coord_elem[0], axis=0)
+        plt.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue',
+                 alpha=0.5)  # Sombrea la región
 
 
-def plot_values_shear_force():
-    pass
 
 
-def plot_values_element():
-    pass
