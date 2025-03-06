@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import numpy as np
 from loads.load import PointLoad
 
@@ -37,7 +37,12 @@ class Node:
         ], dtype=int)
 
         self.forces: PointLoad = PointLoad()  # Carga inicializada en 0
+        
 
+        # resultados
+        self.desplacement: Optional[np.ndarray] = None
+        self.reaction: Optional[np.ndarray] = None
+        
     def add_restraints(self, restraints: "Restraints") -> None:
         """
         Asigna restricciones al nodo.

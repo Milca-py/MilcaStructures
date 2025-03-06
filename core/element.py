@@ -39,7 +39,12 @@ class Element:
         self.node_i = node_i
         self.node_j = node_j
         self.section = section
-
+        
+        # phi = (12 * E * I) / (L**2 * A * k * G)
+        self.shear_angle = (12 * self.section.material.modulus_elasticity * self.section.moment_of_inertia) / (
+            self.length**2 * self.section.area * self.section.timoshenko_coefficient * self.section.material.shear_modulus
+        )
+        
         self.dof_map: np.ndarray = np.concatenate([node_i.dof, node_j.dof])
 
         self.local_stiffness_matrix: Optional[np.ndarray] = None
@@ -51,6 +56,15 @@ class Element:
 
         self.distributed_load: DistributedLoad = DistributedLoad() # en sistemas de coordenadas locales
 
+
+        # resultados
+        self.desplacement: Optional[np.ndarray] = None
+        self.internal_forces: Optional[np.ndarray] = None
+        
+        
+        
+        # other prostessing
+        self.integration_coefficients: Optional[np.ndarray] = None
 
     @property
     def length(self) -> float:
@@ -94,9 +108,7 @@ class Element:
     def compile_local_load_vector(self) -> None:
         """Determina el vector de fuerzas equivalentes debido a la carga distribuida."""
         # phi = (12 * E * I) / (L**2 * A * k * G)
-        phi =  (12 * self.section.material.modulus_elasticity * self.section.moment_of_inertia) / (
-            self.length**2 * self.section.area * self.section.timoshenko_coefficient * self.section.material.shear_modulus
-        )   
+        phi =  self.shear_angle
         
         self.local_load_vector = local_load_vector(
             L=self.length,

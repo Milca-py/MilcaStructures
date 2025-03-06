@@ -34,6 +34,8 @@ from core.results import Results
 
 from core.analysis import Analysis
 
+from core.post_processing import PostProcessing
+
 class SystemMilcaModel:
     """
     Clase que representa el modelo estructural completo para análisis mediante el método de rigidez.
@@ -70,6 +72,8 @@ class SystemMilcaModel:
         # plotter values
         self.plotter_values: Optional[PlotterValues] = None 
 
+        # post processing
+        self.post_processing: Optional[PostProcessing] = None
         
     def add_material(
         self,
@@ -294,6 +298,7 @@ class SystemMilcaModel:
         self.results = Results(self)
         self.plotter = Plotter(self)
         self.plotter_values = PlotterValues(self)
+        self.post_processing = PostProcessing(self)
 
     def show_structure(
         self,

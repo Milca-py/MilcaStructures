@@ -65,7 +65,7 @@ def rotation_matrix(angle: float) -> np.ndarray:
     return np.array([[c, -s], [s, c]])
 
 def rotate_xy(a: np.ndarray, angle: float, x:float, y: float) -> np.ndarray:
-    """Rota una matriz 2D alrededor del origen.
+    """Rota una matriz 2D alrededor del origen, en sentido antihorario.
 
     Args:
         a (np.ndarray): Matriz a rotar.
@@ -77,6 +77,19 @@ def rotate_xy(a: np.ndarray, angle: float, x:float, y: float) -> np.ndarray:
     b = a - np.array([x, y])  # Centrar en el origen
     b = np.dot(b, rotation_matrix(angle).T)  # Aplicar rotación
     return b + np.array([x, y])  # Descentrar
+
+def traslate_xy(a: np.ndarray, x: float, y: float) -> np.ndarray:
+    """Traslada una matriz 2D.
+
+    Args:
+        a (np.ndarray): Matriz a trasladar.
+        x (float): Traslación en x.
+        y (float): Traslación en y.
+
+    Returns:
+        np.ndarray: Matriz trasladada.
+    """
+    return a + np.array([x, y])
 
 def converge(lhs: float, rhs: float) -> float:
     """Calcula el factor de convergencia.
