@@ -122,6 +122,10 @@ class Plotter:
         color_elements: str = "blue",
         color_labels_node: str = "red",
         color_labels_element: str = "red",
+        labels_point_loads: bool = False,
+        labels_distributed_loads: bool = False,
+        color_point_loads="blue",
+        color_distributed_loads="blue",
         show: bool = True
         ) -> None:
         
@@ -131,9 +135,9 @@ class Plotter:
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
         # ploteo de las cargas puntuales
-        self._plot_point_loads(axes_i=axes_i, color="red")
+        self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
         # ploteo de las cargas distribuidas
-        self._plot_distributed_loads(axes_i=axes_i, color="red")
+        self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
         if show:
             plt.show()
 
@@ -175,7 +179,7 @@ class Plotter:
                     (element[0][0] + element[1][0]) / 2, 
                     (element[0][1] + element[1][1]) / 2, 
                     f"{id_element}", 
-                    fontsize=10, 
+                    fontsize=8, 
                     color=color_labels,
                     # ha="center", 
                     # va="center"
@@ -199,7 +203,7 @@ class Plotter:
                 self.axes[axes_i].text(
                     node[0], node[1], 
                     f"{id_node}", 
-                    fontsize=10, 
+                    fontsize=8, 
                     color=color_labels,
                     #ha="center", 
                     #va="center"
@@ -263,45 +267,60 @@ class Plotter:
         self,
         axes_i: int = 0,
         color: str = "blue",
+        label: bool = False
         ) -> None:
         # ploteo de las cargas puntuales
         for id_node, load in self.values.structure()[3].items():
             coords = self.values.structure()[0][id_node]
             if load["fx"] != 0:
-                graphic_one_arrow(
+                l = graphic_one_arrow(
                     x=coords[0],
                     y=coords[1],
                     load=load["fx"],
+                    length_arrow=(0.2) * self.options._length_mean,
+                    # load_mean=self.options._fx_mean*np.sign(load["fx"]),
                     angle=0,
                     ax=self.axes[axes_i],
-                    ratio_scale=self.options.ratio_scale_load,
-                    color=color
+                    # ratio_scale=self.options.ratio_scale_load,
+                    color=color,
+                    label=label,
+                    color_label=color
                 )
+
             if load["fy"] != 0:
                 graphic_one_arrow(
                     x=coords[0],
                     y=coords[1],
                     load=load["fy"],
+                    length_arrow=(0.2) * self.options._length_mean,
+                    # load_mean=self.options._fx_mean*np.sign(load["fy"]),
                     angle=np.pi/2,
                     ax=self.axes[axes_i],
-                    ratio_scale=self.options.ratio_scale_load,
-                    color=color
+                    # ratio_scale=self.options.ratio_scale_force,
+                    color=color,
+                    label=label,
+                    color_label=color
                 )
+
             if load["mz"] != 0:
                 moment_fancy_arrow(
                     ax=self.axes[axes_i],
                     x=coords[0],
                     y=coords[1],
                     moment=load["mz"],
-                    ratio_scale=self.options.ratio_scale_load,
+                    radio=0.05 * self.options._length_mean,
+                    # ratio_scale=self.options.ratio_scale_force,
                     color=color,
-                    clockwise=True
+                    clockwise=True,
+                    label=label,
+                    color_label=color
                 )
 
     def _plot_distributed_loads(
         self,
         axes_i: int = 0,
         color: str = "blue",
+        label: bool = True
         ) -> None:
         # ploteo de las cargas distribuidas
         for id_element, load in self.values.structure()[2].items():
@@ -320,7 +339,9 @@ class Plotter:
                     ratio_scale=self.options.ratio_scale_load,
                     nrof_arrows=self.options.nrof_arrows,
                     color=color,
-                    angle_rotation=angle_rotation
+                    angle_rotation=angle_rotation,
+                    label=label,
+                    color_label=color
                 )
             if load["p_i"] != 0 or load["p_j"] != 0:
                 graphic_n_arrow(
@@ -334,7 +355,9 @@ class Plotter:
                     ratio_scale=self.options.ratio_scale_load,
                     nrof_arrows=self.options.nrof_arrows,
                     color=color,
-                    angle_rotation=angle_rotation
+                    angle_rotation=angle_rotation,
+                    label=label,
+                    color_label=color
                 )
             if load["m_i"] != 0 or load["m_j"] != 0:
                 # moment_n_arrow(
@@ -344,7 +367,8 @@ class Plotter:
                 #     load_i=load["m_i"],
                 #     load_j=load["m_j"],
                 #     length=length,
-                #     ratio_scale=self.options.ratio_scale_load,
+                #     radio=0.04 * self.options._length_mean,
+                #     # ratio_scale=self.options.ratio_scale_load,
                 #     nrof_arrows=self.options.nrof_arrows,
                 #     color=color,
                 #     angle_rotation=angle_rotation,

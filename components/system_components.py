@@ -106,8 +106,8 @@ def process_conditions(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarr
     # F = |    |
     #     | Fc |
     
-    F_d = modelo.global_force_vector[dofs_libres]
-    F_c = modelo.global_force_vector[dofs_restringidos]
+    F_d = modelo.global_load_vector[dofs_libres]
+    F_c = modelo.global_load_vector[dofs_restringidos]
 
     return K_d, K_dc, K_cd, K_c, F_d, F_c, dofs_libres, dofs_restringidos
 
@@ -122,7 +122,7 @@ def solve(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarray]:
         - Desplazamientos nodales.
         - Reacciones en los apoyos.
     """
-    K_d, _, _, _, F_d, _, dofs_libres, _ = process_conditions(modelo)
+    K_d, K_dc, K_cd, K_c, F_d, F_c, dofs_libres, dofs_restringidos = process_conditions(modelo)
 
 
     # Resolver el sistema de ecuaciones
@@ -134,6 +134,14 @@ def solve(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarray]:
     desplazamientos[dofs_libres] = U_red
 
     # Calcular las reacciones en los apoyos
-    reacciones = modelo.global_stiffness_matrix @ desplazamientos - modelo.global_force_vector
+    #  R  =  K_global * U_global - F_global
+    # reacciones = modelo.global_stiffness_matrix @ desplazamientos - modelo.global_load_vector
+    
+    #  R  =  Kcd * Ud - Fc
+    reacciones = K_cd @ U_red - F_c
+    
+    # Completar el vector de reacciones
+    reacciones_completas = np.zeros(nn * 3)
+    reacciones_completas[dofs_restringidos] = reacciones
 
-    return desplazamientos, reacciones
+    return desplazamientos, reacciones_completas

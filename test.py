@@ -1,8 +1,11 @@
 
+from components.element_components import local_load_vector, load_vector
 from core.system import SystemMilcaModel
 from frontend.widgets.UIdisplay import create_plot_window
 from frontend.widgets.display_array import mostrar_array
 
+
+# units are in "tonf" and "m"
 
 model = SystemMilcaModel()
 
@@ -75,13 +78,14 @@ model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
 model.solve()
 
 model.show_structure(show=False)
-# root = create_plot_window(model.plotter.fig)
-# root.mainloop()
+root = create_plot_window(model.plotter.fig)
+root.mainloop()
 
 
-k_global = model.global_stiffness_matrix
-
-reactions = model.results.reactions
 
 
-mostrar_array(reactions, True, True, 4)
+
+reactions = model.reactions
+
+mostrar_array(reactions, True, True, 7)
+

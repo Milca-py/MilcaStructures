@@ -49,6 +49,45 @@ class GraphicOption:
             )
         )
     
+    @property
+    def _fx_mean(self):
+        return np.mean(
+            np.array(
+                [
+                    abs(node.forces.fx)
+                    for node in self.system.node_map.values()
+                    if node.forces.fx != 0
+                ]
+            )
+        )
+    
+    @property
+    def _fy_mean(self):
+        return np.mean(
+            np.array(
+                [
+                    abs(node.forces.fy)
+                    for node in self.system.node_map.values()
+                    if node.forces.fy != 0
+                ]
+            )
+        )
+    
+    @property
+    def _mz_mean(self):
+        return np.mean(
+            np.array(
+                [
+                    abs(node.forces.mz)
+                    for node in self.system.node_map.values()
+                    if node.forces.mz != 0
+                ]
+            )
+        )
+    
+    @property
+    def ratio_scale_force(self) -> float:
+        return 0.15 * self._length_mean * (2 / (self._fx_mean + self._fy_mean))
 
     @property
     def ratio_scale_load(self) -> float:

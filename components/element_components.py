@@ -97,7 +97,7 @@ def local_load_vector(
     B = q_i
 
     M = np.array([
-        [L**2, L],
+        [L**2/2, L],
         [L**3 * (2 - phi) / 12, L**2 / 2]
     ])
 
@@ -109,12 +109,26 @@ def local_load_vector(
     C = np.linalg.solve(M, N)  # Más eficiente que inv(M) @ N
 
     Q = np.array([
-        -(2 * p_i + p_j) * L / 6,
+        (2 * p_i + p_j) * L / 6,
         C[0],
-        C[1],
-        -(p_i + 2 * p_j) * L / 6,
-        -A * L**2 / 2 - B * L + C[0],
-        -(A * L**2 / 6 - B * L**2 / 2 + C[0] * L + C[1]),
+        -C[1],
+        (p_i + 2 * p_j) * L / 6,
+        -(-A * L**2 / 2 - B * L + C[0]),
+        (-A * L**3 / 6 - B * L**2 / 2 + C[0] * L + C[1]),
     ])
     
     return Q
+
+
+
+def load_vector(L, q_i, q_j):
+    import numpy as np
+    f = np.array([
+        0,
+        L/20 * (7*q_i + 3*q_j),
+        L**2 * (q_i/20 + q_j/30),
+        0,
+        L/20 * (3*q_i + 7*q_j),
+        -L**2 * (q_i/30 + q_j/20),
+    ])
+    return f

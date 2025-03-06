@@ -26,7 +26,8 @@ FALTA IMPLEMENTACIONES PARA: -------------
 
 
 
-
+# DEFECTOS ---------------
+- se tiene que resolver antes de graficar
 
 
 

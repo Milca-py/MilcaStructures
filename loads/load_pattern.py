@@ -236,7 +236,7 @@ def distributed_load_to_local_system(
 
     
     if csys == CoordinateSystemType.GLOBAL:
-        angle = system.element_map[element_id].angle_x_axis
+        angle = system.element_map[element_id].angle_x
         cos_a, sin_a = np.cos(angle), np.sin(angle)
         li, lj =load_start, load_end
         if load_type == LoadType.FORCE:

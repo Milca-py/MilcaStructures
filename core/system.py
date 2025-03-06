@@ -52,7 +52,7 @@ class SystemMilcaModel:
         self.load_pattern_map: Dict[str, LoadPattern] = {}
         
         # Matrices calculadas
-        self.global_force_vector: Optional[np.ndarray] = None
+        self.global_load_vector: Optional[np.ndarray] = None
         self.global_stiffness_matrix: Optional[np.ndarray] = None
 
         # Análisis
@@ -280,7 +280,7 @@ class SystemMilcaModel:
         lp.assign_loads_to_elements(self)
         
         # Calcular el vector de fuerzas global y la matriz de rigidez global
-        self.global_force_vector = assemble_global_load_vector(self)
+        self.global_load_vector = assemble_global_load_vector(self)
         self.global_stiffness_matrix = assemble_global_stiffness_matrix(self)
 
         # Se puede aplicar el procesamiento de condiciones de frontera si se requiere:
@@ -295,13 +295,40 @@ class SystemMilcaModel:
         self.plotter = Plotter(self)
         self.plotter_values = PlotterValues(self)
 
-    def show_structure(self, show: bool = True) -> None:
+    def show_structure(
+        self,
+        axes_i: int = 0,
+        labels_nodes: bool = False,
+        labels_elements: bool = False,
+        color_nodes: str = "red",
+        color_elements: str = "blue",
+        color_labels_node: str = "red",
+        color_labels_element: str = "red",
+        labels_point_loads: bool = True,
+        labels_distributed_loads: bool = True,
+        color_point_loads: str = "green",
+        color_distributed_loads: str = "purple",
+        show: bool = True
+        ) -> None:
         """
         Muestra la estructura del modelo.
         """
         if self.plotter is None:
             self.plotter = Plotter(self)  # Inicializar solo cuando se use
-        self.plotter.plot_structure(show=show)
+        self.plotter.plot_structure(
+            axes_i=axes_i,
+            labels_nodes=labels_nodes,
+            labels_elements=labels_elements,
+            color_nodes=color_nodes,
+            color_elements=color_elements,
+            color_labels_node=color_labels_node,
+            color_labels_element=color_labels_element,
+            labels_point_loads=labels_point_loads,
+            labels_distributed_loads=labels_distributed_loads,
+            color_point_loads=color_point_loads,
+            color_distributed_loads=color_distributed_loads,
+            show=show
+        )
 
 
 

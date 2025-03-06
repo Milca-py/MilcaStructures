@@ -93,9 +93,14 @@ class Element:
 
     def compile_local_load_vector(self) -> None:
         """Determina el vector de fuerzas equivalentes debido a la carga distribuida."""
+        # phi = (12 * E * I) / (L**2 * A * k * G)
+        phi =  (12 * self.section.material.modulus_elasticity * self.section.moment_of_inertia) / (
+            self.length**2 * self.section.area * self.section.timoshenko_coefficient * self.section.material.shear_modulus
+        )   
+        
         self.local_load_vector = local_load_vector(
             L=self.length,
-            phi=self.section.timoshenko_coefficient,
+            phi=phi,
             q_i=self.distributed_load.q_i,
             q_j=self.distributed_load.q_j,
             p_i=self.distributed_load.p_i,
