@@ -947,6 +947,7 @@ Y_F = X_pp_c[0:, N_b:2*N_b]
 # plt.figure(figsize=(9, 9))
 # plt.plot(X_F, Y_F, color='b')
 # plt.plot(X_c, Y_c, color='#8d8d8d', linestyle='dashed', linewidth=1, alpha=0.5)
+# # plt.plot(x_p_c, y_p_c, color='#8d8d1d', linestyle='dashed', linewidth=1, alpha=0.5)
 # plt.axis('equal')
 # plt.tight_layout()
 # plt.show()
@@ -992,6 +993,8 @@ def y(x): return (-A_D[Elem, 0]*L[Elem]**2*x**3/72*(0.6*(x/L[Elem])**2-β_y[Elem
 
 
 
+
+
 # mostrar en una widget
 diagrams = {
     'N(x)': DiagramConfig(
@@ -1026,4 +1029,4 @@ diagrams = {
     )
 }
 
-app = InternalForceDiagramWidget(Elem, x, diagrams, grafigcalor=True, cmap='rainbow')
+# app = InternalForceDiagramWidget(Elem, x, diagrams, grafigcalor=True, cmap='rainbow')

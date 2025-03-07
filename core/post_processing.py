@@ -10,12 +10,9 @@ class PostProcessingOptions:
         self.factor = factor
         self.n = n
 
-
-
-
 class PostProcessing:
     def __init__(self, system: "SystemMilcaModel",
-                options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=40)
+                options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=10)
                 ) -> None:
         self.system = system
         self.results = self.system.results
@@ -32,9 +29,6 @@ class PostProcessing:
         
         # Calcular resultados para cada elemento
         self.process_all_elements()
-        
-        # Asignar resultados a cada elemento
-        self.assign_results_to_elements()
     
     def process_all_elements(self) -> None:
         """Calcula todos los resultados para cada elemento."""
@@ -44,39 +38,34 @@ class PostProcessing:
         for element in self.system.element_map.values():
             # Calcular coeficientes de integración
             self.integration_coefficients_elements[element.id] = integration_coefficients(element)
+            element.integration_coefficients = self.integration_coefficients_elements[element.id]
             
             # Calcular fuerzas y momentos
             self.values_axial_force_elements[element.id] = values_axial_force(element, factor, n)
-            self.values_shear_force_elements[element.id] = values_shear_force(element, factor, n)
-            self.values_bending_moment_elements[element.id] = values_bending_moment(element, factor, n)
-            
-            # Calcular deformaciones
-            # self.values_slope_elements[element.id] = values_slope(element, factor, n)
-            # self.values_deflection_elements[element.id] = values_deflection(element, factor, n)
-            # self.values_deformed_elements[element.id] = values_deformed(element, factor)
-    
-    def assign_results_to_elements(self) -> None:
-        """Asigna los resultados calculados a cada elemento."""
-        for element in self.system.element_map.values():
-            element.integration_coefficients = self.integration_coefficients_elements[element.id]
-            
             element.axial_force = self.values_axial_force_elements[element.id][1]
+            
+            self.values_shear_force_elements[element.id] = values_shear_force(element, factor, n)
             element.shear_force = self.values_shear_force_elements[element.id][1]
+            
+            self.values_bending_moment_elements[element.id] = values_bending_moment(element, factor, n)
             element.bending_moment = self.values_bending_moment_elements[element.id][1]
             
-            # element.slope = self.values_slope_elements[element.id][1]
-            # element.deflection = self.values_deflection_elements[element.id][1]
-            # element.deformed_shape = self.values_deformed_elements[element.id][1]
+            
+            # Calcular deformaciones
+            self.values_slope_elements[element.id] = values_slope(element, factor, n)
+            element.slope = self.values_slope_elements[element.id][1]
+            
+            self.values_deflection_elements[element.id] = values_deflection(element, factor, n)
+            element.deflection = self.values_deflection_elements[element.id][1]
+            
+            self.values_deformed_elements[element.id] = values_deformed(element, factor)
+            element.deformed_shape = self.values_deformed_elements[element.id][1]
     
     def update_with_new_options(self, new_options: "PostProcessingOptions") -> None:
         """Actualiza las opciones y recalcula todos los resultados."""
         self.options = new_options
         self.process_all_elements()
         self.assign_results_to_elements()
-
-
-
-
 
 
 def integration_coefficients(element: "Element") -> np.ndarray:
@@ -220,28 +209,68 @@ def values_deflection(
 
 def values_deformed(element: "Element", factor: int) -> None:
     """obtiene los puntos de la deformada de un elemento."""
-    ux1 = element.desplacement[0] * factor
-    uy1 = -element.desplacement[1] * factor
-    ux2 = element.desplacement[3] * factor
-    uy2 = -element.desplacement[4] * factor
+    xu1 = element.desplacement[0]
+    yu1 = element.desplacement[1]
     
-    x1 = element.node_i.vertex.x + ux1
-    y1 = element.node_i.vertex.y + uy1
-    x2 = element.node_j.vertex.x + ux2
-    y2 = element.node_j.vertex.y + uy2
+    xo1 = element.node_i.vertex.x 
+    yo1 = element.node_i.vertex.y 
     
-    # if element.type == ElementType.FRAME:
-    assert element.deflection is not None
     n = len(element.deflection)
-    x_val = np.linspace(x1, x2, n)
-    y_val = np.linspace(y1, y2, n)
+    L = element.length
     
-    x_val = x_val + element.deflection * np.sin(element.angle_x) * factor
-    y_val = y_val + element.deflection * -np.cos(element.angle_x) * factor
+    def Tetha(element: "Element") -> float:
+        xi = element.node_i.vertex.x
+        yi = element.node_i.vertex.y
+        xf = element.node_j.vertex.x
+        yf = element.node_j.vertex.y
+        if yf - yi == 0 and xf - xi < 0:
+            tetha = -np.pi
+        else:
+            if xf - xi == 0:
+                tetha = np.pi / 2*np.sign(yf - yi)
+            elif xf - xi < 0:
+                tetha = np.arctan((yf - yi) / (xf - xi)) + np.pi
+            else:
+                tetha = np.arctan((yf - yi) / (xf - xi))
+        return tetha
     
-    # else:
-    #     x_val = np.array([x1, x2])
-    #     y_val = np.array([y1, y2])
+    tetha = Tetha(element)
+    x = np.linspace(0, L, n)
+    
+    x_val = xo1 + x * np.cos(tetha) + xu1 * np.cos(tetha) * factor - element.deflection * np.sin(tetha) * factor
+    y_val = yo1 + x * np.sin(tetha) + yu1 * np.sin(tetha) * factor + element.deflection * np.cos(tetha) * factor
     
     return x_val, y_val
+
+
+# # def values_deformed(element: "Element", factor: int) -> None:
+#     """obtiene los puntos de la deformada de un elemento."""
+#     ux1 = element.desplacement[0] * factor
+#     uy1 = -element.desplacement[1] * factor
+#     ux2 = element.desplacement[3] * factor
+#     uy2 = -element.desplacement[4] * factor
+    
+#     x1 = element.node_i.vertex.x + ux1
+#     y1 = element.node_i.vertex.y + uy1
+#     x2 = element.node_j.vertex.x + ux2
+#     y2 = element.node_j.vertex.y + uy2
+    
+#     # if element.type == ElementType.FRAME:
+#     assert element.deflection is not None
+#     n = len(element.deflection)
+#     x_val = np.linspace(x1, x2, n)
+#     y_val = np.linspace(y1, y2, n)
+    
+#     x_val = x_val + element.deflection * np.sin(element.angle_x) * factor
+#     y_val = y_val + element.deflection * -np.cos(element.angle_x) * factor
+    
+#     # else:
+#     #     x_val = np.array([x1, x2])
+#     #     y_val = np.array([y1, y2])
+#     return x_val, y_val
+
+
+
+
+
 

@@ -50,6 +50,7 @@ FALTA IMPLEMENTACIONES PARA: -------------
 
 
 # subir a gitbub:
+cd c:users/amilcar/documents/github/milcastructures
 git checkout main
 git pull origin main
 git add .

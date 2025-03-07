@@ -398,7 +398,6 @@ class Plotter:
 
 
     def show_diagrams(self, type: str, axes_i: int = 0, fill: bool = True, npp: int = 40, escala: int = 0.03, show: bool = True) -> None:
-        # create_new_figure(self.fig)
         
         for element in self.system.element_map.values():
             plotting_element_diagrams(self.axes[axes_i], element, type, fill, npp, escala)
@@ -413,16 +412,6 @@ class Plotter:
             plt.show()
 
 
-def create_new_figure(fig: "Figure") -> None:
-    """Crea una nueva figura de Matplotlib"""
-    
-    plt.close("all")
-    fig = plt.figure(figsize=(10, 10))
-    plt.tight_layout()
-    plt.axis('equal')
-    return fig
-
-
 def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
                               fill: bool, npp: int, escala: int) -> None:
 
@@ -434,7 +423,7 @@ def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
         x, n = values_bending_moment(element, escala, npp)
         n = -n
     elif type == "spin":
-        x, n = values_spin(element, escala, npp)
+        x, n = values_slope(element, escala, npp)
     elif type == "deflection":
         x, n = values_deflection(element, escala, npp)
     else:
@@ -454,7 +443,3 @@ def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
         NNxy = np.append(Nxy, coord_elem[0], axis=0)
         plt.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue',
                  alpha=0.5)  # Sombrea la región
-
-
-
-
