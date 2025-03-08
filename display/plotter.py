@@ -151,10 +151,10 @@ class Plotter:
                            color_element=color_elements, color_labels=color_labels_element)
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
-        # # ploteo de las cargas puntuales
-        self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
-        # # ploteo de las cargas distribuidas
-        self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
+        # # # ploteo de las cargas puntuales
+        # self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
+        # # # ploteo de las cargas distribuidas
+        # self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
         if show:
             plt.show()
 
@@ -187,7 +187,9 @@ class Plotter:
         for id_element, element in self.values.structure()[1].items():
             self.axes[axes_i].plot([element[0][0], element[1][0]], [element[0][1], element[1][1]],
                                    color=color_element,
-                                   lw=1)
+                                   lw=1,
+                                #    linestyle="--"
+                                   )
 
             # ploteo de las etiquetas de los elementos
             if labels:
@@ -424,7 +426,7 @@ def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
     elif type == "bending_moment":
         x, n = values_bending_moment(element, escala, npp)
         # n = n
-    elif type == "spin":
+    elif type == "slope":
         x, n = values_slope(element, escala, npp)
     elif type == "deflection":
         x, n = values_deflection(element, escala, npp)

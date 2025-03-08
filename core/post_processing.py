@@ -81,8 +81,8 @@ def integration_coefficients(element: "Element") -> np.ndarray:
     theta_i = element.desplacement[2]               # Angulo de rotacion en el GDL 3 nodo i.
     theta_j = element.desplacement[5]               # Angulo de rotacion en el GDL 6 nodo j.
     
-    A = (q_j - q_i) / L
-    B = q_i
+    A = -(q_j - q_i) / L
+    B = -q_i
     
     M = np.array([
         [0, 0, 0, 1],
@@ -115,7 +115,7 @@ def values_axial_force(
     B = axial_i
     
     x = np.linspace(0, length, n)
-    N = A*x + B
+    N = - A*x + B
     
     return x, N*factor
 
@@ -167,8 +167,8 @@ def values_slope(
     
     length = element.length
     
-    A = (q_j - q_i) / length
-    B = q_i
+    A = -(q_j - q_i) / length
+    B = -q_i
     
     C1 = element.integration_coefficients[0]
     C2 = element.integration_coefficients[1]
@@ -191,8 +191,8 @@ def values_deflection(
     
     L = element.length
     
-    A = (q_j - q_i) / L
-    B = q_i
+    A = -(q_j - q_i) / L
+    B = -q_i
     
     C1 = element.integration_coefficients[0]
     C2 = element.integration_coefficients[1]

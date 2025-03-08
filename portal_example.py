@@ -1,5 +1,5 @@
 from core.system import SystemMilcaModel
-
+from frontend.widgets.UIdisplay import create_plot_window
 # UNIDADES: (kN, m)
 
 sys = SystemMilcaModel()
@@ -21,8 +21,8 @@ for node, coord in nodes.items():
 elements = {
     1: (1, 2, "sec1"),
     2: (2, 3, "sec2"),
-    3: (3, 4, "sec2"),
-    4: (4, 5, "sec1")
+    3: (4, 3, "sec2"),
+    4: (5, 4, "sec1")
 }
 
 for element, (node1, node2, section) in elements.items():
@@ -36,13 +36,35 @@ sys.add_distributed_load(2, "CARGA", "LOCAL", -5, -5)
 sys.add_distributed_load(3, "CARGA", "GLOBAL", 7, 7, direction="GRAVITY")
 
 sys.solve()
-sys.plotter.plot_structure(labels_distributed_loads=True)
-sys.plotter.show_diagrams("axial_force")
-sys.plotter.show_diagrams("shear_force")
-sys.plotter.show_diagrams("bending_moment")
+sys.plotter.plot_structure(labels_distributed_loads=True, show=False)
+# sys.plotter.show_diagrams("axial_force", show=False)
+# sys.plotter.show_diagrams("shear_force", show=False)
+# sys.plotter.show_diagrams("bending_moment", show=False)
+# sys.plotter.show_diagrams("slope", show=False, escala=4000)
+sys.plotter.show_diagrams("deflection", show=False, escala=4000, fill=False)
+root = create_plot_window(sys.plotter.fig)
+root.mainloop()
+
+
+
+
+
 
 from pprint import pprint
 
-pprint(sys.results.reactions)
-pprint(sys.results.global_desplacements_nodes)
+# pprint(sys.results.reactions)
+# pprint(sys.results.global_desplacements_nodes)
 pprint(sys.results.local_internal_forces_elements)
+
+
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# element = sys.element_map[3]
+
+# d = element.axial_force
+# x = np.linspace(0, element.length, len(d))
+# print(d)
+# plt.plot(x, x*0)
+# plt.plot(x, d)
+# plt.show()

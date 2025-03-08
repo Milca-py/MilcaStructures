@@ -27,6 +27,27 @@ FALTA IMPLEMENTACIONES PARA: -------------
 
 
 
+
+
+
+- deformada + desplazaments en los nodos
+- diagramas individuales
+- reacciones en los apoyos
+- combianar widgets con plots
+- craer un propio ploteador para la libreria
+
+
+
+
+
+
+
+
+
+
+
+
+
 # DEFECTOS ---------------
 - se tiene que resolver antes de graficar
 - que cada calase almacene datos, en lugar de ello solo sean macros que asignen datos a clases de elementos y nudos y systema
@@ -114,5 +135,3 @@ class Node:
     self.dof_4 = DegreeOfFreedom()
     self.dof_5 = DegreeOfFreedom()
     self.dof_6 = DegreeOfFreedom()
-
-
