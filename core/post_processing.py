@@ -1,5 +1,7 @@
 from typing import List, Tuple, Dict, Union, TYPE_CHECKING
+from utils import rotation_matrix
 import numpy as np
+
 if TYPE_CHECKING:
     from core.system import SystemMilcaModel
     from core.element import Element
@@ -12,7 +14,7 @@ class PostProcessingOptions:
 
 class PostProcessing:
     def __init__(self, system: "SystemMilcaModel",
-                options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=10)
+                options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=100)
                 ) -> None:
         self.system = system
         self.results = self.system.results
@@ -207,70 +209,59 @@ def values_deflection(
     u = (- A*L**2*x**3*(0.6*(x/L)**2 - shear_angle) / 72 - B*L**2*x**2*((x/L)**2 - shear_angle) / 24 + C1*x*L**2*(2*(x/L)**2 - shear_angle) / 12 + C2*x**2/2 + C3*x + C4) / (E*I)
     return x, u*factor
 
-def values_deformed(element: "Element", factor: int) -> None:
-    """obtiene los puntos de la deformada de un elemento."""
-    xu1 = element.desplacement[0]
-    yu1 = element.desplacement[1]
-    
-    xo1 = element.node_i.vertex.x 
-    yo1 = element.node_i.vertex.y 
-    
-    n = len(element.deflection)
-    L = element.length
-    
-    def Tetha(element: "Element") -> float:
-        xi = element.node_i.vertex.x
-        yi = element.node_i.vertex.y
-        xf = element.node_j.vertex.x
-        yf = element.node_j.vertex.y
-        if yf - yi == 0 and xf - xi < 0:
-            tetha = -np.pi
-        else:
-            if xf - xi == 0:
-                tetha = np.pi / 2*np.sign(yf - yi)
-            elif xf - xi < 0:
-                tetha = np.arctan((yf - yi) / (xf - xi)) + np.pi
-            else:
-                tetha = np.arctan((yf - yi) / (xf - xi))
-        return tetha
-    
-    tetha = Tetha(element)
-    x = np.linspace(0, L, n)
-    
-    x_val = xo1 + x * np.cos(tetha) + xu1 * np.cos(tetha) * factor - element.deflection * np.sin(tetha) * factor
-    y_val = yo1 + x * np.sin(tetha) + yu1 * np.sin(tetha) * factor + element.deflection * np.cos(tetha) * factor
+
+def values_deformed(element: "Element", factor: int) -> Tuple[np.ndarray, np.ndarray]:
+    Lo = element.length
+    # calculo de longitud deformada
+    vertice_i = np.array(element.node_i.vertex.coordinates)  # (x_i, y_i)
+    vertice_j = np.array(element.node_j.vertex.coordinates)  # (x_j, y_j)
+    vertices = np.array([vertice_i, vertice_j]) - vertice_i
+    vertices_local = np.dot(vertices, rotation_matrix(element.angle_x))
+
+    # Obtener desplazamientos de los nodos (se asume [ux, uy, θ])
+    u_i = np.array(element.node_i.desplacement[:2]) # (u_xi, u_yi)
+    u_j = np.array(element.node_j.desplacement[:2]) # (u_xj, u_yj)
+
+    desplacement = np.array([u_i, u_j])
+    desp_local = np.dot(desplacement, rotation_matrix(element.angle_x)) * factor # [ [ui, vi], [uj, vj] ]
+    defor_local = vertices_local + desp_local # [ [xdi, ydi], [xdj, ydj] ]
+
+    # AGREGAMOS DEFLEXIONES
+    deflection = element.deflection * factor
+    x = np.linspace(0, Lo, len(deflection))
+
+    # correccion de la deformada por deformacion axial
+    Lf = defor_local[1, 0] - defor_local[0, 0]
+    x = x * Lf / Lo + desp_local[0, 0]
+
+    #  2. ROTAR EL VECTOR DE DEFLEXIONES
+    deformada_local = np.column_stack((x, deflection))
+    deformada_global = np.dot(deformada_local, rotation_matrix(element.angle_x).T) + vertice_i
+
+    x_val = deformada_global[:, 0]
+    y_val = deformada_global[:, 1]
     
     return x_val, y_val
 
+def values_rigid_deformed(element: "Element", factor: int) -> Tuple[np.ndarray, np.ndarray]:
+    # calculo de longitud deformada
+    vertice_i = np.array(element.node_i.vertex.coordinates)  # (x_i, y_i)
+    vertice_j = np.array(element.node_j.vertex.coordinates)  # (x_j, y_j)
+    vertices = np.array([vertice_i, vertice_j]) - vertice_i
+    vertices_local = np.dot(vertices, rotation_matrix(element.angle_x))
 
-# # def values_deformed(element: "Element", factor: int) -> None:
-#     """obtiene los puntos de la deformada de un elemento."""
-#     ux1 = element.desplacement[0] * factor
-#     uy1 = -element.desplacement[1] * factor
-#     ux2 = element.desplacement[3] * factor
-#     uy2 = -element.desplacement[4] * factor
-    
-#     x1 = element.node_i.vertex.x + ux1
-#     y1 = element.node_i.vertex.y + uy1
-#     x2 = element.node_j.vertex.x + ux2
-#     y2 = element.node_j.vertex.y + uy2
-    
-#     # if element.type == ElementType.FRAME:
-#     assert element.deflection is not None
-#     n = len(element.deflection)
-#     x_val = np.linspace(x1, x2, n)
-#     y_val = np.linspace(y1, y2, n)
-    
-#     x_val = x_val + element.deflection * np.sin(element.angle_x) * factor
-#     y_val = y_val + element.deflection * -np.cos(element.angle_x) * factor
-    
-#     # else:
-#     #     x_val = np.array([x1, x2])
-#     #     y_val = np.array([y1, y2])
-#     return x_val, y_val
+    # Obtener desplazamientos de los nodos (se asume [ux, uy, θ])
+    u_i = np.array(element.node_i.desplacement[:2]) # (u_xi, u_yi)
+    u_j = np.array(element.node_j.desplacement[:2]) # (u_xj, u_yj)
+    desplacement = np.array([u_i, u_j])
+    desp_local = np.dot(desplacement, rotation_matrix(element.angle_x)) * factor # [ [ui, vi], [uj, vj] ]
+    defor_local = vertices_local + desp_local # [ [xdi, ydi], [xdj, ydj] ]
 
+    # 5. DIBUJAR LA DEFORMADA RIGIDA
+    desp_regida_local = np.array([defor_local[0], defor_local[1]])
+    desp_regida_global = np.dot(desp_regida_local, rotation_matrix(element.angle_x).T) + vertice_i
 
+    x_val = desp_regida_global[:, 0]
+    y_val = desp_regida_global[:, 1]
 
-
-
-
+    return x_val, y_val

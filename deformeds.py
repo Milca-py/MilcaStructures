@@ -73,6 +73,7 @@ def deformed_element(element: Element, ax, scale):
 
 
     Lf = np.sqrt((desp_j[0] - desp_i[0])**2 + (desp_j[1] - desp_i[1])**2)
+    # Lf = desp_i[0] - desp_j[0]
 
     # factor de escalamiento lontitudinal o axial
     s = Lf / Lo
@@ -116,3 +117,37 @@ def deformed_element(element: Element, ax, scale):
     # Graficar la deformada del elemento en rojo
     ax.plot(x_finall, y_finall, lw=1, color="#444545", linestyle="--")
 
+def deformed_for_element(element: Element, ax, scale):
+    Lo = element.length
+    # calculo de longitud deformada
+    vertice_i = np.array(element.node_i.vertex.coordinates)  # (x_i, y_i)
+    vertice_j = np.array(element.node_j.vertex.coordinates)  # (x_j, y_j)
+    
+    vertices = np.array([vertice_i, vertice_j])
+
+    # # Obtener desplazamientos de los nodos (se asume [ux, uy, θ])
+    # u_i = np.array(element.node_i.desplacement[:2]) # (u_xi, u_yi)
+    # u_j = np.array(element.node_j.desplacement[:2]) # (u_xj, u_yj)
+
+
+    # desp_i = vertice_i + u_i * scale
+    # desp_j = vertice_j + u_j * scale
+
+
+    # Lf = desp_i[0] - desp_j[0]
+
+    # # factor de escalamiento lontitudinal o axial
+    # s = Lf / Lo
+
+    # deflexion = element.deflection * scale
+    # x = np.linspace(0, Lo, len(deflexion))
+
+    # #  1. ESCALAR EL VECTOR VECTOR X
+    # x = x * s
+    # deformed = np.column_stack((x, deflexion))
+
+    # #  2. ROTAR EL VECTOR DE DEFLEXIONES
+    # # angulo de la coordenadas iniciales y finales de la deflexion con el eje x (betha)
+    # xid = 0
+    # ydi = deflexion[0]
+    # xfd 

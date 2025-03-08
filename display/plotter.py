@@ -7,7 +7,8 @@ from core.post_processing import (
     values_bending_moment,
     values_slope,
     values_deflection,
-    values_deformed
+    values_deformed, 
+    values_rigid_deformed
 )
 import numpy as np
 from typing import TYPE_CHECKING, Optional, Tuple, List
@@ -146,15 +147,15 @@ class Plotter:
 
         # ploteo de los nodos y elementos
         self._plot_nodes(axes_i=axes_i, labels=labels_nodes,
-                         color_node=color_nodes, color_labels=color_labels_node)
+                            color_node=color_nodes, color_labels=color_labels_node)
         self._plot_element(axes_i=axes_i, labels=labels_elements,
-                           color_element=color_elements, color_labels=color_labels_element)
+                            color_element=color_elements, color_labels=color_labels_element)
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
-        # # # ploteo de las cargas puntuales
-        # self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
-        # # # ploteo de las cargas distribuidas
-        # self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
+        # # ploteo de las cargas puntuales
+        self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
+        # # ploteo de las cargas distribuidas
+        self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
         if show:
             plt.show()
 
@@ -407,9 +408,19 @@ class Plotter:
             plt.show()
     
     def show_deformed(self, escala: float = 1,  axes_i: int = 0, show: bool = True) -> None:
+        self._plot_element(color_element="#97a3af")
         for element in self.system.element_map.values():
             x, y = values_deformed(element, escala)
-            self.axes[axes_i].plot(x, y, lw=1, color='orange')
+            self.axes[axes_i].plot(x, y, lw=1, color='#4b35a0')
+        if show:
+            plt.show()
+    
+    def show_rigid_deformed(self, escala: float = 1,  axes_i: int = 0, show: bool = True) -> None:
+        for element in self.system.element_map.values():
+            x, y = values_rigid_deformed(element, escala)
+            self.axes[axes_i].plot(x, y, lw=1, color='#54becb',
+                                linestyle="--"
+                                )
         if show:
             plt.show()
 

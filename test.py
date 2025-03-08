@@ -1,8 +1,5 @@
-from deformeds import plot_deformed_element
 from core.system import SystemMilcaModel
 from frontend.widgets.UIdisplay import create_plot_window
-from pprint import pprint
-
 # --------------------------------------------------
 # 1. Definición del modelo y secciones
 # --------------------------------------------------
@@ -79,13 +76,15 @@ model.add_restraint(1, (True, True, True))
 model.add_restraint(5, (True, True, True))
 
 model.add_load_pattern(name="Live Load")
-model.add_point_load(2, "Live Load", "GLOBAL", 5, 0, 0)
-model.add_point_load(3, "Live Load", "GLOBAL", 10, 0, 0)
-model.add_point_load(4, "Live Load", "GLOBAL", 20, 0, 0)
+# model.add_point_load(2, "Live Load", "GLOBAL", 5, 0, 0)
+# model.add_point_load(3, "Live Load", "GLOBAL", 10, 0, 0)
+# model.add_point_load(4, "Live Load", "GLOBAL", 20, 0, 0)
 
-model.add_distributed_load(7, "Live Load", "LOCAL", -5, -5)
-model.add_distributed_load(8, "Live Load", "LOCAL", -2, -6)
-model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
+model.add_distributed_load(7, "Live Load", "GLOBAL", 5, 5, direction="GRAVITY_PROJ")
+# model.add_distributed_load(5, "Live Load", "LOCAL", 5, 5)
+# model.add_distributed_load(7, "Live Load", "LOCAL", -5, -5)
+# model.add_distributed_load(8, "Live Load", "LOCAL", -2, -6)
+# model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
 
 # --------------------------------------------------
 # 5. Resolución del modelo
@@ -103,22 +102,13 @@ model.show_structure(show=False)
 # model.plotter.show_diagrams(type="slope", show=False, escala=100)
 # model.plotter.show_diagrams(type="deflection", show=False, escala=40, fill=False)
 # model.plotter.show_deformed(escala=10, show=False)
+scale = 70
+model.plotter.show_deformed(escala=scale, show=False)
+# model.plotter.show_rigid_deformed(escala=scale, show=False)
+print(model.reactions)
 
-# --------------------------------------------------
-# 8. Graficar la deformada de cada elemento con la función corregida
-# --------------------------------------------------
-ax = model.plotter.axes[0]
-scale = 40
-
-for element in model.element_map.values():
-    plot_deformed_element(element, ax, scale)
 # --------------------------------------------------
 # 9. Mostrar la ventana con la figura
 # --------------------------------------------------
-fig = model.plotter.fig
-
-elem = 1
-
-element = model.element_map[elem]
-root = create_plot_window(fig)
+root = create_plot_window(model.plotter.fig)
 root.mainloop()

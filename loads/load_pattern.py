@@ -242,8 +242,8 @@ def distributed_load_to_local_system(
         if load_type == LoadType.FORCE:
             if direction == DirectionType.X:
                 return DistributedLoad(
-                    q_i=li * sin_a,
-                    q_j=lj * sin_a,
+                    q_i=-li * sin_a,
+                    q_j=-lj * sin_a,
                     p_i=li * cos_a,
                     p_j=lj * cos_a,
                     m_i=0,
@@ -272,8 +272,8 @@ def distributed_load_to_local_system(
 
             elif direction == DirectionType.X_PROJ:
                 return DistributedLoad(
-                    q_i=li * sin_a * sin_a,
-                    q_j=lj * sin_a * sin_a,
+                    q_i=-li * sin_a * sin_a,
+                    q_j=-lj * sin_a * sin_a,
                     p_i=li * cos_a * sin_a,
                     p_j=lj * cos_a * sin_a,
                     m_i=0,
