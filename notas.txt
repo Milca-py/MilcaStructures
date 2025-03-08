@@ -21,6 +21,7 @@ FALTA IMPLEMENTACIONES PARA: -------------
 - auto load pattern y case
 - pattern type
 - element type
+- deformaciones por cortadura
 
 
 

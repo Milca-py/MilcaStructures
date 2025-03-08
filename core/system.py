@@ -235,7 +235,7 @@ class SystemMilcaModel:
         self,
         element_id: int,
         load_pattern_name: str,
-        CSys: str = "GLOBAL",
+        CSys: str = "LOCAL",
         load_start: float = 0.0,
         load_end: float = 0.0,
         replace: bool = False,

@@ -152,9 +152,9 @@ class Plotter:
         # ploteo de los apoyos
         self._plot_supports(axes_i=axes_i, color="green")
         # # ploteo de las cargas puntuales
-        # self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
+        self._plot_point_loads(axes_i=axes_i, color=color_point_loads, label=labels_point_loads)
         # # ploteo de las cargas distribuidas
-        # self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
+        self._plot_distributed_loads(axes_i=axes_i, color=color_distributed_loads, label=labels_distributed_loads)
         if show:
             plt.show()
 
