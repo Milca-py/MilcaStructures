@@ -417,11 +417,13 @@ def plotting_element_diagrams(ax: "Axes",  element: "Element", type: str,
 
     if type == "axial_force":
         x, n = values_axial_force(element, escala, npp)
+        # n = -n    
     elif type == "shear_force":
         x, n = values_shear_force(element, escala, npp)
+        n = n
     elif type == "bending_moment":
         x, n = values_bending_moment(element, escala, npp)
-        n = -n
+        # n = n
     elif type == "spin":
         x, n = values_slope(element, escala, npp)
     elif type == "deflection":

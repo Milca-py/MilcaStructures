@@ -112,7 +112,7 @@ def values_axial_force(
     length = element.length
     
     A = (axial_j + axial_i) / element.length
-    B = -axial_i
+    B = axial_i
     
     x = np.linspace(0, length, n)
     N = A*x + B
@@ -134,7 +134,7 @@ def values_shear_force(
     B = q_i
     
     x = np.linspace(0, length, n)
-    V = - A*x**2/2 - B*x + shear_i
+    V = A*x**2/2 + B*x + shear_i
     
     return x, V*factor
 
@@ -154,7 +154,7 @@ def values_bending_moment(
     B = q_i
     
     x = np.linspace(0, length, n)
-    M = - A*x**3/6 - B*x**2/2 + shear_i*x - moment_i
+    M = - ( A*x**3/6 + B*x**2/2 + shear_i*x - moment_i )
     
     return x, M*factor
 

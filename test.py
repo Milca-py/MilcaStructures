@@ -1,6 +1,7 @@
 import numpy as np
 from core.system import SystemMilcaModel
 from frontend.widgets.UIdisplay import create_plot_window
+from pprint import pprint
 
 # --------------------------------------------------
 # 1. Definición del modelo y secciones
@@ -94,9 +95,12 @@ model.solve()
 # --------------------------------------------------
 # 6. Mostrar la estructura (opcional)
 # --------------------------------------------------
-# model.show_structure(show=False)
+model.show_structure(show=False)
 # También podrías usar los diagramas por defecto:
-# model.plotter.show_diagrams(type="shear_force", show=False)
+model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
+# model.plotter.show_diagrams(type="shear_force", show=False, escala=0.03)
+# model.plotter.show_diagrams(type="bending_moment", show=False, escala=0.03)
+# model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
 # model.plotter.show_deformed(escala=10, show=False)
 
 # --------------------------------------------------
@@ -189,10 +193,6 @@ def plot_element_deformed(element, ax, scale):
 #             'r-', lw=1.5)  # Elemento deformado
 
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-
 def plot_deformed_element(element, ax, scale):
     """
     Grafica la forma deformada del elemento.
@@ -263,11 +263,49 @@ scale = 40
 #     plot_element_deformed(element, ax, scale)
 
 
-for element in model.element_map.values():
-    plot_deformed_element(element, ax, scale)
+# for element in model.element_map.values():
+#     plot_deformed_element(element, ax, scale)
 
 # --------------------------------------------------
 # 9. Mostrar la ventana con la figura
 # --------------------------------------------------
 root = create_plot_window(model.plotter.fig)
 root.mainloop()
+
+internal_forces = model.results.local_internal_forces_elements
+
+pprint(internal_forces)
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+
+
+element = model.element_map[7]
+
+
+A = (element.distributed_load.q_j - element.distributed_load.q_i) / element.length
+B = element.distributed_load.q_i
+shear_i = element.internal_forces[1]
+moment_i = element.internal_forces[2]
+
+
+d = element.bending_moment
+x = np.linspace(0, element.length, len(d))
+
+fig, ax = plt.subplots()
+
+ax.plot(x, d)
+ax.plot(x, x*0, 'k--')
+# plt.axis("equal")
+# plt.show()
+
+# print(d)
+# print(A)
+# print(B)
+# print(shear_i)
+# print(moment_i)
+# print(element.integration_coefficients)
+
