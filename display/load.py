@@ -110,7 +110,7 @@ def graphic_one_arrow(
     b = np.array([x - length_arrow * np.cos(angle), y - length_arrow * np.sin(angle)])
 
     # coordenadas al 15% de la punta de la flecha
-    coord15p = np.array([x - 0.15 * length_arrow * np.cos(angle), y - 0.15 * length_arrow * np.sin(angle)])
+    coord15p = np.array([x - 0.85 * length_arrow * np.cos(angle), y - 0.85 * length_arrow * np.sin(angle)])
     arrow = FancyArrowPatch(
         b, a,
         transform=ax.transData,
