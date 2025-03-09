@@ -191,12 +191,7 @@ def create_plot_window(fig):
     root = tk.Tk()
     root.title("Milca System Plotter")
     root.geometry("800x800")  # Modificar el tamaño de la ventana
-    
-    # Set window icon
-    try:
-        root.iconbitmap("frontend/assets/milca.ico")
-    except tk.TclError:
-        print("Warning: Could not load icon file 'milca.ico'")
+    root.iconbitmap("frontend/assets/milca.ico")
     
     frame = MatplotlibCanvas(root, fig)
     frame.pack(fill=tk.BOTH, expand=True)

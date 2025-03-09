@@ -50,6 +50,30 @@ class GraphicOption:
         )
     
     @property
+    def _pi_mean(self):
+        return np.mean(
+            np.array(
+                [
+                    abs(element.distributed_load.p_i)
+                    for element in self.system.element_map.values()
+                    if element.distributed_load.p_i != 0
+                ]
+            )
+        )
+    
+    @property
+    def _pj_mean(self):
+        return np.mean(
+            np.array(
+                [
+                    abs(element.distributed_load.p_j)
+                    for element in self.system.element_map.values()
+                    if element.distributed_load.p_j != 0
+                ]
+            )
+        )
+    
+    @property
     def _fx_mean(self):
         return np.mean(
             np.array(
@@ -92,7 +116,12 @@ class GraphicOption:
     @property
     def ratio_scale_load(self) -> float:
         return 0.15 * self._length_mean * (2 / (self._qi_mean + self._qj_mean))
-        
+    
+    @property
+    def ratio_scale_axial(self) -> float:
+        return 0.15 * self._length_mean * (2 / (self._pi_mean + self._pj_mean))
+    
+    
     @property
     def nrof_arrows(self) -> int:
         # dx = np.trunc(self._length_mean / 10)

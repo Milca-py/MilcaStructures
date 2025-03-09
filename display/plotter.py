@@ -374,7 +374,7 @@ class Plotter:
                     angle=0,
                     length=length,
                     ax=self.axes[axes_i],
-                    ratio_scale=self.options.ratio_scale_load,
+                    ratio_scale=self.options.ratio_scale_axial,
                     nrof_arrows=self.options.nrof_arrows,
                     color=color,
                     angle_rotation=angle_rotation,
