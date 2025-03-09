@@ -99,10 +99,12 @@ import examples.anastuctures
 import examples.axial_load_column
 import examples.portico_2_aguas
 import examples.portico_3_niveles
+import examples.portico_arriostrado
 import examples.pushover
 
 # examples.axial_load_column.run()
 # examples.portico_2_aguas.run()
 # examples.portico_3_niveles.run()
 # examples.pushover.run()
-examples.anastuctures.run()
+# examples.anastuctures.run()
+examples.portico_arriostrado.run()
