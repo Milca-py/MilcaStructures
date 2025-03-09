@@ -76,15 +76,15 @@ model.add_restraint(1, (True, True, True))
 model.add_restraint(5, (True, True, True))
 
 model.add_load_pattern(name="Live Load")
-# model.add_point_load(2, "Live Load", "GLOBAL", 5, 0, 0)
-# model.add_point_load(3, "Live Load", "GLOBAL", 10, 0, 0)
-# model.add_point_load(4, "Live Load", "GLOBAL", 20, 0, 0)
+model.add_point_load(2, "Live Load", "GLOBAL", 5, 0, 0)
+model.add_point_load(3, "Live Load", "GLOBAL", 10, 0, 0)
+model.add_point_load(4, "Live Load", "GLOBAL", 20, 0, 0)
 
-model.add_distributed_load(7, "Live Load", "GLOBAL", 5, 5, direction="GRAVITY_PROJ")
+# model.add_distributed_load(7, "Live Load", "GLOBAL", 5, 5, direction="GRAVITY_PROJ")
 # model.add_distributed_load(5, "Live Load", "LOCAL", 5, 5)
-# model.add_distributed_load(7, "Live Load", "LOCAL", -5, -5)
-# model.add_distributed_load(8, "Live Load", "LOCAL", -2, -6)
-# model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
+model.add_distributed_load(7, "Live Load", "LOCAL", -5, -5)
+model.add_distributed_load(8, "Live Load", "LOCAL", -2, -6)
+model.add_distributed_load(9, "Live Load", "LOCAL", -4, -3)
 
 # --------------------------------------------------
 # 5. Resolución del modelo
@@ -96,12 +96,12 @@ model.solve()
 # --------------------------------------------------
 model.show_structure(show=False)
 # También podrías usar los diagramas por defecto:
-# model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
-# model.plotter.show_diagrams(type="shear_force", show=False, escala=0.03)
-# model.plotter.show_diagrams(type="bending_moment", show=False, escala=0.03)
-# model.plotter.show_diagrams(type="slope", show=False, escala=100)
-# model.plotter.show_diagrams(type="deflection", show=False, escala=40, fill=False)
-# model.plotter.show_deformed(escala=10, show=False)
+model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
+model.plotter.show_diagrams(type="shear_force", show=False, escala=0.03)
+model.plotter.show_diagrams(type="bending_moment", show=False, escala=0.03)
+model.plotter.show_diagrams(type="slope", show=False, escala=100)
+model.plotter.show_diagrams(type="deflection", show=False, escala=40, fill=False)
+model.plotter.show_deformed(escala=10, show=False)
 scale = 70
 model.plotter.show_deformed(escala=scale, show=False)
 # model.plotter.show_rigid_deformed(escala=scale, show=False)
