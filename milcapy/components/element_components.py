@@ -120,7 +120,7 @@ def local_load_vector(
     return Q
 
 
-
+# otra alternativa
 def load_vector(L, q_i, q_j):
     import numpy as np
     f = np.array([

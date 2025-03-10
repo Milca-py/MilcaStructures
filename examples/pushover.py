@@ -39,7 +39,7 @@ def run():
     sys.solve()
 
 
-    dfx = sys.results.global_desplacements_nodes[3][0]
+    dfx = sys.results.global_displacements_nodes[3][0]
 
     dezplaments_lateral = []
     forces_increment = []
@@ -49,7 +49,7 @@ def run():
     while abs(dfx) < 0.5:
         sys.add_point_load(3, "CARGA", fx=100*i)
         sys.solve()
-        dfx = sys.results.global_desplacements_nodes[3][0]
+        dfx = sys.results.global_displacements_nodes[3][0]
         v_basal = sys.results.reactions[0] + sys.results.reactions[12]
         dezplaments_lateral.append(dfx)
         forces_increment.append(1000*i)

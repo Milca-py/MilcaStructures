@@ -26,13 +26,9 @@ from ..utils.custom_types import (
 )
 
 from ..utils.geometry import (
-    find_nearest,
-    integrate_array,
     MatrixException,
-    arg_to_list,
     rotation_matrix,
     rotate_xy,
     traslate_xy,
-    converge,
     angle_x_axis
 )

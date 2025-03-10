@@ -135,3 +135,59 @@ class Node:
     self.dof_4 = DegreeOfFreedom()
     self.dof_5 = DegreeOfFreedom()
     self.dof_6 = DegreeOfFreedom()
+
+
+
+MilcaStructures/
+├── milcapy/   
+│   ├── __init__.py
+│   │
+│   ├── components/
+│   │   ├── __init__.py
+│   │   ├── element_components.py
+│   │   └── system_components.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── analysis.py
+│   │   ├── degrees_of_freedom.py
+│   │   ├── element.py
+│   │   ├── material.py
+│   │   ├── node.py
+│   │   ├── post_processing.py
+│   │   ├── results.py
+│   │   ├── section.py
+│   │   └── system.py
+│   │
+│   ├── display/
+│   │   ├── __init__.py
+│   │   ├── load.py
+│   │   ├── options.py
+│   │   ├── plotter.py
+│   │   └── suports.py
+│   │
+│   ├── frontend/
+│   │   ├── __init__.py
+│   │   ├── assets/
+│   │   │   └── milca.ico
+│   │   └── widgets/
+│   │       ├── __init__.py
+│   │       ├── display_array.py
+│   │       ├── UIdisplay.py
+│   │       └── widgets.py
+│   │
+│   ├── loads/
+│   │   ├── __init__.py
+│   │   ├── load.py
+│   │   └── load_pattern.py
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       ├── geometry.py
+│       ├── vertex.py
+│       └── custom_types.py
+├── examples/ 
+│   ├── axial_load_column.py
+│   ├── portico_3_niveles.py
+├── README.md
+└── notas.txt
