@@ -156,12 +156,6 @@ def values_axial_force(
     
     length = element.length
     
-    # A = (axial_j - axial_i) / length
-    # B = axial_i
-    
-    # x = np.linspace(0, length, n)
-    # N = A * x + B
-    
     A = (axial_j + axial_i) / element.length
     B = axial_i
     

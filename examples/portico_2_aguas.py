@@ -38,12 +38,12 @@ def run():
 
     sys.solve()
     sys.plotter.plot_structure(labels_distributed_loads=True, show=False)
-    # sys.plotter.show_diagrams("axial_force", show=False)
+    sys.plotter.show_diagrams("axial_force", show=False)
     # sys.plotter.show_diagrams("shear_force", show=False)
     # sys.plotter.show_diagrams("bending_moment", show=False)
     # sys.plotter.show_diagrams("slope", show=False, escala=4000)
     # sys.plotter.show_diagrams("deflection", show=False, escala=4000, fill=False)
-    sys.plotter.show_deformed(1000, show=False)
+    # sys.plotter.show_deformed(1000, show=False)
     # sys.plotter.show_rigid_deformed(1000, show=False)
 
     root = create_plot_window(sys.plotter.fig)
