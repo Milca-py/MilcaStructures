@@ -7511,3 +7511,999 @@ class Plotter:
             self.fig.tight_layout()
 
         return self.fig
+
+import numpy as np
+from enum import Enum
+
+class MaterialType(Enum):
+    """Enumeración para los diferentes tipos de materiales."""
+    ISOTROPIC = "isotropic"
+    ORTHOTROPIC = "orthotropic"
+    ANISOTROPIC = "anisotropic"
+
+class Material:
+    """
+    Clase para representar las propiedades del material.
+    Permite definir materiales con diferentes características para el análisis estructural.
+    """
+    def __init__(self, material_id, name=None, material_type=MaterialType.ISOTROPIC, **kwargs):
+        """
+        Constructor para el material.
+        
+        Parámetros:
+        -----------
+        material_id : str o int
+            Identificador único del material
+        name : str, opcional
+            Nombre descriptivo del material
+        material_type : MaterialType, opcional
+            Tipo de material (isotropic, orthotropic, anisotropic)
+        **kwargs : dict
+            Propiedades del material dependiendo del tipo:
+            - Para ISOTROPIC: E, nu, rho, alpha, G (opcional)
+            - Para ORTHOTROPIC: E1, E2, E3, nu12, nu13, nu23, G12, G13, G23, rho, alpha1, alpha2, alpha3
+            - Para ANISOTROPIC: matriz de rigidez C directamente
+        """
+        self.material_id = material_id
+        self.name = name if name is not None else f"Material-{material_id}"
+        self.material_type = material_type
+        
+        # Inicializar propiedades estándar
+        self.rho = kwargs.get('rho', 0.0)  # Densidad
+        self.alpha = kwargs.get('alpha', 0.0)  # Coeficiente de expansión térmica (para isotropic)
+        
+        # Inicializar propiedades según el tipo de material
+        if material_type == MaterialType.ISOTROPIC:
+            self._init_isotropic(**kwargs)
+        elif material_type == MaterialType.ORTHOTROPIC:
+            self._init_orthotropic(**kwargs)
+        elif material_type == MaterialType.ANISOTROPIC:
+            self._init_anisotropic(**kwargs)
+        else:
+            raise ValueError(f"Tipo de material no reconocido: {material_type}")
+            
+    def _init_isotropic(self, **kwargs):
+        """Inicializa propiedades para material isótropo."""
+        # Propiedades obligatorias
+        if 'E' not in kwargs:
+            raise ValueError("Se requiere el módulo de elasticidad (E) para materiales isótropos")
+        
+        self.E = kwargs.get('E')  # Módulo de elasticidad
+        self.nu = kwargs.get('nu', 0.0)  # Coeficiente de Poisson
+        
+        # Módulo de corte (G), calculado si no se proporciona
+        if 'G' in kwargs:
+            self.G = kwargs.get('G')
+        else:
+            self.G = self.E / (2 * (1 + self.nu))
+    
+    def _init_orthotropic(self, **kwargs):
+        """Inicializa propiedades para material ortótropo."""
+        required_props = ['E1', 'E2', 'E3', 'nu12', 'nu13', 'nu23', 'G12', 'G13', 'G23']
+        for prop in required_props:
+            if prop not in kwargs:
+                raise ValueError(f"Se requiere la propiedad {prop} para materiales ortótropos")
+        
+        # Módulos de elasticidad en las tres direcciones principales
+        self.E1 = kwargs.get('E1')
+        self.E2 = kwargs.get('E2')
+        self.E3 = kwargs.get('E3')
+        
+        # Coeficientes de Poisson
+        self.nu12 = kwargs.get('nu12')
+        self.nu13 = kwargs.get('nu13')
+        self.nu23 = kwargs.get('nu23')
+        
+        # Módulos de corte
+        self.G12 = kwargs.get('G12')
+        self.G13 = kwargs.get('G13')
+        self.G23 = kwargs.get('G23')
+        
+        # Coeficientes de expansión térmica
+        self.alpha1 = kwargs.get('alpha1', 0.0)
+        self.alpha2 = kwargs.get('alpha2', 0.0)
+        self.alpha3 = kwargs.get('alpha3', 0.0)
+        
+        # Calculamos los coeficientes de Poisson recíprocos por relaciones de simetría
+        self.nu21 = self.nu12 * self.E2 / self.E1
+        self.nu31 = self.nu13 * self.E3 / self.E1
+        self.nu32 = self.nu23 * self.E3 / self.E2
+    
+    def _init_anisotropic(self, **kwargs):
+        """Inicializa propiedades para material anisótropo."""
+        if 'C' not in kwargs:
+            raise ValueError("Se requiere la matriz de rigidez (C) para materiales anisótropos")
+        
+        self.C = kwargs.get('C')  # Matriz de rigidez
+        
+        # Coeficientes de expansión térmica
+        if 'alpha_vector' in kwargs:
+            self.alpha_vector = kwargs.get('alpha_vector')
+        else:
+            self.alpha_vector = np.zeros(6)  # Vector para expansión térmica [a11, a22, a33, a12, a13, a23]
+    
+    def get_stiffness_matrix(self):
+        """
+        Obtiene la matriz de rigidez del material.
+        
+        Retorna:
+        --------
+        numpy.ndarray
+            Matriz de rigidez (6x6 para 3D)
+        """
+        if self.material_type == MaterialType.ISOTROPIC:
+            return self._get_isotropic_stiffness_matrix()
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            return self._get_orthotropic_stiffness_matrix()
+        elif self.material_type == MaterialType.ANISOTROPIC:
+            return self.C
+        else:
+            raise ValueError(f"Tipo de material no soportado: {self.material_type}")
+    
+    def _get_isotropic_stiffness_matrix(self):
+        """
+        Calcula la matriz de rigidez para material isótropo.
+        
+        Retorna:
+        --------
+        numpy.ndarray
+            Matriz de rigidez 6x6 para 3D
+        """
+        # Factores para matriz de rigidez
+        lam = self.E * self.nu / ((1 + self.nu) * (1 - 2 * self.nu))
+        mu = self.E / (2 * (1 + self.nu))
+        
+        # Construir matriz
+        C = np.zeros((6, 6))
+        
+        # Términos diagonales
+        C[0, 0] = C[1, 1] = C[2, 2] = lam + 2 * mu  # términos normales
+        C[3, 3] = C[4, 4] = C[5, 5] = mu  # términos cortantes
+        
+        # Términos fuera de la diagonal (solo términos de acoplamiento normal-normal)
+        C[0, 1] = C[0, 2] = C[1, 0] = C[1, 2] = C[2, 0] = C[2, 1] = lam
+        
+        return C
+    
+    def _get_orthotropic_stiffness_matrix(self):
+        """
+        Calcula la matriz de rigidez para material ortótropo.
+        
+        Retorna:
+        --------
+        numpy.ndarray
+            Matriz de rigidez 6x6 para 3D
+        """
+        # Cálculo de denominador para términos de la matriz
+        denom = (1 - self.nu12 * self.nu21 - self.nu23 * self.nu32 - self.nu13 * self.nu31 - 
+                 2 * self.nu21 * self.nu32 * self.nu13)
+        
+        # Construir matriz
+        C = np.zeros((6, 6))
+        
+        # Términos de la matriz de rigidez
+        C[0, 0] = self.E1 * (1 - self.nu23 * self.nu32) / denom
+        C[1, 1] = self.E2 * (1 - self.nu13 * self.nu31) / denom
+        C[2, 2] = self.E3 * (1 - self.nu12 * self.nu21) / denom
+        
+        C[0, 1] = C[1, 0] = self.E1 * (self.nu21 + self.nu31 * self.nu23) / denom
+        C[0, 2] = C[2, 0] = self.E1 * (self.nu31 + self.nu21 * self.nu32) / denom
+        C[1, 2] = C[2, 1] = self.E2 * (self.nu32 + self.nu12 * self.nu31) / denom
+        
+        # Términos de cortante
+        C[3, 3] = self.G12
+        C[4, 4] = self.G13
+        C[5, 5] = self.G23
+        
+        return C
+    
+    def get_compliance_matrix(self):
+        """
+        Obtiene la matriz de flexibilidad (inversa de la matriz de rigidez).
+        
+        Retorna:
+        --------
+        numpy.ndarray
+            Matriz de flexibilidad
+        """
+        stiffness = self.get_stiffness_matrix()
+        return np.linalg.inv(stiffness)
+    
+    def get_thermal_strain_vector(self, delta_t):
+        """
+        Calcula el vector de deformaciones térmicas.
+        
+        Parámetros:
+        -----------
+        delta_t : float
+            Cambio de temperatura
+            
+        Retorna:
+        --------
+        numpy.ndarray
+            Vector de deformaciones térmicas [e11, e22, e33, e12, e13, e23]
+        """
+        if self.material_type == MaterialType.ISOTROPIC:
+            strain = np.zeros(6)
+            strain[0:3] = self.alpha * delta_t  # Solo deformaciones normales
+            return strain
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            strain = np.zeros(6)
+            strain[0] = self.alpha1 * delta_t
+            strain[1] = self.alpha2 * delta_t
+            strain[2] = self.alpha3 * delta_t
+            return strain
+        elif self.material_type == MaterialType.ANISOTROPIC:
+            return self.alpha_vector * delta_t
+        else:
+            raise ValueError(f"Tipo de material no soportado: {self.material_type}")
+    
+    def get_elastic_moduli(self):
+        """
+        Obtiene los módulos elásticos del material.
+        
+        Retorna:
+        --------
+        dict
+            Diccionario con los módulos elásticos relevantes
+        """
+        if self.material_type == MaterialType.ISOTROPIC:
+            return {
+                'E': self.E,
+                'G': self.G,
+                'nu': self.nu
+            }
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            return {
+                'E1': self.E1, 'E2': self.E2, 'E3': self.E3,
+                'G12': self.G12, 'G13': self.G13, 'G23': self.G23,
+                'nu12': self.nu12, 'nu13': self.nu13, 'nu23': self.nu23,
+                'nu21': self.nu21, 'nu31': self.nu31, 'nu32': self.nu32
+            }
+        elif self.material_type == MaterialType.ANISOTROPIC:
+            # Para materiales anisótropos, devolver componentes de la matriz de rigidez
+            return {'C': self.C}
+    
+    def get_poisson_ratio(self, direction1=None, direction2=None):
+        """
+        Obtiene el coeficiente de Poisson en las direcciones especificadas.
+        
+        Parámetros:
+        -----------
+        direction1, direction2 : int, opcional
+            Direcciones para las cuales calcular el coeficiente (1, 2, 3)
+            
+        Retorna:
+        --------
+        float
+            Coeficiente de Poisson
+        """
+        if self.material_type == MaterialType.ISOTROPIC:
+            return self.nu
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            if direction1 == 1 and direction2 == 2:
+                return self.nu12
+            elif direction1 == 1 and direction2 == 3:
+                return self.nu13
+            elif direction1 == 2 and direction2 == 3:
+                return self.nu23
+            elif direction1 == 2 and direction2 == 1:
+                return self.nu21
+            elif direction1 == 3 and direction2 == 1:
+                return self.nu31
+            elif direction1 == 3 and direction2 == 2:
+                return self.nu32
+            else:
+                raise ValueError("Direcciones no válidas para coeficiente de Poisson")
+        else:
+            raise ValueError(f"Operación no soportada para material tipo {self.material_type}")
+    
+    def get_strain_from_stress(self, stress_vector):
+        """
+        Calcula el vector de deformaciones a partir del vector de tensiones.
+        
+        Parámetros:
+        -----------
+        stress_vector : numpy.ndarray
+            Vector de tensiones [s11, s22, s33, s12, s13, s23]
+            
+        Retorna:
+        --------
+        numpy.ndarray
+            Vector de deformaciones [e11, e22, e33, e12, e13, e23]
+        """
+        compliance = self.get_compliance_matrix()
+        return np.dot(compliance, stress_vector)
+    
+    def get_stress_from_strain(self, strain_vector):
+        """
+        Calcula el vector de tensiones a partir del vector de deformaciones.
+        
+        Parámetros:
+        -----------
+        strain_vector : numpy.ndarray
+            Vector de deformaciones [e11, e22, e33, e12, e13, e23]
+            
+        Retorna:
+        --------
+        numpy.ndarray
+            Vector de tensiones [s11, s22, s33, s12, s13, s23]
+        """
+        stiffness = self.get_stiffness_matrix()
+        return np.dot(stiffness, strain_vector)
+    
+    def get_strain_energy_density(self, strain_vector):
+        """
+        Calcula la densidad de energía de deformación.
+        
+        Parámetros:
+        -----------
+        strain_vector : numpy.ndarray
+            Vector de deformaciones [e11, e22, e33, e12, e13, e23]
+            
+        Retorna:
+        --------
+        float
+            Densidad de energía de deformación
+        """
+        stress_vector = self.get_stress_from_strain(strain_vector)
+        return 0.5 * np.dot(stress_vector, strain_vector)
+    
+    def clone(self, new_material_id=None, new_name=None):
+        """
+        Crea una copia del material.
+        
+        Parámetros:
+        -----------
+        new_material_id : str o int, opcional
+            Nuevo ID para el material clonado
+        new_name : str, opcional
+            Nuevo nombre para el material clonado
+            
+        Retorna:
+        --------
+        Material
+            Copia del material actual
+        """
+        material_id = new_material_id if new_material_id is not None else f"{self.material_id}_copy"
+        name = new_name if new_name is not None else f"{self.name} (copy)"
+        
+        # Crear diccionario de propiedades según el tipo de material
+        props = {'rho': self.rho}
+        
+        if self.material_type == MaterialType.ISOTROPIC:
+            props.update({
+                'E': self.E,
+                'nu': self.nu,
+                'G': self.G,
+                'alpha': self.alpha
+            })
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            props.update({
+                'E1': self.E1, 'E2': self.E2, 'E3': self.E3,
+                'nu12': self.nu12, 'nu13': self.nu13, 'nu23': self.nu23,
+                'G12': self.G12, 'G13': self.G13, 'G23': self.G23,
+                'alpha1': self.alpha1, 'alpha2': self.alpha2, 'alpha3': self.alpha3
+            })
+        elif self.material_type == MaterialType.ANISOTROPIC:
+            props.update({
+                'C': self.C.copy(),
+                'alpha_vector': self.alpha_vector.copy() if hasattr(self, 'alpha_vector') else None
+            })
+        
+        return Material(material_id, name, self.material_type, **props)
+    
+    @classmethod
+    def create_steel(cls, material_id="steel", name="Structural Steel", grade="A36"):
+        """
+        Crea un material de acero estructural predefinido.
+        
+        Parámetros:
+        -----------
+        material_id : str o int, opcional
+            ID del material
+        name : str, opcional
+            Nombre del material
+        grade : str, opcional
+            Grado del acero (A36, A572, etc.)
+            
+        Retorna:
+        --------
+        Material
+            Material de acero con propiedades predeterminadas
+        """
+        # Propiedades según el grado
+        props = {
+            "A36": {
+                "E": 200e9,      # 200 GPa
+                "nu": 0.3,
+                "rho": 7850,     # 7850 kg/m³
+                "alpha": 12e-6,  # 12e-6 /°C
+                "yield_stress": 250e6  # 250 MPa
+            },
+            "A572": {
+                "E": 200e9,      # 200 GPa
+                "nu": 0.3,
+                "rho": 7850,     # 7850 kg/m³
+                "alpha": 12e-6,  # 12e-6 /°C
+                "yield_stress": 345e6  # 345 MPa (grado 50)
+            },
+            "A992": {
+                "E": 200e9,      # 200 GPa
+                "nu": 0.3,
+                "rho": 7850,     # 7850 kg/m³
+                "alpha": 12e-6,  # 12e-6 /°C
+                "yield_stress": 345e6,  # 345 MPa
+                "ultimate_stress": 450e6  # 450 MPa
+            }
+        }
+        
+        # Usar A36 como predeterminado si no se encuentra el grado
+        grade_props = props.get(grade, props["A36"])
+        
+        # Crear el material
+        material = cls(material_id, name, MaterialType.ISOTROPIC, **grade_props)
+        material.grade = grade
+        
+        return material
+    
+    @classmethod
+    def create_concrete(cls, material_id="concrete", name="Concrete", fc=25e6):
+        """
+        Crea un material de concreto predefinido.
+        
+        Parámetros:
+        -----------
+        material_id : str o int, opcional
+            ID del material
+        name : str, opcional
+            Nombre del material
+        fc : float, opcional
+            Resistencia a la compresión (Pa)
+            
+        Retorna:
+        --------
+        Material
+            Material de concreto con propiedades predeterminadas
+        """
+        # Módulo de elasticidad según ACI 318
+        E = 4700 * np.sqrt(fc)  # E en MPa si fc en MPa
+        
+        # Propiedades
+        props = {
+            "E": E,
+            "nu": 0.2,
+            "rho": 2400,     # 2400 kg/m³
+            "alpha": 10e-6,  # 10e-6 /°C
+            "compression_strength": fc,
+            "tension_strength": 0.1 * fc  # Estimación aproximada
+        }
+        
+        # Crear el material
+        material = cls(material_id, name, MaterialType.ISOTROPIC, **props)
+        material.fc = fc
+        
+        return material
+    
+    @classmethod
+    def create_aluminum(cls, material_id="aluminum", name="Aluminum Alloy", alloy="6061-T6"):
+        """
+        Crea un material de aluminio predefinido.
+        
+        Parámetros:
+        -----------
+        material_id : str o int, opcional
+            ID del material
+        name : str, opcional
+            Nombre del material
+        alloy : str, opcional
+            Aleación de aluminio (6061-T6, 7075-T6, etc.)
+            
+        Retorna:
+        --------
+        Material
+            Material de aluminio con propiedades predeterminadas
+        """
+        # Propiedades según la aleación
+        props = {
+            "6061-T6": {
+                "E": 69e9,       # 69 GPa
+                "nu": 0.33,
+                "rho": 2700,     # 2700 kg/m³
+                "alpha": 23.4e-6,# 23.4e-6 /°C
+                "yield_stress": 240e6,  # 240 MPa
+                "ultimate_stress": 290e6  # 290 MPa
+            },
+            "7075-T6": {
+                "E": 71.7e9,     # 71.7 GPa
+                "nu": 0.33,
+                "rho": 2810,     # 2810 kg/m³
+                "alpha": 23.1e-6,# 23.1e-6 /°C
+                "yield_stress": 470e6,  # 470 MPa
+                "ultimate_stress": 540e6  # 540 MPa
+            }
+        }
+        
+        # Usar 6061-T6 como predeterminado si no se encuentra la aleación
+        alloy_props = props.get(alloy, props["6061-T6"])
+        
+        # Crear el material
+        material = cls(material_id, name, MaterialType.ISOTROPIC, **alloy_props)
+        material.alloy = alloy
+        
+        return material
+    
+    @classmethod
+    def create_timber(cls, material_id="timber", name="Structural Timber", species="Pine"):
+        """
+        Crea un material de madera predefinido.
+        
+        Parámetros:
+        -----------
+        material_id : str o int, opcional
+            ID del material
+        name : str, opcional
+            Nombre del material
+        species : str, opcional
+            Especie de madera
+            
+        Retorna:
+        --------
+        Material
+            Material de madera con propiedades ortótropas predeterminadas
+        """
+        # Propiedades aproximadas según la especie (valores simplificados)
+        props = {
+            "Pine": {
+                "E1": 12e9,      # 12 GPa paralelo a la fibra
+                "E2": 1.0e9,     # 1.0 GPa perpendicular a la fibra (radial)
+                "E3": 0.8e9,     # 0.8 GPa perpendicular a la fibra (tangencial)
+                "G12": 0.9e9,    # 0.9 GPa
+                "G13": 0.8e9,    # 0.8 GPa
+                "G23": 0.3e9,    # 0.3 GPa
+                "nu12": 0.3,
+                "nu13": 0.3,
+                "nu23": 0.4,
+                "rho": 550,      # 550 kg/m³
+                "alpha1": 5e-6,  # 5e-6 /°C paralelo a la fibra
+                "alpha2": 30e-6, # 30e-6 /°C perpendicular a la fibra (radial)
+                "alpha3": 40e-6  # 40e-6 /°C perpendicular a la fibra (tangencial)
+            },
+            "Oak": {
+                "E1": 13e9,      # 13 GPa paralelo a la fibra
+                "E2": 1.3e9,     # 1.3 GPa perpendicular a la fibra (radial)
+                "E3": 1.0e9,     # 1.0 GPa perpendicular a la fibra (tangencial)
+                "G12": 1.0e9,    # 1.0 GPa
+                "G13": 0.9e9,    # 0.9 GPa
+                "G23": 0.35e9,   # 0.35 GPa
+                "nu12": 0.35,
+                "nu13": 0.35,
+                "nu23": 0.45,
+                "rho": 700,      # 700 kg/m³
+                "alpha1": 5e-6,  # 5e-6 /°C paralelo a la fibra
+                "alpha2": 35e-6, # 35e-6 /°C perpendicular a la fibra (radial)
+                "alpha3": 45e-6  # 45e-6 /°C perpendicular a la fibra (tangencial)
+            }
+        }
+        
+        # Usar Pine como predeterminado si no se encuentra la especie
+        species_props = props.get(species, props["Pine"])
+        
+        # Crear el material ortótropo
+        material = cls(material_id, name, MaterialType.ORTHOTROPIC, **species_props)
+        material.species = species
+        
+        return material
+    
+    def __str__(self):
+        """Representación en string del material."""
+        if self.material_type == MaterialType.ISOTROPIC:
+            return f"Material: {self.name} (ID: {self.material_id})\n" \
+                   f"Tipo: Isótropo\n" \
+                   f"E = {self.E:.3e} Pa, nu = {self.nu:.3f}, rho = {self.rho:.1f} kg/m³"
+        elif self.material_type == MaterialType.ORTHOTROPIC:
+            return f"Material: {self.name} (ID: {self.material_id})\n" \
+                   f"Tipo: Ortótropo\n" \
+                   f"E1 = {self.E1:.3e} Pa, E2 = {self.E2:.3e} Pa, E3 = {self.E3:.3e} Pa\n" \
+                   f"nu12 = {self.nu12:.3f}, nu13 = {self.nu13:.3f}, nu23 = {self.nu23:.3f}\n" \
+                   f"rho = {self.rho:.1f} kg/m³"
+        elif self.material_type == MaterialType.ANISOTROPIC:
+            return f"Material: {self.name} (ID: {self.material_id})\n" \
+                   f"Tipo: Anisótropo\n" \
+                   f"rho = {self.rho:.1f} kg/m³"
+
+
+import numpy as np
+from enum import Enum
+
+class SectionType(Enum):
+    """Enumeración para los diferentes tipos de sección."""
+    CUSTOM = "custom"          # Sección personalizada
+    RECTANGLE = "rectangle"    # Sección rectangular
+    CIRCLE = "circle"          # Sección circular
+    I_SECTION = "i_section"    # Sección I/H
+    T_SECTION = "t_section"    # Sección T
+    L_SECTION = "l_section"    # Sección L (ángulo)
+    C_SECTION = "c_section"    # Sección C (canal)
+    TUBE = "tube"              # Sección tubular
+    BOX = "box"                # Sección cajón
+    
+class Section:
+    """
+    Clase para representar las propiedades geométricas de una sección transversal.
+    """
+    def __init__(self, section_id, name=None, section_type=SectionType.CUSTOM, **kwargs):
+        """
+        Constructor para una sección transversal.
+        
+        Parámetros:
+        -----------
+        section_id : str o int
+            Identificador único de la sección
+        name : str, opcional
+            Nombre descriptivo de la sección
+        section_type : SectionType, opcional
+            Tipo de sección
+        **kwargs : dict
+            Propiedades geométricas de la sección dependiendo del tipo
+        """
+        self.section_id = section_id
+        self.name = name if name is not None else f"Section-{section_id}"
+        self.section_type = section_type
+        
+        # Inicializar propiedades básicas
+        self.area = kwargs.get('area', 0.0)  # Área
+        self.Iy = kwargs.get('Iy', 0.0)      # Momento de inercia respecto al eje y
+        self.Iz = kwargs.get('Iz', 0.0)      # Momento de inercia respecto al eje z
+        self.J = kwargs.get('J', 0.0)        # Constante torsional
+        self.Iyz = kwargs.get('Iyz', 0.0)    # Producto de inercia
+        self.Wy = kwargs.get('Wy', 0.0)      # Módulo resistente elástico respecto al eje y
+        self.Wz = kwargs.get('Wz', 0.0)      # Módulo resistente elástico respecto al eje z
+        self.Sy = kwargs.get('Sy', 0.0)      # Módulo plástico respecto al eje y
+        self.Sz = kwargs.get('Sz', 0.0)      # Módulo plástico respecto al eje z
+        self.ry = kwargs.get('ry', 0.0)      # Radio de giro respecto al eje y
+        self.rz = kwargs.get('rz', 0.0)      # Radio de giro respecto al eje z
+        self.Ay = kwargs.get('Ay', 0.0)      # Área de cortante en dirección y
+        self.Az = kwargs.get('Az', 0.0)      # Área de cortante en dirección z
+        
+        # Propiedades geométricas para tipos de sección específicos
+        self.dimensions = kwargs.get('dimensions', {})  # Dimensiones para generar la sección
+        
+        # Propiedades para cálculos avanzados
+        self.warping_constant = kwargs.get('warping_constant', 0.0)  # Constante de alabeo
+        self.shear_center_y = kwargs.get('shear_center_y', 0.0)      # Coordenada y del centro de cortante
+        self.shear_center_z = kwargs.get('shear_center_z', 0.0)      # Coordenada z del centro de cortante
+        
+        # Propiedades para análisis de pandeo
+        self.buckling_params = kwargs.get('buckling_params', {})
+        
+        # Si se proporciona dimensiones pero no propiedades calculadas, calcularlas
+        if self.dimensions and self.section_type != SectionType.CUSTOM and self.area == 0.0:
+            self.calculate_section_properties()
+    
+    def calculate_section_properties(self):
+        """
+        Calcula las propiedades de la sección basándose en sus dimensiones y tipo.
+        """
+        if self.section_type == SectionType.RECTANGLE:
+            self._calculate_rectangle_properties()
+        elif self.section_type == SectionType.CIRCLE:
+            self._calculate_circle_properties()
+        elif self.section_type == SectionType.I_SECTION:
+            self._calculate_i_section_properties()
+        elif self.section_type == SectionType.T_SECTION:
+            self._calculate_t_section_properties()
+        elif self.section_type == SectionType.L_SECTION:
+            self._calculate_l_section_properties()
+        elif self.section_type == SectionType.C_SECTION:
+            self._calculate_c_section_properties()
+        elif self.section_type == SectionType.TUBE:
+            self._calculate_tube_properties()
+        elif self.section_type == SectionType.BOX:
+            self._calculate_box_properties()
+        # Para CUSTOM, se asume que las propiedades ya fueron proporcionadas
+    
+    def _calculate_rectangle_properties(self):
+        """Calcula propiedades para una sección rectangular."""
+        h = self.dimensions.get('height', 0.0)
+        b = self.dimensions.get('width', 0.0)
+        
+        self.area = b * h
+        self.Iy = (b * h**3) / 12.0
+        self.Iz = (h * b**3) / 12.0
+        self.J = (b * h * (b**2 + h**2)) / 12.0
+        self.Wy = (b * h**2) / 6.0
+        self.Wz = (h * b**2) / 6.0
+        # Para secciones rectangulares macizas, factor 5/6 para áreas de cortante
+        self.Ay = (5.0/6.0) * self.area
+        self.Az = (5.0/6.0) * self.area
+        self.ry = np.sqrt(self.Iy / self.area) if self.area > 0 else 0.0
+        self.rz = np.sqrt(self.Iz / self.area) if self.area > 0 else 0.0
+        # Módulos plásticos (aproximación para sección rectangular)
+        self.Sy = (b * h**2) / 4.0
+        self.Sz = (h * b**2) / 4.0
+    
+    def _calculate_circle_properties(self):
+        """Calcula propiedades para una sección circular."""
+        r = self.dimensions.get('radius', 0.0)
+        
+        self.area = np.pi * r**2
+        self.Iy = (np.pi * r**4) / 4.0
+        self.Iz = self.Iy
+        self.J = (np.pi * r**4) / 2.0
+        self.Wy = (np.pi * r**3) / 4.0
+        self.Wz = self.Wy
+        # Para secciones circulares macizas, factor 0.9 para áreas de cortante
+        self.Ay = 0.9 * self.area
+        self.Az = 0.9 * self.area
+        self.ry = r / 2.0
+        self.rz = self.ry
+        # Módulos plásticos (para sección circular)
+        self.Sy = (4.0 * r**3) / 3.0
+        self.Sz = self.Sy
+    
+    def _calculate_i_section_properties(self):
+        """Calcula propiedades para una sección I/H."""
+        h = self.dimensions.get('height', 0.0)
+        b_f = self.dimensions.get('flange_width', 0.0)
+        t_f = self.dimensions.get('flange_thickness', 0.0)
+        t_w = self.dimensions.get('web_thickness', 0.0)
+        
+        # Área total
+        self.area = 2 * b_f * t_f + (h - 2 * t_f) * t_w
+        
+        # Momento de inercia respecto al eje y (eje fuerte)
+        self.Iy = (b_f * h**3) / 12.0 - ((b_f - t_w) * (h - 2 * t_f)**3) / 12.0
+        
+        # Momento de inercia respecto al eje z (eje débil)
+        self.Iz = (2 * t_f * b_f**3) / 12.0 + ((h - 2 * t_f) * t_w**3) / 12.0
+        
+        # Constante torsional (aproximación)
+        self.J = (1.0/3.0) * (2 * b_f * t_f**3 + (h - 2 * t_f) * t_w**3)
+        
+        # Módulos resistentes elásticos
+        self.Wy = (2 * self.Iy) / h
+        self.Wz = (2 * self.Iz) / b_f
+        
+        # Áreas de cortante (aproximaciones para perfiles I)
+        self.Ay = (h - 2 * t_f) * t_w  # Área del alma
+        self.Az = 2 * b_f * t_f        # Área de las alas
+        
+        # Radios de giro
+        self.ry = np.sqrt(self.Iy / self.area) if self.area > 0 else 0.0
+        self.rz = np.sqrt(self.Iz / self.area) if self.area > 0 else 0.0
+        
+        # Módulos plásticos (cálculo aproximado)
+        h_w = h - 2 * t_f  # Altura del alma
+        self.Sy = t_w * h_w**2 / 4.0 + b_f * t_f * (h - t_f)
+        self.Sz = (t_w**2 * h_w / 4.0) + (b_f**2 * t_f / 2.0)
+        
+        # Constante de alabeo (aproximación)
+        self.warping_constant = (t_f * b_f**3 * h**2) / 24.0
+    
+    # Los métodos para los otros tipos de secciones seguirían estructura similar...
+    
+    def _calculate_t_section_properties(self):
+        """Calcula propiedades para una sección T."""
+        h = self.dimensions.get('height', 0.0)
+        b_f = self.dimensions.get('flange_width', 0.0)
+        t_f = self.dimensions.get('flange_thickness', 0.0)
+        t_w = self.dimensions.get('web_thickness', 0.0)
+        
+        # Implementación similar a la sección I pero adaptada para T
+        # ...
+        pass
+    
+    def _calculate_l_section_properties(self):
+        """Calcula propiedades para una sección L (ángulo)."""
+        # ...
+        pass
+    
+    def _calculate_c_section_properties(self):
+        """Calcula propiedades para una sección C (canal)."""
+        # ...
+        pass
+    
+    def _calculate_tube_properties(self):
+        """Calcula propiedades para una sección tubular."""
+        # ...
+        pass
+    
+    def _calculate_box_properties(self):
+        """Calcula propiedades para una sección cajón."""
+        # ...
+        pass
+    
+    def calculate_stresses(self, axial_force=0.0, my=0.0, mz=0.0, vz=0.0, vy=0.0, torque=0.0):
+        """
+        Calcula los esfuerzos en la sección debido a las fuerzas y momentos aplicados.
+        
+        Parámetros:
+        -----------
+        axial_force : float
+            Fuerza axial (N o kN)
+        my : float
+            Momento flector alrededor del eje y (N·m o kN·m)
+        mz : float
+            Momento flector alrededor del eje z (N·m o kN·m)
+        vz : float
+            Fuerza cortante en dirección z (N o kN)
+        vy : float
+            Fuerza cortante en dirección y (N o kN)
+        torque : float
+            Momento torsor (N·m o kN·m)
+            
+        Retorna:
+        --------
+        dict
+            Diccionario con los esfuerzos calculados
+        """
+        stresses = {}
+        
+        # Esfuerzo axial
+        if self.area > 0:
+            stresses['axial'] = axial_force / self.area
+        else:
+            stresses['axial'] = 0.0
+        
+        # Esfuerzos de flexión
+        if self.Wy > 0:
+            stresses['flexion_y'] = my / self.Wy
+        else:
+            stresses['flexion_y'] = 0.0
+            
+        if self.Wz > 0:
+            stresses['flexion_z'] = mz / self.Wz
+        else:
+            stresses['flexion_z'] = 0.0
+        
+        # Esfuerzos cortantes
+        if self.Ay > 0:
+            stresses['shear_y'] = vy / self.Ay
+        else:
+            stresses['shear_y'] = 0.0
+            
+        if self.Az > 0:
+            stresses['shear_z'] = vz / self.Az
+        else:
+            stresses['shear_z'] = 0.0
+        
+        # Esfuerzo de torsión
+        if self.J > 0:
+            # Simplificación para torsión en secciones circulares
+            if self.section_type == SectionType.CIRCLE:
+                r = self.dimensions.get('radius', 0.0)
+                stresses['torsion'] = (torque * r) / self.J
+            else:
+                # Para otras secciones se necesitaría un análisis más detallado
+                stresses['torsion'] = 0.0  # Aquí se podría implementar un cálculo más preciso
+        else:
+            stresses['torsion'] = 0.0
+        
+        # Esfuerzo combinado (von Mises)
+        sigma_x = stresses['axial'] + stresses['flexion_y'] + stresses['flexion_z']
+        tau_yz = np.sqrt(stresses['shear_y']**2 + stresses['shear_z']**2 + stresses['torsion']**2)
+        stresses['von_mises'] = np.sqrt(sigma_x**2 + 3 * tau_yz**2)
+        
+        return stresses
+    
+    def check_section_capacity(self, material, axial_force=0.0, my=0.0, mz=0.0, vz=0.0, vy=0.0, torque=0.0):
+        """
+        Verifica la capacidad de la sección considerando el material y las fuerzas aplicadas.
+        
+        Parámetros:
+        -----------
+        material : Material
+            Objeto material con las propiedades del material
+        axial_force, my, mz, vz, vy, torque : float
+            Fuerzas y momentos aplicados
+            
+        Retorna:
+        --------
+        dict
+            Diccionario con los ratios de utilización
+        """
+        stresses = self.calculate_stresses(axial_force, my, mz, vz, vy, torque)
+        utilization = {}
+        
+        # Verificación de resistencia
+        if hasattr(material, 'yield_stress'):
+            # Verificación axial
+            utilization['axial'] = abs(stresses['axial']) / material.yield_stress
+            
+            # Verificación flexión
+            utilization['flexion_y'] = abs(stresses['flexion_y']) / material.yield_stress
+            utilization['flexion_z'] = abs(stresses['flexion_z']) / material.yield_stress
+            
+            # Verificación cortante
+            if hasattr(material, 'shear_yield_stress'):
+                shear_yield = material.shear_yield_stress
+            else:
+                # Aproximación del esfuerzo de fluencia a cortante
+                shear_yield = material.yield_stress / np.sqrt(3)
+                
+            utilization['shear_y'] = abs(stresses['shear_y']) / shear_yield
+            utilization['shear_z'] = abs(stresses['shear_z']) / shear_yield
+            utilization['torsion'] = abs(stresses['torsion']) / shear_yield
+            
+            # Verificación combinada (von Mises)
+            utilization['von_mises'] = stresses['von_mises'] / material.yield_stress
+            
+            # Utilización máxima
+            utilization['max'] = max(utilization.values())
+        
+        return utilization
+    
+    def rotate(self, angle_degrees):
+        """
+        Rota la sección alrededor del origen un ángulo dado.
+        Esto afecta a los momentos de inercia y productos de inercia.
+        
+        Parámetros:
+        -----------
+        angle_degrees : float
+            Ángulo de rotación en grados
+        """
+        angle_rad = np.radians(angle_degrees)
+        cos_a = np.cos(angle_rad)
+        sin_a = np.sin(angle_rad)
+        cos_a2 = cos_a**2
+        sin_a2 = sin_a**2
+        sin_2a = np.sin(2 * angle_rad)
+        
+        # Rotación de momentos de inercia
+        Iy_new = self.Iy * cos_a2 + self.Iz * sin_a2 - self.Iyz * sin_2a
+        Iz_new = self.Iy * sin_a2 + self.Iz * cos_a2 + self.Iyz * sin_2a
+        Iyz_new = (self.Iy - self.Iz) * sin_a * cos_a + self.Iyz * (cos_a2 - sin_a2)
+        
+        self.Iy = Iy_new
+        self.Iz = Iz_new
+        self.Iyz = Iyz_new
+        
+        # Recalcular otras propiedades que dependen de los momentos de inercia
+        if self.area > 0:
+            self.ry = np.sqrt(self.Iy / self.area)
+            self.rz = np.sqrt(self.Iz / self.area)
+        
+        # Nota: Para una rotación completa, se debería recalcular también
+        # los módulos resistentes y otras propiedades
+    
+    def get_principal_axes(self):
+        """
+        Calcula los ejes principales de inercia y sus momentos de inercia.
+        
+        Retorna:
+        --------
+        tuple
+            (ángulo en radianes, I1, I2) donde I1, I2 son los momentos principales de inercia
+        """
+        if abs(self.Iyz) < 1e-10:  # Si el producto de inercia es despreciable
+            if self.Iy >= self.Iz:
+                return 0.0, self.Iy, self.Iz
+            else:
+                return np.pi/2, self.Iz, self.Iy
+        
+        # Ángulo de los ejes principales
+        theta = 0.5 * np.arctan2(2 * self.Iyz, self.Iy - self.Iz)
+        
+        # Momentos principales de inercia
+        I_avg = (self.Iy + self.Iz) / 2
+        I_diff = np.sqrt(((self.Iy - self.Iz) / 2)**2 + self.Iyz**2)
+        I1 = I_avg + I_diff  # Mayor momento de inercia
+        I2 = I_avg - I_diff  # Menor momento de inercia
+        
+        return theta, I1, I2
+    
+    def copy(self):
+        """Crea una copia de la sección."""
+        import copy
+        return copy.deepcopy(self)
+    
+    def __str__(self):
+        """Representación de cadena de la sección."""
+        return f"Section(id={self.section_id}, type={self.section_type.value}, A={self.area:.6f})"
+    
+    def __repr__(self):
+        """Representación detallada de la sección."""
+        return f"Section(id={self.section_id}, name={self.name}, type={self.section_type.value}, " + \
+               f"A={self.area:.6f}, Iy={self.Iy:.6f}, Iz={self.Iz:.6f}, J={self.J:.6f})"
