@@ -95,17 +95,19 @@ def run():
     # --------------------------------------------------
     # 6. Mostrar la estructura (opcional)
     # --------------------------------------------------
-    model.show_structure(show=False)
+    # model.show_structure(show=False)
     # También podrías usar los diagramas por defecto:
-    model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
-    model.plotter.show_diagrams(type="shear_force", show=False, escala=0.03)
-    model.plotter.show_diagrams(type="bending_moment", show=False, escala=0.03)
-    model.plotter.show_diagrams(type="slope", show=False, escala=100)
-    model.plotter.show_diagrams(type="deflection", show=False, escala=40, fill=False)
-    model.plotter.show_deformed(escala=10, show=False)
+    # model.plotter.show_diagrams(type="axial_force", show=False, escala=0.03)
+    # model.plotter.show_diagrams(type="shear_force", show=False, escala=0.03)
+    # model.plotter.show_diagrams(type="bending_moment", show=False, escala=0.03)
+    # model.plotter.show_diagrams(type="slope", show=False, escala=100)
+    # model.plotter.show_diagrams(type="deflection", show=False, escala=40, fill=False)
+    # model.plotter.show_deformed(escala=10, show=False)
     scale = 70
+    model.plotter._plot_supports()
+    model.plotter._plot_element(color_element="#8c8c8c")
     model.plotter.show_deformed(escala=scale, show=False)
-    # model.plotter.show_rigid_deformed(escala=scale, show=False)
+    model.plotter.show_rigid_deformed(escala=scale, show=False)
     print(model.reactions)
 
     # --------------------------------------------------

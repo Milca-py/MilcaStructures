@@ -1,18 +1,10 @@
-from matplotlib import animation
-import matplotlib.gridspec as gridspec
-from matplotlib.cm import ScalarMappable
-from matplotlib.collections import LineCollection, PolyCollection
+from matplotlib.collections import PolyCollection
 import matplotlib.tri as mtri
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import Polygon, Circle, Rectangle
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 import time
-from scipy.linalg import eigh
 from scipy.sparse import linalg as sparse_linalg
 import numpy as np
-from degrees_of_freedom import DegreesOfFreedom
-from vertex import Vertex
 
 
 class Utils:

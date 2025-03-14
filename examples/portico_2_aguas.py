@@ -1,5 +1,5 @@
 def run():
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
     from milcapy.frontend.widgets.UIdisplay import create_plot_window
     # UNIDADES: (kN, m)
 
@@ -37,14 +37,14 @@ def run():
     sys.add_distributed_load(3, "CARGA", "GLOBAL", 7, 7, direction="GRAVITY")
 
     sys.solve()
-    sys.plotter.plot_structure(labels_distributed_loads=True, show=False)
-    sys.plotter.show_diagrams("axial_force", show=False)
+    # sys.plotter.plot_structure(labels_distributed_loads=True, show=False)
+    # sys.plotter.show_diagrams("axial_force", show=False)
     # sys.plotter.show_diagrams("shear_force", show=False)
     # sys.plotter.show_diagrams("bending_moment", show=False)
     # sys.plotter.show_diagrams("slope", show=False, escala=4000)
     # sys.plotter.show_diagrams("deflection", show=False, escala=4000, fill=False)
     # sys.plotter.show_deformed(1000, show=False)
     # sys.plotter.show_rigid_deformed(1000, show=False)
-
+    sys.plotter._plot_element()
     root = create_plot_window(sys.plotter.fig)
     root.mainloop()

@@ -1,12 +1,12 @@
 """
-Métodos de análisis estructural mediante el método de rigidez.
+utils para ensamblaje de matrices y vectores globales.
 """
 
 from typing import TYPE_CHECKING, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
 
 
 def assemble_global_load_vector(modelo: "SystemMilcaModel") -> np.ndarray:
@@ -69,8 +69,8 @@ def assemble_global_stiffness_matrix(modelo: "SystemMilcaModel") -> np.ndarray:
 
 
 def process_conditions(modelo: "SystemMilcaModel") -> Tuple[np.ndarray, np.ndarray, np.ndarray, 
-                                                         np.ndarray, np.ndarray, np.ndarray, 
-                                                         np.ndarray, np.ndarray]:
+                                                            np.ndarray, np.ndarray, np.ndarray, 
+                                                            np.ndarray, np.ndarray]:
     """Aplica condiciones de frontera.
 
     Args:

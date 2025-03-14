@@ -4,7 +4,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from milcapy.utils.vertex import Vertex
-    from milcapy.core.analysis import DynamicsAnalysis, StaticAnalysis
+    from milcapy.elements.analysis import DynamicsAnalysis, StaticAnalysis
 
 
 # Tipos básicos

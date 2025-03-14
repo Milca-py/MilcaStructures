@@ -1,5 +1,5 @@
 def run():
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
 
     model = SystemMilcaModel()
 

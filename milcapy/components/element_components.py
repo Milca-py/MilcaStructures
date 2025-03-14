@@ -1,9 +1,9 @@
 import numpy as np
 from functools import lru_cache
 
-CACHE_COPIES = 320
+CACHE_COPIES = None
 
-@lru_cache(CACHE_COPIES)
+@lru_cache(maxsize=CACHE_COPIES)
 def local_stiffness_matrix(
     E: float,  # Módulo de Young
     I: float,  # Momento de inercia
@@ -46,7 +46,7 @@ def local_stiffness_matrix(
     ])
 
 
-@lru_cache(CACHE_COPIES)
+@lru_cache(maxsize=CACHE_COPIES)
 def transformation_matrix(
     angle: float
 ) -> np.ndarray:
@@ -69,7 +69,7 @@ def transformation_matrix(
     ])
 
 
-@lru_cache(CACHE_COPIES)
+@lru_cache(maxsize=CACHE_COPIES)
 def local_load_vector(
     L: float,  # Longitud del elemento
     phi: float,  # Aporte de cortante

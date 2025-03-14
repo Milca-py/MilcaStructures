@@ -6,7 +6,7 @@ from milcapy.loads import PointLoad, DistributedLoad
 from milcapy.utils import LoadPatternType, CoordinateSystemType, State, DirectionType, LoadType
 
 if TYPE_CHECKING:
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
 
 
 def loads_to_global_system(load: PointLoad, angle: float) -> PointLoad:

@@ -3,14 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from milcapy.utils import rotate_xy, traslate_xy
-from milcapy.core.post_processing import (
-    values_axial_force,
-    values_shear_force,
-    values_bending_moment,
-    values_slope,
-    values_deflection,
-    values_deformed,
-    values_rigid_deformed
+from milcapy.elements.post_processing import (
+    axial_force,
+    shear_force,
+    bending_moment,
+    slope,
+    deflection,
+    deformed,
+    rigid_deformed
 )
 from milcapy.display.options import GraphicOption
 from milcapy.display.suports import (
@@ -31,10 +31,10 @@ from milcapy.display.load import (
 )
 
 if TYPE_CHECKING:
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-    from milcapy.core.element import Element
+    from milcapy.elements.element import Element
 
 
 class PlotterValues:
@@ -520,10 +520,9 @@ class Plotter:
             axes_i: Índice del eje donde graficar.
             show: Mostrar el gráfico inmediatamente.
         """
-        self._plot_element(color_element="#97a3af")
         
         for element in self.system.element_map.values():
-            x, y = values_deformed(element, escala)
+            x, y = deformed(element, escala)
             self.axes[axes_i].plot(x, y, lw=1, color='#4b35a0')
         
         if show:
@@ -544,7 +543,7 @@ class Plotter:
             show: Mostrar el gráfico inmediatamente.
         """
         for element in self.system.element_map.values():
-            x, y = values_rigid_deformed(element, escala)
+            x, y = rigid_deformed(element, escala)
             self.axes[axes_i].plot(
                 x, 
                 y, 
@@ -581,11 +580,11 @@ def plotting_element_diagrams(
     """
     # Seleccionar la función correspondiente según el tipo de diagrama
     diagram_functions = {
-        "axial_force": values_axial_force,
-        "shear_force": values_shear_force,
-        "bending_moment": values_bending_moment,
-        "slope": values_slope,
-        "deflection": values_deflection
+        "axial_force": axial_force,
+        "shear_force": shear_force,
+        "bending_moment": bending_moment,
+        "slope": slope,
+        "deflection": deflection
     }
     
     if type not in diagram_functions:

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Tuple, Optional
 import numpy as np
 
 if TYPE_CHECKING:
-    from milcapy.core.system import SystemMilcaModel
+    from milcapy.elements.system import SystemMilcaModel
 
 class GraphicOption:
     """
