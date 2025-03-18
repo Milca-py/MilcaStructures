@@ -1,330 +1,126 @@
-from typing import TYPE_CHECKING, Optional, Tuple, List, Dict
+from typing import TYPE_CHECKING, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 
 from milcapy.utils import rotate_xy, traslate_xy
-from milcapy.elements.post_processing import (
-    axial_force,
-    shear_force,
-    bending_moment,
-    slope,
-    deflection,
-    deformed,
-    rigid_deformed
-)
-from milcapy.display.options import GraphicOption
+from milcapy.postprocess.post_processing import deformed, rigid_deformed
 from milcapy.display.suports import (
-    support_ttt,
-    support_ttf,
-    support_tft,
-    support_ftt,
-    support_tff,
-    support_ftf,
-    support_fff,
-    support_fft
+    support_ttt, support_ttf, support_tft, 
+    support_ftt, support_tff, support_ftf, support_fft
 )
 from milcapy.display.load import (
-    graphic_n_arrow,
-    graphic_one_arrow,
-    moment_fancy_arrow,
-    moment_n_arrow
+    graphic_n_arrow, graphic_one_arrow, moment_fancy_arrow
 )
+from milcapy.display.options import PlotterOptions
+from milcapy.frontend.widgets.UIdisplay import create_plot_window
 
 if TYPE_CHECKING:
     from milcapy.elements.system import SystemMilcaModel
-    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-    from milcapy.elements.element import Element
-
-
-class PlotterValues:
-    """Clase que proporciona los valores necesarios para graficar la estructura."""
-    
-    def __init__(self, system: 'SystemMilcaModel'):
-        """
-        Inicializa un objeto PlotterValues.
-        
-        Args:
-            system: Sistema de estructura a graficar.
-        """
-        self.system = system
-
-    def structure(self) -> Tuple[Dict[int, Tuple[float, float]], 
-                                Dict[int, List[Tuple[float, float]]], 
-                                Dict[int, Dict], 
-                                Dict[int, Dict], 
-                                Dict[int, Tuple[bool, bool, bool]]]:
-        """
-        Devuelve los valores necesarios para graficar la estructura.
-
-        Returns:
-            Tuple que contiene:
-            - node_values: Diccionario de nodos {id: (x, y)}
-            - element_values: Diccionario de elementos {id: [(x1, y1), (x2, y2)]}
-            - load_elements: Diccionario de cargas distribuidas {id_element: {q_i, q_j, p_i, p_j, m_i, m_j}}
-            - load_nodes: Diccionario de cargas puntuales {id_node: {fx, fy, mz}}
-            - restrained_nodes: Diccionario de nodos restringidos {id: (restricciones)}
-        """
-        # Obtener los valores para graficar los nodos {id: (x, y)}
-        node_values = {node.id: (node.vertex.x, node.vertex.y) 
-                      for node in self.system.node_map.values()}
-
-        # Obtener los valores para graficar los elementos {id: [(x1, y1), (x2, y2)]}
-        element_values = {}
-        for element in self.system.element_map.values():
-            node_i, node_j = element.node_i, element.node_j
-            element_values[element.id] = [
-                (node_i.vertex.x, node_i.vertex.y), 
-                (node_j.vertex.x, node_j.vertex.y)
-            ]
-
-        # Obtener los elementos cargados {id: {q_i, q_j, p_i, p_j, m_i, m_j}}
-        load_elements = {}
-        for load_pattern in self.system.load_pattern_map.values():
-            for id_element, load in load_pattern.distributed_loads_map.items():
-                load_elements[id_element] = load.to_dict()
-
-        # Obtener nodos cargados {id: {fx, fy, mz}}
-        load_nodes = {}
-        for load_pattern in self.system.load_pattern_map.values():
-            for id_node, load in load_pattern.point_loads_map.items():
-                load_nodes[id_node] = load.to_dict()
-
-        # Obtener los nodos restringidos {id: (restricciones)}
-        restrained_nodes = {}
-        for node in self.system.node_map.values():
-            if node.restraints != (False, False, False):
-                restrained_nodes[node.id] = node.restraints
-
-        return node_values, element_values, load_elements, load_nodes, restrained_nodes
-
-    def axial_force(self):
-        """Método a implementar para obtener valores de fuerzas axiales."""
-        pass
-
-    def shear_force(self):
-        """Método a implementar para obtener valores de fuerzas cortantes."""
-        pass
-
-    def bending_moment(self):
-        """Método a implementar para obtener valores de momentos flectores."""
-        pass
-
-    def displacements(self):
-        """Método a implementar para obtener valores de desplazamientos."""
-        pass
+    from matplotlib.axes import Axes
 
 
 class Plotter:
-    """Clase para graficar estructuras y resultados de análisis."""
-    
-    def __init__(self, system: 'SystemMilcaModel'):
-        """
-        Inicializa un objeto Plotter.
+    def __init__(
+        self, 
+        model: 'SystemMilcaModel', 
+        options: Optional['PlotterOptions'] = None
+    ) -> None:
+        self.model = model
+        self.factory_values = model.plotter_values_factory
+        self.options = options if options else model.plotter_options
+
+        # # Atributos para figuras y ejes
+        # self.figs: List['Figure'] = []  # Figure
+        # self.axes: Dict[int, List['Axes']]    # {fig_number: List[Axes]}
+
+        self.figure: Figure = None
+        self.axes: Axes = None
         
-        Args:
-            system: Sistema de estructura a graficar.
-        """
-        self.system = system
-        self.options = GraphicOption(self.system)
-        self.values = PlotterValues(self.system)
-        self.axes: List["Axes"] = []
-        self.fig: Optional["Figure"] = None
-        self.__start_plot(self.options.figsize)
+        # Inicializar figura
+        self.initialize_figure()
+        
+        # ESTE VALOR SE CAMBIA DINAMICAMENTE PARA EL PLOTEO DE CADA LOAD_PATTERN
+        self.load_pattern_name = None
+        self.plotter_values = None
+        
 
-    def __start_plot(self, figsize: Optional[Tuple[float, float]]) -> Tuple[float, float]:
-        """
-        Inicia la gráfica creando una ventana de Matplotlib con el tamaño especificado.
+    def set_load_pattern_name(self, load_pattern_name: str):# hacer esto antes de cada ploteo
+        self.load_pattern_name = load_pattern_name
+        self.plotter_values = self.factory_values.get_plotter_values(self.load_pattern_name)
 
-        Args:
-            figsize: Tamaño de la figura (ancho, alto).
-
-        Returns:
-            Tamaño de la figura (ancho, alto).
-        """
+    def initialize_figure(self):
+        # Crear figura
         plt.close("all")
-        self.fig = plt.figure(figsize=figsize)
-        self.axes = [self.fig.add_subplot(111)]
-        plt.tight_layout()
+
+        # Configurar estilo global
+        if self.options.plot_style in plt.style.available:
+            plt.style.use(self.options.plot_style)
+
+        self.figure = plt.figure(figsize=self.options.figure_size, dpi=self.options.dpi, facecolor=self.options.background_color)
+
+        # Crear eje
+        self.axes = self.figure.add_subplot(111)
+        
+        # Configurar ejes
+        if self.options.grid:
+            self.axes.grid(True, linestyle='--', alpha=0.5)
+        
+        # Ajustar layout
+        if self.options.tight_layout:
+            self.figure.tight_layout()
+
         plt.axis('equal')
-        return (self.fig.get_figwidth(), self.fig.get_figheight())
 
-    def plot_structure(
-        self,
-        axes_i: int = 0,
-        labels_nodes: bool = False,
-        labels_elements: bool = False,
-        color_nodes: str = "red",
-        color_elements: str = "blue",
-        color_labels_node: str = "red",
-        color_labels_element: str = "red",
-        labels_point_loads: bool = False,
-        labels_distributed_loads: bool = False,
-        color_point_loads: str = "blue",
-        color_distributed_loads: str = "blue",
-        show: bool = True
-    ) -> None:
+
+        self.axes.spines["top"].set_color("#9bc1bc")      # Cambia el color del eje superior
+        self.axes.spines["bottom"].set_color("#9bc1bc")  # Cambia el color del eje inferior
+        self.axes.spines["left"].set_color("#9bc1bc")   # Cambia el color del eje izquierdo
+        self.axes.spines["right"].set_color("#9bc1bc") # Cambia el color del eje derecho
+        # self.axesTambién puedes cambiar el grosor
+        self.axes.spines["top"].set_linewidth(0.5)
+        self.axes.spines["bottom"].set_linewidth(0.5)
+        self.axes.spines["left"].set_linewidth(0.5)
+        self.axes.spines["right"].set_linewidth(0.5)
+
+
+
+        self.axes.tick_params(top=True, bottom=True, left=True, right=True)  # Activar ticks en los 4 lados
+        self.axes.tick_params(labeltop=True, labelbottom=True, labelleft=True, labelright=True)  # Mostrar etiquetas en los 4 lados
+
+        plt.xticks(fontsize=8, fontfamily="serif", fontstyle="italic", color="#103b58")  # Serif font
+        plt.yticks(fontsize=8, fontfamily="serif", fontstyle="italic", color="#103b58")  # Monospace font
+
+        self.axes.tick_params(axis="x", direction="in", length=3, width=0.7, color="#21273a")  # Modifica los ticks del eje X
+        self.axes.tick_params(axis="y", direction="in", length=3, width=0.7, color="#21273a")  # Modifica los ticks del eje Y
+
+
+
+    def plot_nodes(self):
         """
-        Grafica la estructura completa.
-        
-        Args:
-            axes_i: Índice del eje donde graficar.
-            labels_nodes: Mostrar etiquetas de nodos.
-            labels_elements: Mostrar etiquetas de elementos.
-            color_nodes: Color de los nodos.
-            color_elements: Color de los elementos.
-            color_labels_node: Color de las etiquetas de nodos.
-            color_labels_element: Color de las etiquetas de elementos.
-            labels_point_loads: Mostrar etiquetas de cargas puntuales.
-            labels_distributed_loads: Mostrar etiquetas de cargas distribuidas.
-            color_point_loads: Color de las cargas puntuales.
-            color_distributed_loads: Color de las cargas distribuidas.
-            show: Mostrar el gráfico inmediatamente.
+        Dibuja los nodos de la estructura.
         """
-        # Ploteo de los nodos y elementos
-        self._plot_nodes(
-            axes_i=axes_i, 
-            labels=labels_nodes,
-            color_node=color_nodes, 
-            color_labels=color_labels_node
-        )
-        self._plot_element(
-            axes_i=axes_i, 
-            labels=labels_elements,
-            color_element=color_elements, 
-            color_labels=color_labels_element
-        )
-        # Ploteo de los apoyos
-        self._plot_supports(axes_i=axes_i, color="green")
-        # Ploteo de las cargas puntuales
-        self._plot_point_loads(
-            axes_i=axes_i, 
-            color=color_point_loads, 
-            label=labels_point_loads
-        )
-        # Ploteo de las cargas distribuidas
-        self._plot_distributed_loads(
-            axes_i=axes_i, 
-            color=color_distributed_loads, 
-            label=labels_distributed_loads
-        )
-        
-        if show:
-            plt.show()
-
-    def axial_force(self):
-        """Grafica las fuerzas axiales."""
-        pass
-
-    def bending_moment(self):
-        """Grafica los momentos flectores."""
-        pass
-
-    def shear_force(self):
-        """Grafica las fuerzas cortantes."""
-        pass
-
-    def reaction_force(self):
-        """Grafica las fuerzas de reacción."""
-        pass
-
-    def displacements(self):
-        """Grafica las deformaciones de la estructura."""
-        pass
-
-    def results_plot(self):
-        """Grafica la estructura, DFA, DFC, DMF, DG, DEFORMADA."""
-        pass
-
-    def _plot_element(
-        self,
-        labels: bool = False,
-        axes_i: int = 0,
-        color_element: str = "blue",
-        color_labels: str = "red"
-    ) -> None:
-        """
-        Grafica los elementos de la estructura.
-        
-        Args:
-            labels: Mostrar etiquetas de elementos.
-            axes_i: Índice del eje donde graficar.
-            color_element: Color de los elementos.
-            color_labels: Color de las etiquetas.
-        """
-        # Ploteo de los elementos
-        structure_values = self.values.structure()
-        for id_element, element in structure_values[1].items():
-            x_coords = [element[0][0], element[1][0]]
-            y_coords = [element[0][1], element[1][1]]
-            self.axes[axes_i].plot(
-                x_coords, 
-                y_coords,
-                color=color_element,
-                lw=1
-            )
-
-            # Ploteo de las etiquetas de los elementos
-            if labels:
-                self.axes[axes_i].text(
-                    (element[0][0] + element[1][0]) / 2,
-                    (element[0][1] + element[1][1]) / 2,
-                    f"{id_element}",
-                    fontsize=8,
-                    color=color_labels
-                )
-
-    def _plot_nodes(
-        self,
-        labels: bool = False,
-        axes_i: int = 0,
-        color_node: str = "red",
-        color_labels: str = "red"
-    ) -> None:
-        """
-        Grafica los nodos de la estructura.
-        
-        Args:
-            labels: Mostrar etiquetas de nodos.
-            axes_i: Índice del eje donde graficar.
-            color_node: Color de los nodos.
-            color_labels: Color de las etiquetas.
-        """
-        # Ploteo de los nodos
-        structure_values = self.values.structure()
-        for id_node, node in structure_values[0].items():
-            self.axes[axes_i].plot(
-                node[0], 
-                node[1],
-                color=color_node
-            )
-
-            # Ploteo de las etiquetas de los nodos
-            if labels:
-                self.axes[axes_i].text(
-                    node[0], 
-                    node[1],
-                    f"{id_node}",
-                    fontsize=8,
-                    color=color_labels
-                )
-
-    def _plot_supports(
-        self,
-        axes_i: int = 0,
-        color: str = "green",
-    ) -> None:
-        """
-        Grafica los apoyos de la estructura.
-        
-        Args:
-            axes_i: Índice del eje donde graficar.
-            color: Color de los apoyos.
+        for coord in self.plotter_values.nodes.values():
+            x = [coord[0]]
+            y = [coord[1]]
             
-        Raises:
-            ValueError: Si las restricciones no son válidas.
+            self.axes.scatter(x, y, c=self.options.node_color, s=self.options.node_size, marker='o')
+
+    def plot_elements(self):
         """
-        # Diccionario de funciones de soporte para optimizar el código
+        Dibuja los elementos de la estructura.
+        """
+        for coord in self.plotter_values.elements.values():
+            x_coords = [coord[0][0], coord[1][0]]
+            y_coords = [coord[0][1], coord[1][1]]
+            self.axes.plot(x_coords, y_coords, color=self.options.element_color, 
+                        linewidth=self.options.element_line_width)
+
+    def plot_supports(self):
+        """
+        Dibuja los apoyos de la estructura.
+        """
+        
         support_functions = {
             (True, True, True): support_ttt,
             (False, False, True): support_fft,
@@ -336,40 +132,41 @@ class Plotter:
             (False, False, False): None
         }
         
-        structure_values = self.values.structure()
-        for id_node, restrains in structure_values[4].items():
-            node_coords = structure_values[0][id_node]
+        for node_id, restrains in self.plotter_values.restraints.items():
+            node_coords = self.plotter_values.nodes[node_id]
             support_func = support_functions.get(restrains)
             
             if support_func:
                 support_func(
-                    self.axes[axes_i],
+                    self.axes,
                     node_coords[0],
                     node_coords[1],
                     self.options.support_size,
-                    color
+                    self.options.support_color
                 )
             elif restrains != (False, False, False):
                 raise ValueError("Restricciones no válidas, no se puede plotear el apoyo.")
 
-    def _plot_point_loads(
-        self,
-        axes_i: int = 0,
-        color: str = "blue",
-        label: bool = False
-    ) -> None:
+    def plot_node_labels(self):
+        for node_id, coords in self.plotter_values.nodes.items():
+            self.axes.text(coords[0], coords[1], str(node_id), 
+                        fontsize=self.options.label_font_size,
+                        ha='left', va='bottom', color=self.options.node_label_color)
+
+    def plot_element_labels(self):
+        for element_id, coords in self.plotter_values.elements.items():
+            x_val = (coords[0][0] + coords[1][0]) / 2
+            y_val = (coords[0][1] + coords[1][1]) / 2
+            self.axes.text(x_val, y_val, str(element_id), 
+                        fontsize=self.options.label_font_size,
+                        ha='left', va='bottom', color=self.options.element_label_color)
+
+    def plot_point_loads(self) -> None:
         """
         Grafica las cargas puntuales.
-        
-        Args:
-            axes_i: Índice del eje donde graficar.
-            color: Color de las cargas.
-            label: Mostrar etiquetas de cargas.
         """
-        structure_values = self.values.structure()
-        for id_node, load in structure_values[3].items():
-            coords = structure_values[0][id_node]
-            length_arrow = 0.2 * self.options._length_mean
+        for id_node, load in self.plotter_values.point_loads.items():
+            coords = self.plotter_values.nodes[id_node]
             
             # Fuerza en dirección X
             if load["fx"] != 0:
@@ -377,12 +174,13 @@ class Plotter:
                     x=coords[0],
                     y=coords[1],
                     load=load["fx"],
-                    length_arrow=length_arrow,
+                    length_arrow=self.options.point_load_length_arrow,
                     angle=0,
-                    ax=self.axes[axes_i],
-                    color=color,
-                    label=label,
-                    color_label=color
+                    ax=self.axes,
+                    color=self.options.point_load_color,
+                    label=self.options.point_load_label,
+                    color_label=self.options.point_load_label_color,
+                    label_font_size=self.options.point_load_label_font_size
                 )
             
             # Fuerza en dirección Y
@@ -391,48 +189,33 @@ class Plotter:
                     x=coords[0],
                     y=coords[1],
                     load=load["fy"],
-                    length_arrow=length_arrow,
+                    length_arrow=self.options.point_load_length_arrow,
                     angle=np.pi/2,
-                    ax=self.axes[axes_i],
-                    color=color,
-                    label=label,
-                    color_label=color
+                    ax=self.axes,
+                    color=self.options.point_load_color,
+                    label=self.options.point_load_label,
+                    color_label=self.options.point_load_label_color,
+                    label_font_size=self.options.point_load_label_font_size
                 )
             
             # Momento en Z
             if load["mz"] != 0:
                 moment_fancy_arrow(
-                    ax=self.axes[axes_i],
+                    ax=self.axes,
                     x=coords[0],
                     y=coords[1],
                     moment=load["mz"],
-                    radio=0.05 * self.options._length_mean,
-                    color=color,
+                    radio= self.options.point_moment_length_arrow,
+                    color=self.options.point_load_color,
                     clockwise=True,
-                    label=label,
-                    color_label=color
+                    label=self.options.point_load_label,
+                    color_label=self.options.point_load_label_color,
+                    label_font_size=self.options.point_load_label_font_size
                 )
 
-    def _plot_distributed_loads(
-        self,
-        axes_i: int = 0,
-        color: str = "blue",
-        label: bool = True
-    ) -> None:
-        """
-        Grafica las cargas distribuidas.
-        
-        Args:
-            axes_i: Índice del eje donde graficar.
-            color: Color de las cargas.
-            label: Mostrar etiquetas de cargas.
-            
-        Raises:
-            NotImplementedError: Si se intenta graficar momentos distribuidos.
-        """
-        structure_values = self.values.structure()
-        for id_element, load in structure_values[2].items():
-            coords = structure_values[1][id_element]
+    def plot_distributed_loads(self) -> None:
+        for id_element, load in self.plotter_values.distributed_loads.items():
+            coords = self.plotter_values.elements[id_element]
             
             # Calcular longitud y ángulo de rotación del elemento
             x_diff = coords[1][0] - coords[0][0]
@@ -449,13 +232,14 @@ class Plotter:
                     load_j=load["q_j"],
                     angle=np.pi/2,
                     length=length,
-                    ax=self.axes[axes_i],
+                    ax=self.axes,
                     ratio_scale=self.options.ratio_scale_load,
                     nrof_arrows=self.options.nrof_arrows,
-                    color=color,
+                    color=self.options.distributed_load_color,
                     angle_rotation=angle_rotation,
-                    label=label,
-                    color_label=color
+                    label=self.options.distributed_load_label,
+                    color_label=self.options.distributed_load_label_color,
+                    label_font_size=self.options.distributed_load_label_font_size
                 )
             
             # Cargas axiales
@@ -467,152 +251,200 @@ class Plotter:
                     load_j=load["p_j"],
                     angle=0,
                     length=length,
-                    ax=self.axes[axes_i],
-                    ratio_scale=self.options.ratio_scale_axial,
+                    ax=self.axes,
+                    ratio_scale=self.options.ratio_scale_load,
                     nrof_arrows=self.options.nrof_arrows,
-                    color=color,
+                    color=self.options.distributed_load_color,
                     angle_rotation=angle_rotation,
-                    label=label,
-                    color_label=color
+                    label=self.options.distributed_load_label,
+                    color_label=self.options.distributed_load_label_color,
+                    label_font_size=self.options.distributed_load_label_font_size
                 )
             
             # Momentos distribuidos (no implementados)
             if load["m_i"] != 0 or load["m_j"] != 0:
                 raise NotImplementedError("Momentos distribuidos no implementados.")
 
-    def show_diagrams(
-        self, 
-        type: str, 
-        axes_i: int = 0, 
-        fill: bool = True, 
-        npp: int = 40, 
-        escala: float = 0.03, 
-        show: bool = True
-    ) -> None:
-        """
-        Muestra diagramas de esfuerzos para cada elemento.
+    def plot_axial_force(self):
         
-        Args:
-            type: Tipo de diagrama ('axial_force', 'shear_force', 'bending_moment', 'slope', 'deflection').
-            axes_i: Índice del eje donde graficar.
-            fill: Rellenar el área del diagrama.
-            npp: Número de puntos para discretizar el elemento.
-            escala: Factor de escala para visualización.
-            show: Mostrar el gráfico inmediatamente.
-        """
-        for element in self.system.element_map.values():
-            plotting_element_diagrams(self.axes[axes_i], element, type, fill, npp, escala)
-        
-        if show:
-            plt.show()
+        for element_id, element in self.model.element_map.items():
+            
+            # Obtener valores del diagrama
+            x, n = self.plotter_values.axial_forces[element_id]
+
+            n = n*self.options.internal_forces_scale
+            # Obtener coordenadas del elemento
+            coord_elem = np.array([
+                np.array([element.node_i.vertex.coordinates]),
+                np.array([element.node_j.vertex.coordinates])
+            ])
+            
+            # Transformar coordenadas
+            Nxy = np.column_stack((x, n))
+            Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+            Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+            Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+            Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+            # Graficar diagrama
+            self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            
+            # Rellenar diagrama si se solicita
+            NNxy = np.append(Nxy, coord_elem[0], axis=0)
+            self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
     
-    def show_deformed(
-        self, 
-        escala: float = 1, 
-        axes_i: int = 0, 
-        show: bool = True
-    ) -> None:
-        """
-        Muestra la deformada de la estructura.
+    def plot_shear_force(self):
         
-        Args:
-            escala: Factor de escala para visualización.
-            axes_i: Índice del eje donde graficar.
-            show: Mostrar el gráfico inmediatamente.
-        """
+        for element_id, element in self.model.element_map.items():
+            
+            # Obtener valores del diagrama
+            x, n = self.plotter_values.shear_forces[element_id]
+
+            n = n*self.options.internal_forces_scale
+            # Obtener coordenadas del elemento
+            coord_elem = np.array([
+                np.array([element.node_i.vertex.coordinates]),
+                np.array([element.node_j.vertex.coordinates])
+            ])
+            
+            # Transformar coordenadas
+            Nxy = np.column_stack((x, n))
+            Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+            Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+            Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+            Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+            # Graficar diagrama
+            self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            
+            # Rellenar diagrama si se solicita
+            NNxy = np.append(Nxy, coord_elem[0], axis=0)
+            self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+            
+    def plot_bending_moment(self):
         
-        for element in self.system.element_map.values():
+        for element_id, element in self.model.element_map.items():
+            
+            # Obtener valores del diagrama
+            x, n = self.plotter_values.bending_moments[element_id]
+
+            n = n*self.options.internal_forces_scale
+            # Obtener coordenadas del elemento
+            coord_elem = np.array([
+                np.array([element.node_i.vertex.coordinates]),
+                np.array([element.node_j.vertex.coordinates])
+            ])
+            
+            # Transformar coordenadas
+            Nxy = np.column_stack((x, n))
+            Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+            Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+            Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+            Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+            # Graficar diagrama
+            self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            
+            # Rellenar diagrama si se solicita
+            NNxy = np.append(Nxy, coord_elem[0], axis=0)
+            self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+
+############################################################################################
+    def plot_slope(self):
+        
+        for element_id, element in self.model.element_map.items():
+            
+            # Obtener valores del diagrama
+            x, n = self.plotter_values.slopes[element_id]
+
+            n = n*self.options.internal_forces_scale
+            # Obtener coordenadas del elemento
+            coord_elem = np.array([
+                np.array([element.node_i.vertex.coordinates]),
+                np.array([element.node_j.vertex.coordinates])
+            ])
+            
+            # Transformar coordenadas
+            Nxy = np.column_stack((x, n))
+            Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+            Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+            Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+            Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+            # Graficar diagrama
+            self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            
+            # Rellenar diagrama si se solicita
+            NNxy = np.append(Nxy, coord_elem[0], axis=0)
+            self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+    
+    def plot_deflection(self):
+        
+        for element_id, element in self.model.element_map.items():
+            
+            # Obtener valores del diagrama
+            x, n = self.plotter_values.deflections[element_id]
+
+            n = n*self.options.internal_forces_scale
+            # Obtener coordenadas del elemento
+            coord_elem = np.array([
+                np.array([element.node_i.vertex.coordinates]),
+                np.array([element.node_j.vertex.coordinates])
+            ])
+            
+            # Transformar coordenadas
+            Nxy = np.column_stack((x, n))
+            Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
+            Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
+            Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
+            Nxy = np.append(Nxy, coord_elem[1], axis=0)
+
+            # Graficar diagrama
+            self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            
+            # Rellenar diagrama si se solicita
+            NNxy = np.append(Nxy, coord_elem[0], axis=0)
+            self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+    
+    
+    
+    
+    
+    def plot_deformed(self) -> None:
+        if self.options.show_undeformed:
+            self.plot_elements()
+            self.plot_supports()
+        
+        escala = self.options.deformation_scale
+        for element in self.model.element_map.values():
             x, y = deformed(element, escala)
-            self.axes[axes_i].plot(x, y, lw=1, color='#4b35a0')
-        
-        if show:
-            plt.show()
-    
-    def show_rigid_deformed(
-        self, 
-        escala: float = 1, 
-        axes_i: int = 0, 
-        show: bool = True
-    ) -> None:
-        """
-        Muestra la deformada rígida de la estructura.
-        
-        Args:
-            escala: Factor de escala para visualización.
-            axes_i: Índice del eje donde graficar.
-            show: Mostrar el gráfico inmediatamente.
-        """
-        for element in self.system.element_map.values():
+            self.axes.plot(x, y, lw=self.options.deformation_line_width,
+                        color=self.options.deformation_color)
+
+    def plot_rigid_deformed(self) -> None:
+        escala = self.options.deformation_scale
+        for element in self.model.element_map.values():
             x, y = rigid_deformed(element, escala)
-            self.axes[axes_i].plot(
+            self.axes.plot(
                 x, 
                 y, 
                 lw=1, 
                 color='#54becb',
                 linestyle="--"
             )
+
+
+    def plot_structure(self) -> None:
+        self.plot_elements()
+        self.plot_supports()
+        self.plot_point_loads()
+        self.plot_distributed_loads()
         
-        if show:
-            plt.show()
 
 
-def plotting_element_diagrams(
-    ax: "Axes", 
-    element: "Element", 
-    type: str,
-    fill: bool, 
-    npp: int, 
-    escala: float
-) -> None:
-    """
-    Grafica diagramas para un elemento específico.
-    
-    Args:
-        ax: Eje de matplotlib donde graficar.
-        element: Elemento a graficar.
-        type: Tipo de diagrama ('axial_force', 'shear_force', 'bending_moment', 'slope', 'deflection').
-        fill: Rellenar el área del diagrama.
-        npp: Número de puntos para discretizar el elemento.
-        escala: Factor de escala para visualización.
-        
-    Raises:
-        ValueError: Si el tipo de diagrama no es válido.
-    """
-    # Seleccionar la función correspondiente según el tipo de diagrama
-    diagram_functions = {
-        "axial_force": axial_force,
-        "shear_force": shear_force,
-        "bending_moment": bending_moment,
-        "slope": slope,
-        "deflection": deflection
-    }
-    
-    if type not in diagram_functions:
-        raise ValueError(
-            "Tipo de diagrama no válido, los tipos válidos son: 'axial_force', 'shear_force', "
-            "'bending_moment', 'slope' y 'deflection'."
-        )
-    
-    # Obtener valores del diagrama
-    x, n = diagram_functions[type](element, escala, npp)
-    
-    # Obtener coordenadas del elemento
-    coord_elem = np.array([
-        np.array([element.node_i.vertex.coordinates]),
-        np.array([element.node_j.vertex.coordinates])
-    ])
-
-    # Transformar coordenadas
-    Nxy = np.column_stack((x, n))
-    Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    Nxy = np.append(Nxy, coord_elem[1], axis=0)
-
-    # Graficar diagrama
-    ax.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
-    
-    # Rellenar diagrama si se solicita
-    if fill:
-        NNxy = np.append(Nxy, coord_elem[0], axis=0)
-        ax.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+    def show(self):
+        """
+        Muestra la gráfica.
+        """
+        root = create_plot_window(self.figure)
+        root.mainloop()

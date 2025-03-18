@@ -22,17 +22,13 @@ from milcapy.utils.custom_types import (
 if TYPE_CHECKING:
     from milcapy.utils.custom_types import Restraints, VertexLike
 
-from milcapy.components.system_components import (
-    assemble_global_load_vector,
-    assemble_global_stiffness_matrix,
-    solve,
-)
-
-from milcapy.display.plotter import Plotter, PlotterValues
-from milcapy.elements.results import Results
-from milcapy.elements.analysis import Analysis
-from milcapy.elements.post_processing import PostProcessing
-
+from milcapy.display.plotter import Plotter, PlotterOptions
+from milcapy.display.plotter_values import PlotterValuesFactory, PlotterValues
+from milcapy.postprocess.results import Results, ResultOptions
+from milcapy.elements.analysis import AnalysisOptions, AnalysisManager, LinearStaticOptions
+from milcapy.postprocess.post_processing import PostProcessingOptions
+from milcapy.elements.solver import DirectStiffnessSolverrOptions
+from milcapy.display.options import GraphicOptionCalculator
 
 class SystemMilcaModel:
     """
@@ -44,62 +40,50 @@ class SystemMilcaModel:
 
     def __init__(self) -> None:
         """Inicializa un nuevo modelo estructural vacío."""
-        # Propiedades de los elementos
+        # Propiedades de los elementos [UNIQUE]
         self.material_map: Dict[str, Material] = {}
         self.section_map: Dict[str, Section] = {}
         
-        # Elementos del modelo
+        # Elementos del modelo [UNIQUE / MOD]
         self.node_map: Dict[int, Node] = {}
         self.element_map: Dict[int, Element] = {}
         
-        # Colecciones de cargas
+        # Colecciones de frontera [UNIQUE]
         self.load_pattern_map: Dict[str, LoadPattern] = {}
+        # self.restraint_map: Dict[int, Restraints] = {}
         
-        # Matrices calculadas
+        # Matrices calculadas [MOD]
         self.global_load_vector: Optional[np.ndarray] = None
         self.global_stiffness_matrix: Optional[np.ndarray] = None
 
-
-        # Resultados
+        # Resultados de analisis matricial [MOD]
         self.displacements: Optional[np.ndarray] = None
         self.reactions: Optional[np.ndarray] = None
-        self.results: Optional[Results] = None
-
-        # Análisis
-        self.analysis: Analysis = Analysis(self)
-
-        # Visualización
-        self.plotter: Optional[Plotter] = None
-        self.plotter_values: Optional[PlotterValues] = None 
-
-        # Post-procesamiento
-        self.post_processing: Optional[PostProcessing] = None
-    
-    @property
-    def num_nodes(self) -> int:
-        """Retorna el número de nodos en el modelo."""
-        return len(self.node_map)
-    
-    @property
-    def num_elements(self) -> int:
-        """Retorna el número de elementos en el modelo."""
-        return len(self.element_map)
-    
-    @property
-    def num_materials(self) -> int:
-        """Retorna el número de materiales definidos en el modelo."""
-        return len(self.material_map)
-    
-    @property
-    def num_sections(self) -> int:
-        """Retorna el número de secciones definidas en el modelo."""
-        return len(self.section_map)
-    
-    @property
-    def is_solved(self) -> bool:
-        """Verifica si el modelo ha sido resuelto."""
-        return self.results is not None and self.displacements is not None
         
+        # coleccion de resultados incluyendo postprocesamiento [ADD]
+        self.loadpattern_results: Dict[str, Results] = {}
+
+        # Análisis [UNIQUE]
+        self.analysis: AnalysisManager = AnalysisManager(self)
+
+        # Visualización [UNIQUE]
+        self.plotter: Optional[Plotter] = None
+        self.plotter_values_factory: Optional[PlotterValuesFactory] = None
+        self.plotter_options_calculator: Optional[GraphicOptionCalculator] = None
+
+        # Opciones del modelo [UNIQUE]
+        self.analysis_options: "AnalysisOptions" = LinearStaticOptions() # IMPLEMETAR PARA CADA TIPO DE ANALISIS
+        self.results_options: "ResultOptions" = ResultOptions()
+        self.plotter_options: "PlotterOptions" = None
+        self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=5)
+        self.solver_options: "DirectStiffnessSolverrOptions" = DirectStiffnessSolverrOptions()
+
+    def inicialize_plotter(self) -> None:
+        self.plotter_options_calculator = GraphicOptionCalculator(self)
+        self.plotter_options = PlotterOptions(self.plotter_options_calculator)
+        self.plotter_values_factory = PlotterValuesFactory(self)
+        self.plotter = Plotter(self)
+
     def add_material(
         self,
         name: str,
@@ -299,7 +283,7 @@ class SystemMilcaModel:
             auto_load_pattern=auto_load_pattern,
             create_load_case=create_load_case,
             state=state,
-            system=self
+            system=self,
         )
         self.load_pattern_map[name] = load_pattern
         return load_pattern
@@ -410,7 +394,7 @@ class SystemMilcaModel:
             direction=direction_enum
         )
     
-    def solve(self) -> Results:
+    def solve(self) -> Dict[str, Results]:
         """
         Resuelve el sistema estructural aplicando el método de rigidez:
         - Asigna las cargas a nodos y elementos.
@@ -418,7 +402,7 @@ class SystemMilcaModel:
         - Resuelve el sistema de ecuaciones para obtener los desplazamientos y reacciones.
         
         Returns:
-            Results: Objeto con los resultados del análisis.
+            Dict[str, Results]: Objeto con los resultados del análisis.
             
         Raises:
             ValueError: Si no hay patrones de carga definidos.
@@ -427,35 +411,10 @@ class SystemMilcaModel:
         if not self.load_pattern_map:
             raise ValueError("No hay patrones de carga definidos. Agregue al menos uno para resolver el sistema.")
             
-        # Se considera el primer patrón de carga agregado
-        lp = list(self.load_pattern_map.values())[0]
-
-
-        # Asignar las cargas a los nodos y elementos almacenados en el patrón de carga
-        lp.assign_loads_to_nodes(self)
-        lp.assign_loads_to_elements(self)
+        # Inicializar análisis
+        self.analysis.run()
         
-        # Compilar las matrices locales y de transformación de cada elemento
-        for element in self.element_map.values():
-            element.compile()
-        
-        # Calcular el vector de fuerzas global y la matriz de rigidez global
-        self.global_load_vector = assemble_global_load_vector(self)
-        self.global_stiffness_matrix = assemble_global_stiffness_matrix(self)
-        
-        # Resolver el sistema de ecuaciones
-        self.displacements, self.reactions = solve(self)
-        
-        # Actualizar estado de análisis
-        self.analysis.options.status = True
-        self.results = Results(self)
-        
-        # Inicializar componentes de post-procesamiento y visualización
-        self.post_processing = PostProcessing(self)
-        self.plotter = Plotter(self)
-        self.plotter_values = PlotterValues(self)
-        
-        return self.results
+        return self.loadpattern_results
 
     def show_structure(
         self,
@@ -507,42 +466,22 @@ class SystemMilcaModel:
             show=show
         )
     
-    def clear(self) -> None:
+    def reset(self) -> None:
         """
-        Limpia el modelo, eliminando todos los datos pero manteniendo la estructura.
+        Reinicia el modelo a su estado base sin eliminar los elementos estructurales.
+        Mantiene los materiales, secciones, nodos y elementos, pero limpia las cargas,
+        condiciones de frontera y resultados previos.
         """
-        self.__init__()
+        # Reiniciar las cargas en los nodos
+        for node in self.node_map.values():
+            node.reset()
         
-    def get_node(self, node_id: int) -> Node:
-        """
-        Obtiene un nodo por su ID.
+        # Reiniciar las cargas distribuidas y resultados en los elementos
+        for element in self.element_map.values():
+            element.reset()
         
-        Args:
-            node_id (int): Identificador del nodo.
-            
-        Returns:
-            Node: El nodo correspondiente.
-            
-        Raises:
-            ValueError: Si no existe el nodo.
-        """
-        if node_id not in self.node_map:
-            raise ValueError(f"No existe un nodo con el ID {node_id}")
-        return self.node_map[node_id]
-        
-    def get_element(self, element_id: int) -> Element:
-        """
-        Obtiene un elemento por su ID.
-        
-        Args:
-            element_id (int): Identificador del elemento.
-            
-        Returns:
-            Element: El elemento correspondiente.
-            
-        Raises:
-            ValueError: Si no existe el elemento.
-        """
-        if element_id not in self.element_map:
-            raise ValueError(f"No existe un elemento con el ID {element_id}")
-        return self.element_map[element_id]
+        # Reiniciar matrices y resultados globales
+        self.global_load_vector = None
+        self.global_stiffness_matrix = None
+        self.displacements = None
+        self.reactions = None

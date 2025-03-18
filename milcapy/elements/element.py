@@ -2,7 +2,7 @@ import numpy as np
 from typing import TYPE_CHECKING, Optional
 from milcapy.utils.geometry import angle_x_axis
 from milcapy.loads.load import DistributedLoad
-from milcapy.components.element_components import (
+from milcapy.components.element import (
     local_stiffness_matrix,
     transformation_matrix,
     local_load_vector
@@ -154,3 +154,32 @@ class Element:
         self.compile_local_load_vector()
         self.compile_global_stiffness_matrix()
         self.compile_global_load_vector()
+
+
+    def reset(self) -> None:
+        """Reinicia el elemento a su estado inicial, conservando su estructura base."""
+        # Conservar propiedades esenciales
+        # id, type, node_i, node_j, section y dof_map se mantienen
+        
+        # Reiniciar matrices y vectores
+        self.local_stiffness_matrix = None
+        self.transformation_matrix = None
+        self.local_load_vector = None
+        self.global_stiffness_matrix = None
+        self.global_load_vector = None
+
+        # Reiniciar cargas distribuidas
+        self.distributed_load = DistributedLoad()
+
+        # Reiniciar resultados
+        self.displacement = None
+        self.internal_forces = None
+        
+        # Reiniciar resultados del postprocesamiento
+        self.integration_coefficients = None
+        self.axial_force = None
+        self.shear_force = None
+        self.bending_moment = None
+        self.deflection = None
+        self.slope = None
+        self.deformed_shape = None

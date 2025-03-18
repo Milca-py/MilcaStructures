@@ -244,6 +244,9 @@ class Vertex:
             str: Representación en cadena del objeto Vertex
         """
         return f"Vertex({self.x}, {self.y})"
+    
+    def __len__(self) -> int:
+        return 2
 
 
 def vertex_range(v1: Vertex, v2: Vertex, n: int) -> list:

@@ -1,26 +1,68 @@
 from typing import Dict, TYPE_CHECKING
+from dataclasses import dataclass
 import numpy as np
+
+from milcapy.postprocess.post_processing import PostProcessing
+
 if TYPE_CHECKING:
     from milcapy.elements.system import SystemMilcaModel
+
+
+
+@dataclass
+class ResultOptions:
+    """
+    Clase (ON/OFF) que define las opciones para el almacenamiento y procesamiento de resultados.
+    """
+    store_displacements: bool = True     # Almacena los desplazamientos
+    store_reactions: bool = True         # Almacena las reacciones
+    store_internal_forces: bool = True   # Almacena las fuerzas internas
+    store_stresses: bool = True          # Almacena las tensiones
+    store_strains: bool = True           # Almacena las deformaciones
+    store_section_forces: bool = True    # Almacena las fuerzas de sección
+
 
 
 class Results:
     """Clase que extrae, organiza y almacena los resultados de una simulación."""
     
-    def __init__(self, system: 'SystemMilcaModel'):
+    def __init__(
+        self, 
+        system: 'SystemMilcaModel', 
+        options: "ResultOptions",
+        ) -> None:
         """
         Inicializa los resultados para un sistema estructural.
         
         Args:
             system: Sistema estructural analizado
+            options: Opciones de post-procesamiento
         """
+        # parametdos de entrada (objetos)
         self.system = system
+        self.options = options
+        
+        
         self.reactions = self.system.reactions
         self.displacements = self.system.displacements
+
+
+        # en coordenadas locales
+        self.integration_coefficients_elements = {} # {element_id: np.ndarray}
+        self.values_axial_force_elements = {}       # {element_id: np.ndarray}
+        self.values_shear_force_elements = {}       # {element_id: np.ndarray}
+        self.values_bending_moment_elements = {}    # {element_id: np.ndarray}
+        self.values_slope_elements = {}             # {element_id: np.ndarray}
+        self.values_deflection_elements = {}        # {element_id: np.ndarray}
         
+        # en coordenadas globales (x_val, y_val)
+        self.values_deformed_elements = {}          # {element_id: Tuple[np.ndarray, np.ndarray]}
+        self.values_rigid_deformed_elements = {}    # {element_id: Tuple[np.ndarray, np.ndarray]}
+
         # Siempre que se inicializa se calculan los resultados
         self.all_to_nodes()
         self.all_to_elements()
+
 
     @property
     def global_displacements_nodes(self) -> Dict[int, np.ndarray]:
@@ -64,7 +106,7 @@ class Results:
                 local_disps[element.id]
             ) - element.local_load_vector
         return forces_elements
-    
+
     def all_to_nodes(self) -> None:
         """Agrega los resultados a los objetos de nodos."""
         for node in self.system.node_map.values():

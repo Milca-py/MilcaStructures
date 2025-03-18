@@ -7,6 +7,7 @@ from milcapy.utils import LoadPatternType, CoordinateSystemType, State, Directio
 
 if TYPE_CHECKING:
     from milcapy.elements.system import SystemMilcaModel
+    from milcapy.elements.analysis import AnalysisOptions
 
 
 def loads_to_global_system(load: PointLoad, angle: float) -> PointLoad:
@@ -152,7 +153,7 @@ class LoadPattern:
         auto_load_pattern: bool = False,
         create_load_case: bool = False,
         state: State = State.ACTIVE,
-        system: Optional["SystemMilcaModel"] = None
+        system: Optional["SystemMilcaModel"] = None,
     ) -> None:
         """
         Inicializa un nuevo patrón de carga con los parámetros especificados.
@@ -182,6 +183,7 @@ class LoadPattern:
         self.auto_load_pattern = auto_load_pattern
         self.create_load_case = create_load_case
         self.state = state
+        self.analyzed = False
 
         self.point_loads_map: Dict[int, PointLoad] = {}
         self.distributed_loads_map: Dict[int, DistributedLoad] = {}

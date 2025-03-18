@@ -85,16 +85,14 @@ class Node:
         """
         self.forces += forces
     
-    def clear_forces(self) -> None:
+    def reset(self) -> None:
         """
-        Elimina todas las fuerzas aplicadas al nodo.
+        Reinicia el nodo a su estado inicial, conservando solo id y vertex.
         """
+        # Reiniciar cargas
         self.forces = PointLoad()
-    
-    def reset_results(self) -> None:
-        """
-        Reinicia los resultados de análisis (desplazamientos y reacciones).
-        """
+        
+        # Reiniciar resultados del análisis
         self.displacement = None
         self.reaction = None
 

@@ -5,15 +5,7 @@ Este módulo proporciona herramientas para resolver problemas de análisis estru
 mediante el método de rigidez y análisis matricial.
 """
 
-from ..components.system_components import (
-    solve,
-    process_conditions,
-    assemble_global_load_vector,
-    assemble_global_stiffness_matrix
-)
-
-
-from ..components.element_components import (
+from .element import (
     local_stiffness_matrix,
     transformation_matrix,
     local_load_vector

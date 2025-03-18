@@ -8,6 +8,78 @@ if TYPE_CHECKING:
     from matplotlib.pyplot import Axes
 
 
+
+def graphic_one_arrow(
+    x: float,
+    y: float,
+    load: float,
+    length_arrow: float,
+    angle: float, # angulo que forma la (cola - cabeza) de la carga con el eje x
+    ax: "Axes",
+    color: str = "blue",
+    label: bool = True,
+    color_label: str = "black",
+    label_font_size: int = 8
+) -> None:
+    """Dibuja una flecha en un punto."""
+
+    if load < 0:
+        angle = angle + np.pi
+    load_cal = load
+    # load_graf = load_mean
+    a = np.array([x, y]) # cabeza del vector
+    # b = np.array([x + -load_graf * ratio_scale * np.cos(-angle), y + load_graf * ratio_scale * np.sin(-angle)])
+    b = np.array([x - length_arrow * np.cos(angle), y - length_arrow * np.sin(angle)])
+
+    # coordenadas al 15% de la punta de la flecha
+    coord15p = np.array([x - 0.85 * length_arrow * np.cos(angle), y - 0.85 * length_arrow * np.sin(angle)])
+    arrow = FancyArrowPatch(
+        b, a,
+        transform=ax.transData,
+        color=color,
+        linewidth=0.7,
+        arrowstyle="->",
+        mutation_scale=10
+    )
+    ax.add_patch(arrow)
+    
+    
+    if label:
+        text =ax.text(
+            coord15p[0], coord15p[1], 
+            f"{abs(load_cal):.2f}",
+            fontsize=label_font_size,
+            ha="right", 
+            va="bottom",
+            color=color_label
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def graphic_n_arrow(
     x: float,
     y: float,
@@ -21,7 +93,8 @@ def graphic_n_arrow(
     color: str = "blue",
     angle_rotation: float = 0,
     label: bool = True,
-    color_label: str = 'blue'
+    color_label: str = 'blue',
+    label_font_size: int = 8
 ) -> None:
     """Dibuja una flecha en un punto."""
     load_i, load_j = -load_i, -load_j
@@ -55,7 +128,7 @@ def graphic_n_arrow(
             ax.text(
                 coord_label[0], coord_label[1],
                 f"{abs(load_i):.2f}",
-                fontsize=8,
+                fontsize=label_font_size,
                 # ha="center",
                 # va="center",
                 color=color_label
@@ -69,7 +142,7 @@ def graphic_n_arrow(
                 ax.text(
                     coord_label_i[0], coord_label_i[1],
                     f"{abs(load_i):.2f}",
-                    fontsize=8,
+                    fontsize=label_font_size,
                     # ha="center",
                     # va="center",
                     color=color_label
@@ -80,56 +153,15 @@ def graphic_n_arrow(
                 ax.text(
                     coord_label_j[0], coord_label_j[1],
                     f"{abs(load_j):.2f}",
-                    fontsize=8,
+                    fontsize=label_font_size,
                     # ha="center",
                     # va="center",
                     color=color_label
                 )
 
-def graphic_one_arrow(
-    x: float,
-    y: float,
-    load: float,
-    length_arrow: float,
-    # load_mean: float,
-    angle: float, # angulo que forma la (cola - cabeza) de la carga con el eje x
-    ax: "Axes",
-    # ratio_scale: float,
-    color: str = "blue",
-    label: bool = True,
-    color_label: str = "black"
-) -> None:
-    """Dibuja una flecha en un punto."""
 
-    if load < 0:
-        angle = angle + np.pi
-    load_cal = load
-    # load_graf = load_mean
-    a = np.array([x, y]) # cabeza del vector
-    # b = np.array([x + -load_graf * ratio_scale * np.cos(-angle), y + load_graf * ratio_scale * np.sin(-angle)])
-    b = np.array([x - length_arrow * np.cos(angle), y - length_arrow * np.sin(angle)])
 
-    # coordenadas al 15% de la punta de la flecha
-    coord15p = np.array([x - 0.85 * length_arrow * np.cos(angle), y - 0.85 * length_arrow * np.sin(angle)])
-    arrow = FancyArrowPatch(
-        b, a,
-        transform=ax.transData,
-        color=color,
-        linewidth=0.7,
-        arrowstyle="->",
-        mutation_scale=10
-    )
-    ax.add_patch(arrow)
-    
-    if label:
-        ax.text(
-            coord15p[0], coord15p[1], 
-            f"{abs(load_cal):.2f}",
-            fontsize=8,
-            ha="right", 
-            va="bottom",
-            color=color_label
-        )
+
 
 def moment_fancy_arrow(
     ax: "Axes",
@@ -142,6 +174,7 @@ def moment_fancy_arrow(
     clockwise: bool = True,
     label: bool = True,
     color_label: str = 'blue',
+    label_font_size: int = 8
     ) -> None:
     """
     Dibuja un arco representando un momento puntual usando FancyArrowPatch.
@@ -181,11 +214,14 @@ def moment_fancy_arrow(
         ax.text(
             pos_label[0], pos_label[1],
             f"{abs(moment):.2f}",
-            fontsize=8,
+            fontsize=label_font_size,
             ha="right",
             va="bottom",
             color=color_label
         )
+
+
+
 
 def moment_n_arrow(
     ax: "Axes",
