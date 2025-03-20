@@ -2,7 +2,7 @@ import numpy as np
 from typing import TYPE_CHECKING, Optional
 from milcapy.utils.geometry import angle_x_axis
 from milcapy.loads.load import DistributedLoad
-from milcapy.components.element import (
+from milcapy.utils.element import (
     local_stiffness_matrix,
     transformation_matrix,
     local_load_vector
