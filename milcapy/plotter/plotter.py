@@ -14,7 +14,7 @@ from milcapy.plotter.load import (
     graphic_n_arrow, graphic_one_arrow, moment_fancy_arrow
 )
 from milcapy.plotter.options import PlotterOptions
-from milcapy.frontend.widgets.UIdisplay import create_plot_window
+from milcapy.plotter.UIdisplay import create_plot_window
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel

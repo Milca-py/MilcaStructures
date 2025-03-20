@@ -109,3 +109,34 @@ model.plotter.plot_deformed()
 # model.plotter.plot_rigid_deformed()
 # model.plotter.plot_structure()
 model.plotter.show()
+
+
+
+results_elements = {
+                    1: {
+                        "axial_force": [1, 2, 3],
+                        "shear_force": [],
+                        "bending_moment": [],
+                        "slope": [],
+                        "deflection": [],
+                    },
+                    2: {
+                        "axial_force": [],
+                        "shear_force": [],
+                        "bending_moment": [],
+                        "slope": [],
+                        "deflection": [],
+                        
+                    },
+                }
+
+results_nodes = {
+                1: {
+                    "displacements": [],
+                    "reactions": [],
+                },
+                2: {
+                    "displacements": [],
+                    "reactions": [],
+                },
+            }

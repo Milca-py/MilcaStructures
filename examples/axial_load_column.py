@@ -1,6 +1,6 @@
 def run():
-    from milcapy.elements.system import SystemMilcaModel
-    from milcapy.frontend.widgets.UIdisplay import create_plot_window
+    from milcapy import SystemMilcaModel
+    from milcapy.plotter.UIdisplay import create_plot_window
 
 
     model = SystemMilcaModel()

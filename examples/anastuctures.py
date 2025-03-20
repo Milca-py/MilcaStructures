@@ -1,6 +1,6 @@
 def run():
     from anastruct.fem.system import SystemElements
-    from milcapy.frontend.widgets.UIdisplay import create_plot_window
+    from milcapy import create_plot_window
 
     EI1 = 2.1e6 * 0.3 * 0.5 ** 3 / 12
     EI2 = 2.1e6 * 0.5 * 0.5 ** 3 / 12
