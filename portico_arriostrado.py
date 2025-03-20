@@ -90,16 +90,16 @@ model.solve()
 
 
 model.inicialize_plotter()
-model.plotter_options.internal_forces_scale = 0.01
+model.plotter_options.internal_forces_scale = 100
 model.plotter_options.deformation_scale = 100
-model.plotter.set_load_pattern_name("CARGA")
+model.plotter.set_load_pattern_name("LOAD")
 # model.plotter.plot_nodes()
-# model.plotter.plot_elements()
+model.plotter.plot_elements()
 model.plotter.plot_supports()
 # model.plotter.plot_node_labels()
 # model.plotter.plot_element_labels()
-# model.plotter.plot_point_loads()
-# model.plotter.plot_distributed_loads()
+model.plotter.plot_point_loads()
+model.plotter.plot_distributed_loads()
 # model.plotter.plot_axial_force()
 # model.plotter.plot_shear_force()
 # model.plotter.plot_bending_moment()

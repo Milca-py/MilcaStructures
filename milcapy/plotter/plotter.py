@@ -387,7 +387,6 @@ class Plotter:
             NNxy = np.append(Nxy, coord_elem[0], axis=0)
             self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
 
-############################################################################################
     def plot_slope(self):
         
         for element_id, element in self.model.element_map.items():
@@ -448,6 +447,7 @@ class Plotter:
     
     
     
+############################################################################################
     def plot_deformed(self) -> None:
         if self.options.show_undeformed:
             self.plot_elements()
