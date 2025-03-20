@@ -7,7 +7,6 @@ from ..utils.custom_types import (
     VertexLike,
     AxisNumber,
     SequenceLike,
-    TypeAnalysis,
     Restraints
 )
 

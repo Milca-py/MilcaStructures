@@ -5,7 +5,7 @@ import numpy as np
 from milcapy.postprocess.post_processing import PostProcessing
 
 if TYPE_CHECKING:
-    from milcapy.elements.system import SystemMilcaModel
+    from milcapy.model.model import SystemMilcaModel
 
 
 

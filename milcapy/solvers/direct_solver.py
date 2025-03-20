@@ -4,99 +4,14 @@ from scipy.linalg import lu_solve, lu_factor, cho_solve, cho_factor, qr
 import time
 
 from typing import TYPE_CHECKING
+from milcapy.assembly.dof_mapper import DOFMapper
+from milcapy.solvers.options import DirectStiffnessSolverrOptions
 
 if TYPE_CHECKING:
-    from milcapy.elements.system import SystemMilcaModel
-    from milcapy.postprocess.results import Results
-    from milcapy.elements.analysis import LinearStaticOptions
+    from milcapy.model.model import SystemMilcaModel
+    from milcapy.analysis.static import LinearStaticOptions
 
 
-class DOFMapper:
-    def __init__(self, model):
-        self.model: "SystemMilcaModel" = model
-        self.node_ids = None
-        self.restraints = None              # restricciones en orden de los nodos
-        self.dofs = None
-        self.free_dofs = None
-        self.restrained_dofs = None
-        # self.constrained_dofs = None
-    
-        self.map_dofs()
-
-    def map_dofs(self):
-        """Mapea los grados de libertad del modelo.
-            [0, 1, 2, ] pertenece al nodo 1 y así sucesivamente.
-        """
-        nn = len(self.model.node_map)
-        self.node_ids = np.zeros(nn, dtype=int)
-        self.dofs = np.zeros(nn * 3, dtype=int)
-        self.restraints = np.zeros(nn * 3, dtype=bool)
-        
-        for node in self.model.node_map.values():
-            self.restraints[node.dof[0] - 1] = node.restraints[0]
-            self.restraints[node.dof[1] - 1] = node.restraints[1]
-            self.restraints[node.dof[2] - 1] = node.restraints[2]
-            
-            self.dofs[node.dof[0] - 1] = node.dof[0]
-            self.dofs[node.dof[1] - 1] = node.dof[1]
-            self.dofs[node.dof[2] - 1] = node.dof[2]
-            
-            self.node_ids[node.id - 1] = node.id
-        
-        self.free_dofs = np.where(~self.restraints)[0]
-        self.restrained_dofs = np.where(self.restraints)[0]
-
-# ==================================================================================================
-# Clase para definir las opciones de los solucionadores
-# ==================================================================================================
-
-class SolverOptions(ABC):
-    """
-    Clase abstracta para definir opciones generales de cualquier solucionador.
-    """
-
-    def __init__(self, solver_type: str) -> None:
-        """
-        Inicializa las opciones generales del solucionador.
-
-        Args:
-            solver_type (str): Tipo de solucionador.
-        """
-        self.solver_type = solver_type
-
-    @abstractmethod
-    def validate(self) -> bool:
-        """Método abstracto para validar opciones específicas de cada solucionador."""
-        pass
-
-
-class DirectStiffnessSolverrOptions(SolverOptions):
-    """
-    Opciones específicas para solucionador de rigidez directa.
-    """
-
-    def __init__(self, method: str = "numpy") -> None:
-        """
-        Inicializa las opciones del solucionador directo.
-
-        Args:
-            method (str): Método de factorización directa ("lu", "cholesky", "qr", "numpy").
-        """
-        super().__init__(solver_type="direct")
-        self.method = method.upper()
-
-    def validate(self) -> bool:
-        """Valida si el método de solución directa es válido."""
-        valid_methods = {"lU", "CHOLESKY", "QR", "NUMPY"}
-        if self.method not in valid_methods:
-            print(f"Error: Método de solución no válido: {self.method}. Opciones válidas: {valid_methods}")
-            return False
-        return True
-
-
-# ==================================================================================================
-# Clase para definir el solucionador estructural - [ METODO DE RIJIDEZ DIRECTA ]
-# ==================================================================================================
 
 class SolutionMethod(ABC):
     """

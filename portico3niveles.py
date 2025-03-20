@@ -1,6 +1,5 @@
-
 from milcapy import SystemMilcaModel
-from milcapy import create_plot_window
+
 # --------------------------------------------------
 # 1. Definición del modelo y secciones
 # --------------------------------------------------

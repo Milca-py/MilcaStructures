@@ -3,7 +3,7 @@ import numpy as np
 
 from milcapy.material.material import Material, GenericMaterial
 from milcapy.section.section import Section, RectangularSection
-from milcapy.elements.node import Node
+from milcapy.core.node import Node
 from milcapy.elements.element import Element
 from milcapy.utils.vertex import Vertex
 
@@ -24,10 +24,11 @@ if TYPE_CHECKING:
 
 from milcapy.plotter.plotter import Plotter, PlotterOptions
 from milcapy.plotter.plotter_values import PlotterValuesFactory, PlotterValues
-from milcapy.results.results import Results, ResultOptions
-from milcapy.analysis.analysis import AnalysisOptions, AnalysisManager, LinearStaticOptions
+from milcapy.core.results import Results, ResultOptions
+from milcapy.analysis.options import AnalysisOptions, LinearStaticOptions
+from milcapy.analysis.manager import AnalysisManager
 from milcapy.postprocess.post_processing import PostProcessingOptions
-from milcapy.solver.solver import DirectStiffnessSolverrOptions
+from milcapy.solvers.direct_solver import DirectStiffnessSolverrOptions
 from milcapy.plotter.options import GraphicOptionCalculator
 
 class SystemMilcaModel:

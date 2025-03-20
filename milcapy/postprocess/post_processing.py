@@ -12,8 +12,8 @@ from milcapy.postprocess.internal_forces import (
 )
 
 if TYPE_CHECKING:
-    from milcapy.elements.system import SystemMilcaModel
-    from milcapy.postprocess.results import Results
+    from milcapy.model.model import SystemMilcaModel
+    from milcapy.core.results import Results
 
 
 @dataclass

@@ -9,9 +9,9 @@ from milcapy.utils.element import (
 )
 
 if TYPE_CHECKING:
-    from milcapy.elements.node import Node
+    from milcapy.core.node import Node
     from milcapy.utils.custom_types import ElementType
-    from milcapy.elements.section import Section
+    from milcapy.section.section import Section
 
 
 class Element:

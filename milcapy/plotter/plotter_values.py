@@ -4,8 +4,8 @@ from dataclasses import dataclass
 import numpy as np
 
 if TYPE_CHECKING:
-    from milcapy.elements.system import SystemMilcaModel
-    from milcapy.postprocess.results import Results
+    from milcapy.model.model import SystemMilcaModel
+    from milcapy.core.results import Results
 
 
 class InternalForceType(Enum):

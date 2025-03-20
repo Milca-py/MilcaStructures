@@ -1,11 +1,8 @@
-from typing import Dict, Tuple, List, Optional, TYPE_CHECKING
-from dataclasses import dataclass
+from typing import Tuple, Optional, TYPE_CHECKING
 import numpy as np
-from enum import Enum, auto
 
 if TYPE_CHECKING:
-    from milcapy.elements.system import SystemMilcaModel
-    from milcapy.elements.load_pattern import LoadPattern
+    from milcapy.model.model import SystemMilcaModel
 
 
 class GraphicOptionCalculator:

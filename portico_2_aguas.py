@@ -1,5 +1,4 @@
-from milcapy.elements.system import SystemMilcaModel
-from milcapy.frontend.widgets.UIdisplay import create_plot_window
+from milcapy import SystemMilcaModel
 # UNIDADES: (kN, m)
 
 sys = SystemMilcaModel()

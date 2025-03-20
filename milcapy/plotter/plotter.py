@@ -17,7 +17,7 @@ from milcapy.plotter.options import PlotterOptions
 from milcapy.frontend.widgets.UIdisplay import create_plot_window
 
 if TYPE_CHECKING:
-    from milcapy.model.system import SystemMilcaModel
+    from milcapy.model.model import SystemMilcaModel
     from matplotlib.figure import Figure
     from matplotlib.axes import Axes
 
