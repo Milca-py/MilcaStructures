@@ -1,51 +1,25 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, Optional
 from dataclasses import dataclass
 import numpy as np
 
-from milcapy.postprocess.post_processing import PostProcessing
-
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
-
-
-
-@dataclass
-class ResultOptions:
-    """
-    Clase (ON/OFF) que define las opciones para el almacenamiento y procesamiento de resultados.
-    """
-    store_displacements: bool = True     # Almacena los desplazamientos
-    store_reactions: bool = True         # Almacena las reacciones
-    store_internal_forces: bool = True   # Almacena las fuerzas internas
-    store_stresses: bool = True          # Almacena las tensiones
-    store_strains: bool = True           # Almacena las deformaciones
-    store_section_forces: bool = True    # Almacena las fuerzas de sección
+    from milcapy.elements.element import Element
+    from milcapy.core.node import Node
 
 
 
 class Results:
-    """Clase que extrae, organiza y almacena los resultados de una simulación."""
-    
     def __init__(
         self, 
         system: 'SystemMilcaModel', 
-        options: "ResultOptions",
         ) -> None:
-        """
-        Inicializa los resultados para un sistema estructural.
-        
-        Args:
-            system: Sistema estructural analizado
-            options: Opciones de post-procesamiento
-        """
+
         # parametdos de entrada (objetos)
         self.system = system
-        self.options = options
-        
         
         self.reactions = self.system.reactions
         self.displacements = self.system.displacements
-
 
         # en coordenadas locales
         self.integration_coefficients_elements = {} # {element_id: np.ndarray}
@@ -58,11 +32,6 @@ class Results:
         # en coordenadas globales (x_val, y_val)
         self.values_deformed_elements = {}          # {element_id: Tuple[np.ndarray, np.ndarray]}
         self.values_rigid_deformed_elements = {}    # {element_id: Tuple[np.ndarray, np.ndarray]}
-
-        # Siempre que se inicializa se calculan los resultados
-        self.all_to_nodes()
-        self.all_to_elements()
-
 
     @property
     def global_displacements_nodes(self) -> Dict[int, np.ndarray]:
@@ -107,14 +76,62 @@ class Results:
             ) - element.local_load_vector
         return forces_elements
 
-    def all_to_nodes(self) -> None:
-        """Agrega los resultados a los objetos de nodos."""
-        for node in self.system.node_map.values():
-            node.displacement = self.global_displacements_nodes[node.id]
-            node.reaction = self.reactions[node.dof-1]
-    
-    def all_to_elements(self) -> None:
-        """Agrega los resultados a los objetos de elementos."""
-        for element in self.system.element_map.values():
-            element.displacement = self.local_displacements_elements[element.id]
-            element.internal_forces = self.local_internal_forces_elements[element.id]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Results:
+    """Clase que almacena los resultados de un análisis de un Load Pattern."""
+    def __init__(self):
+        self.nodes: Dict[int, NodeResults] = {}
+        self.elements: Dict[int, ElementResults] = {}
+
+
+class NodeResults:
+    """Clase que almacena los resultados de un nodo (coordenadas globales)."""
+    def __init__(self, node: "Node") -> None:
+        self.displacement: Optional[np.ndarray] = None
+        self.reaction: Optional[np.ndarray] = None
+
+
+class ElementResults:
+    """Clase que almacena los resultados de un elemento (coordenadas locales)."""
+    def __init__(self, element: "Element") -> None:
+        self.displacement: Optional[np.ndarray] = None
+        self.internal_forces: Optional[np.ndarray] = None
+        
+        # Resultados del postprocesamiento (en coordenada local)
+        self.integration_coefficients: Optional[np.ndarray] = None
+        self.axial_force: Optional[np.ndarray] = None
+        self.shear_force: Optional[np.ndarray] = None
+        self.bending_moment: Optional[np.ndarray] = None
+        self.deflection: Optional[np.ndarray] = None
+        self.slope: Optional[np.ndarray] = None
+        self.deformed_shape: Optional[np.ndarray] = None
+
+
+class MoldelResults:
+    """Clase que almacena los resultados de un análisis de un modelo."""
+    def __init__(self):
+        self.stiffness_matrix: Optional[np.ndarray] = None
+        self.load_vector: Optional[np.ndarray] = None
+        self.displacements: Optional[np.ndarray] = None
+        self.reactions: Optional[np.ndarray] = None
+
+
+# ELIMINAR LOS ATRIBUTOS TRANSITORIOS DE LOS ELEMENTOS Y NODOS
+# DISEÑAR CLASE RESULTS
+# ANALYSYS POR CASO DE CARGA
+# IMPLENETAR FUNCIONES HELPERS
+# IMPLEMENTAR ATRIBUTOS DELEGADOS
+# USAR NOTIFICACIONES

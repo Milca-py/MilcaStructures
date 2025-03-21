@@ -2,7 +2,7 @@ from ..utils.vertex import (
     Vertex,
     vertex_range
 )
-from ..utils.custom_types import (
+from .types import (
     NumberLike,
     VertexLike,
     AxisNumber,
@@ -10,7 +10,7 @@ from ..utils.custom_types import (
     Restraints
 )
 
-from ..utils.custom_types import (
+from .types import (
     ElementType,
     LoadPatternType,
     CoordinateSystemType,

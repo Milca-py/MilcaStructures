@@ -1,7 +1,5 @@
 import numpy as np
-from typing import TYPE_CHECKING, Optional
-from milcapy.utils.geometry import angle_x_axis
-from milcapy.loads.load import DistributedLoad
+from typing import TYPE_CHECKING, Optiona
 from milcapy.utils.element import (
     local_stiffness_matrix,
     transformation_matrix,
@@ -10,7 +8,7 @@ from milcapy.utils.element import (
 
 if TYPE_CHECKING:
     from milcapy.core.node import Node
-    from milcapy.utils.custom_types import ElementType
+    from milcapy.utils.types import ElementType
     from milcapy.section.section import Section
 
 
@@ -20,51 +18,35 @@ class Element:
     def __init__(
         self,
         id: int,
-        type: "ElementType",
         node_i: "Node",
         node_j: "Node",
-        section: "Section"
+        section: "Section",
+        type: "ElementType",
     ) -> None:
-        """Inicializa un elemento estructural.
-
-        Args:
-            id (int): Identificador del elemento.
-            type (ElementType): Tipo de elemento (viga, columna, etc.).
-            node_i (Node): Nodo inicial.
-            node_j (Node): Nodo final.
-            section (Section): Sección transversal del elemento.
-        """
+        """Inicializa un elemento estructural."""
+        
         self.id = id
-        self.type = type
         self.node_i = node_i
         self.node_j = node_j
         self.section = section
+        self.type = type
         
         # Mapa de grados de libertad
         self.dof_map: np.ndarray = np.concatenate([node_i.dof, node_j.dof])
 
         # Matrices y vectores
-        self.local_stiffness_matrix: Optional[np.ndarray] = None
         self.transformation_matrix: Optional[np.ndarray] = None
-        self.local_load_vector: Optional[np.ndarray] = None
+        self.local_stiffness_matrix: Optional[np.ndarray] = None
         self.global_stiffness_matrix: Optional[np.ndarray] = None
-        self.global_load_vector: Optional[np.ndarray] = None
+
+        self.local_load_vector: Dict[str, np.ndarray] = {}
+        self.global_load_vector: Dict[str, np.ndarray] = {}
 
         # Cargas distribuidas en sistema de coordenadas locales
-        self.distributed_load: DistributedLoad = DistributedLoad()
+        self.distributed_load: Dict[str, DistributedLoad] = {}
 
-        # Resultados
-        self.displacement: Optional[np.ndarray] = None
-        self.internal_forces: Optional[np.ndarray] = None
-        
-        # Resultados del postprocesamiento
-        self.integration_coefficients: Optional[np.ndarray] = None
-        self.axial_force: Optional[np.ndarray] = None
-        self.shear_force: Optional[np.ndarray] = None
-        self.bending_moment: Optional[np.ndarray] = None
-        self.deflection: Optional[np.ndarray] = None
-        self.slope: Optional[np.ndarray] = None
-        self.deformed_shape: Optional[np.ndarray] = None
+        # Patrón de carga actual
+        self.current_load_pattern: Optional[str] = None
 
     @property
     def length(self) -> float:
@@ -94,13 +76,19 @@ class Element:
         
         return (12 * E * I) / (L**2 * A * k * G)
 
+    def set_current_load_pattern(self, load_pattern_name: str) -> None:
+        """Establece el patrón de carga actual del elemento."""
+        self.current_load_pattern = load_pattern_name
+
     def add_distributed_load(self, load: DistributedLoad) -> None:
         """Asigna una carga distribuida al elemento.
 
         Args:
             load (DistributedLoad): Carga distribuida a aplicar.
         """
-        self.distributed_load += load
+        if self.current_load_pattern is None:
+            raise ValueError("Debe establecer un patrón de carga actual antes de asignar una carga distribuida.")
+        self.distributed_load[self.current_load_pattern] += load
 
     def compile_transformation_matrix(self) -> None:
         """Compila la matriz de transformación del elemento."""
@@ -115,9 +103,7 @@ class Element:
             I=self.section.moment_of_inertia,
             A=self.section.area,
             L=self.length,
-            v=self.section.material.poisson_ratio,
-            k=self.section.timoshenko_coefficient,
-            shear_effect=True,
+            phi=self.shear_angle,
         )
 
     def compile_local_load_vector(self) -> None:
@@ -146,40 +132,3 @@ class Element:
             raise ValueError("Debe compilar primero las matrices de transformación y el vector de cargas locales.")
         
         self.global_load_vector = self.transformation_matrix.T @ self.local_load_vector
-
-    def compile(self) -> None:
-        """Compila todas las matrices y vectores necesarios para el análisis."""
-        self.compile_transformation_matrix()
-        self.compile_local_stiffness_matrix()
-        self.compile_local_load_vector()
-        self.compile_global_stiffness_matrix()
-        self.compile_global_load_vector()
-
-
-    def reset(self) -> None:
-        """Reinicia el elemento a su estado inicial, conservando su estructura base."""
-        # Conservar propiedades esenciales
-        # id, type, node_i, node_j, section y dof_map se mantienen
-        
-        # Reiniciar matrices y vectores
-        self.local_stiffness_matrix = None
-        self.transformation_matrix = None
-        self.local_load_vector = None
-        self.global_stiffness_matrix = None
-        self.global_load_vector = None
-
-        # Reiniciar cargas distribuidas
-        self.distributed_load = DistributedLoad()
-
-        # Reiniciar resultados
-        self.displacement = None
-        self.internal_forces = None
-        
-        # Reiniciar resultados del postprocesamiento
-        self.integration_coefficients = None
-        self.axial_force = None
-        self.shear_force = None
-        self.bending_moment = None
-        self.deflection = None
-        self.slope = None
-        self.deformed_shape = None

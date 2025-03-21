@@ -1,41 +1,25 @@
-from abc import ABC, abstractmethod
 import numpy as np
-from scipy.linalg import lu_solve, lu_factor, cho_solve, cho_factor, qr
 import time
 
 from typing import TYPE_CHECKING
 from milcapy.assembly.dof_mapper import DOFMapper
-from milcapy.solvers.options import DirectStiffnessSolverrOptions
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
     from milcapy.analysis.static import LinearStaticOptions
 
 
-
-class SolutionMethod(ABC):
-    """
-    Clase abstracta para definir la interfaz de un solucionador estructural.
-    """
-
-    @abstractmethod
-    def solve(self):
-        """Método abstracto que deben implementar los solucionadores."""
-        pass
-
-
-class DirectStiffnessSolver(SolutionMethod):
+class DirectStiffnessSolver:
     """
     Solucionador basado en el Método de Rigidez Directa.
-
     Resuelve sistemas de ecuaciones estructurales K*u = F usando métodos de solución directa.
+    Usa numpy.linalg.solve(K, F)
     """
 
     def __init__(
         self, 
         model: "SystemMilcaModel",
         analysis_options: "LinearStaticOptions",
-        solver_options: "DirectStiffnessSolverrOptions",
         ) -> None:
         """
         Inicializa el solucionador con el modelo y el método de solución.
@@ -48,8 +32,6 @@ class DirectStiffnessSolver(SolutionMethod):
         self.K_global = model.global_stiffness_matrix  # Referencia a la matriz de rigidez del modelo
         self.F_global = model.global_load_vector  # Referencia al vector de cargas
         self.analysis_options = analysis_options
-        self.solver_options = solver_options
-
 
         # Información de grados de libertad
         self._dof_mapper = DOFMapper(self.model)
@@ -58,16 +40,9 @@ class DirectStiffnessSolver(SolutionMethod):
         self.restrained_dofs = self._dof_mapper.restrained_dofs
         # self.constrained_dofs = self.dof_mapper.constrained_dofs 
 
-
         # Rendimiento y diagnóstico
         self.solution_time = 0.0
         self.assembly_time = 0.0
-
-
-        # validaciones:
-        self.solver_options.validate()
-
-
 
     def assemble_global_load_vector(self) -> np.ndarray:
         """Calcula el vector de carga global del sistema.
@@ -98,7 +73,6 @@ class DirectStiffnessSolver(SolutionMethod):
         
         return F
 
-
     def assemble_global_stiffness_matrix(self) -> np.ndarray:
         """Ensamblaje de la matriz de rigidez global.
 
@@ -126,7 +100,6 @@ class DirectStiffnessSolver(SolutionMethod):
         self.assembly_time += (end_time - star_time)
 
         return K
-
 
     def apply_boundary_conditions(self):
         """Aplica condiciones de frontera.
@@ -162,8 +135,6 @@ class DirectStiffnessSolver(SolutionMethod):
 
         return K_d, K_dc, K_cd, K_c, F_d, F_c
 
-
-
     def solve(self):
         """Resuelve el sistema de ecuaciones F = KU.
 
@@ -183,16 +154,7 @@ class DirectStiffnessSolver(SolutionMethod):
         free_dofs = self.free_dofs
         restrained_dofs = self.restrained_dofs
         # Resolver el sistema de ecuaciones
-        if self.solver_options.method == "LU":
-            U_red = SolverKF.solve_LU(K_d, F_d)
-        elif self.solver_options.method == "CHOLESKY":
-            U_red = SolverKF.solve_cholesky(K_d, F_d)
-        elif self.solver_options.method == "QR":
-            U_red = SolverKF.solve_qr(K_d, F_d)
-        elif self.solver_options.method == "NUMPY":
-            U_red = SolverKF.solve_np(K_d, F_d)
-        else:
-            raise ValueError(f"Método de solución no válido: {self.solver_options.method}")
+        U_red = np.linalg.solve(K_d, F_d)
 
         # Colocar los desplazamientos en los grados de libertad libres
         nn = len(self.model.node_map)
@@ -216,35 +178,3 @@ class DirectStiffnessSolver(SolutionMethod):
         self.solution_time = (end_time - star_time)
 
         return self.model.displacements, self.model.reactions
-
-
-# ==================================================================================================
-# Clase para definir los metodos de solucion de sistemas de ecuaciones
-# ==================================================================================================
-
-class SolverKF:
-    """Clase para resolver sistemas de ecuaciones estructurales."""
-    @staticmethod
-    def solve_LU(K_reduced, F_reduced):
-        """Resuelve el sistema usando descomposición LU."""
-        LU, piv = lu_factor(K_reduced)
-        return lu_solve((LU, piv), F_reduced)
-
-    @staticmethod
-    def solve_cholesky(K_reduced, F_reduced):
-        """Resuelve el sistema usando descomposición de Cholesky (solo para matrices simétricas definidas positivas)."""
-        L = cho_factor(K_reduced)
-        return cho_solve(L, F_reduced)
-
-    @staticmethod
-    def solve_qr(K_reduced, F_reduced):
-        """Resuelve el sistema usando descomposición QR."""
-        Q, R = qr(K_reduced)
-        return np.linalg.solve(R, Q.T @ F_reduced)
-    
-    @staticmethod    
-    def solve_np(K_reduced, F_reduced):
-        """Resuelve el sistema usando numpy."""
-        return np.linalg.solve(K_reduced, F_reduced)
-
-

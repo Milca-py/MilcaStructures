@@ -284,7 +284,7 @@ class LoadPattern:
         for node_id, load in self.point_loads_map.items():
             node = system.node_map.get(node_id)
             if node:
-                node.add_forces(load)
+                node.set_forces(load)
             else:
                 warnings.warn(f"Nodo {node_id} no encontrado en el sistema")
 
@@ -298,6 +298,6 @@ class LoadPattern:
         for element_id, load in self.distributed_loads_map.items():
             element = system.element_map.get(element_id)
             if element:
-                element.add_distributed_load(load)
+                element.add_distributed_load(load, self.name)
             else:
                 warnings.warn(f"Elemento {element_id} no encontrado en el sistema")

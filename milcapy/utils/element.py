@@ -9,9 +9,7 @@ def local_stiffness_matrix(
     I: float,  # Momento de inercia
     A: float,  # Área de la sección
     L: float,  # Longitud del elemento
-    v: float,  # Coeficiente de Poisson
-    k: float,  # Coeficiente de Timoshenko
-    shear_effect: bool = True  # Efectos por cortante
+    phi: float,  # Aporte de cortante
 ) -> np.ndarray:
     """Matriz de rigidez local de una viga.
 
@@ -20,21 +18,16 @@ def local_stiffness_matrix(
         I (float): Momento de inercia.
         A (float): Área transversal.
         L (float): Longitud del elemento.
-        v (float): Coef. de Poisson.
-        κ (float): Factor de Timoshenko.
-        shear_effect (bool): Si es True, incluye cortante.
+        phi (float): Aporte de cortante.
 
     Returns:
         np.ndarray: Matriz de rigidez 6x6.
     """
-    G = E / (2 * (1 + v))  # Módulo de corte
-    φ = (12 * E * I) / (L**2 * A * k * G) if shear_effect else 0  # Corrección por cortante
-
     k11 = E * A / L
-    k22 = 12 * E * I / (L**3 * (1 + φ))
-    k23 = 6 * E * I / (L**2 * (1 + φ))
-    k33 = (4 + φ) * E * I / (L * (1 + φ))
-    k66 = (2 - φ) * E * I / (L * (1 + φ))
+    k22 = 12 * E * I / (L**3 * (1 + phi))
+    k23 = 6 * E * I / (L**2 * (1 + phi))
+    k33 = (4 + phi) * E * I / (L * (1 + phi))
+    k66 = (2 - phi) * E * I / (L * (1 + phi))
 
     return np.array([
         [ k11,   0,    0,   -k11,   0,    0   ],

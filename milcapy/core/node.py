@@ -1,10 +1,10 @@
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional
 import numpy as np
-from milcapy.loads.load import PointLoad
 
 if TYPE_CHECKING:
-    from milcapy.utils.custom_types import Restraints
-    from milcapy.utils.vertex import Vertex
+    from milcapy.utils.types import Restraints
+    from milcapy.utils.geometry import Vertex
+    from milcapy.loads.load import PointLoad
 
 
 class Node:
@@ -16,7 +16,7 @@ class Node:
         vertex (Vertex): Coordenadas (x, y) del nodo.
         restraints (Restraints): Restricciones del nodo [ux, uy, theta].
         dof (np.ndarray): Grados de libertad del nodo.
-        forces (PointLoad): Fuerzas aplicadas en el nodo [fx, fy, mz].
+        loads (Dict[str, PointLoad]): Cargas aplicadas al nodo.
         displacement (np.ndarray): Desplazamientos calculados del nodo.
         reaction (np.ndarray): Reacciones calculadas en el nodo.
     """
@@ -41,33 +41,12 @@ class Node:
         ], dtype=int)
 
         # Cargas aplicadas al nodo
-        self.forces: PointLoad = PointLoad()  # Carga inicializada en 0
-        
-        # Resultados del análisis
-        self.displacement: Optional[np.ndarray] = None  # Corregido "desplacement" a "displacement"
-        self.reaction: Optional[np.ndarray] = None
-    
-    @property
-    def is_restrained(self) -> bool:
-        """
-        Verifica si el nodo tiene alguna restricción.
+        self.loads: Dict[str, PointLoad] = {}   # {pattern_name: PointLoad}
 
-        Returns:
-            bool: True si el nodo tiene al menos una restricción, False en caso contrario.
-        """
-        return any(self.restraints)
-    
-    @property
-    def restrained_dof(self) -> Tuple[int, ...]:
-        """
-        Obtiene los índices de los grados de libertad restringidos.
+        # Patrón de carga actual
+        self.current_load_pattern: Optional[str] = None
 
-        Returns:
-            Tuple[int, ...]: Índices de los grados de libertad restringidos.
-        """
-        return tuple(dof for dof, restrained in zip(self.dof, self.restraints) if restrained)
-
-    def add_restraints(self, restraints: "Restraints") -> None:
+    def set_restraints(self, restraints: "Restraints") -> None:
         """
         Asigna restricciones al nodo.
 
@@ -76,25 +55,14 @@ class Node:
         """
         self.restraints = restraints 
 
-    def add_forces(self, forces: PointLoad) -> None:
+    def set_load(self, load: PointLoad) -> None:
         """
         Suma una carga puntual a las fuerzas existentes en el nodo.
 
         Args:
-            forces (PointLoad): Carga puntual aplicada al nodo.
+            load (PointLoad): Carga puntual aplicada al nodo.
         """
-        self.forces += forces
-    
-    def reset(self) -> None:
-        """
-        Reinicia el nodo a su estado inicial, conservando solo id y vertex.
-        """
-        # Reiniciar cargas
-        self.forces = PointLoad()
-        
-        # Reiniciar resultados del análisis
-        self.displacement = None
-        self.reaction = None
+        self.loads[self.current_load_pattern] = load
 
     def __str__(self) -> str:
         """
@@ -103,13 +71,4 @@ class Node:
         Returns:
             str: Descripción del nodo.
         """
-        return f"Node {self.id}: {self.vertex}, Restraints: {self.restraints}, Forces: {self.forces}"
-    
-    def __repr__(self) -> str:
-        """
-        Representación formal del nodo para depuración.
-        
-        Returns:
-            str: Representación formal del nodo.
-        """
-        return f"Node(id={self.id}, vertex={self.vertex})"
+        return f"Node {self.id}: {self.vertex}, Restraints: {self.restraints}, Loads: {self.loads}"

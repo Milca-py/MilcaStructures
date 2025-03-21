@@ -20,6 +20,8 @@ class ElementType(Enum):
     """Tipos de elementos en la estructura."""
     FRAME = 'FRAME'
     TRUSS = 'TRUSS'
+    BEAM = 'BEAM'
+    BRACE = 'BRACE'
 
 
 class LoadPatternType(Enum):

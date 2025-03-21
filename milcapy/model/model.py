@@ -1,15 +1,18 @@
 from typing import TYPE_CHECKING, Dict, Optional, Union, Tuple
-import numpy as np
 
 from milcapy.material.material import Material, GenericMaterial
 from milcapy.section.section import Section, RectangularSection
 from milcapy.core.node import Node
+from milcapy.core.results import Results
 from milcapy.elements.element import Element
 from milcapy.utils.vertex import Vertex
-
+from milcapy.plotter.plotter import Plotter, PlotterOptions
+from milcapy.plotter.plotter_values import PlotterValuesFactory
+from milcapy.analysis.options import AnalysisOptions, LinearStaticOptions
+from milcapy.analysis.manager import AnalysisManager
+from milcapy.postprocess.post_processing import PostProcessingOptions
 from milcapy.loads import LoadPattern, PointLoad
-
-from milcapy.utils.custom_types import (
+from milcapy.utils.types import (
     LoadPatternType,
     CoordinateSystemType,
     State,
@@ -20,16 +23,7 @@ from milcapy.utils.custom_types import (
 )
 
 if TYPE_CHECKING:
-    from milcapy.utils.custom_types import Restraints, VertexLike
-
-from milcapy.plotter.plotter import Plotter, PlotterOptions
-from milcapy.plotter.plotter_values import PlotterValuesFactory, PlotterValues
-from milcapy.core.results import Results, ResultOptions
-from milcapy.analysis.options import AnalysisOptions, LinearStaticOptions
-from milcapy.analysis.manager import AnalysisManager
-from milcapy.postprocess.post_processing import PostProcessingOptions
-from milcapy.solvers.direct_solver import DirectStiffnessSolverrOptions
-from milcapy.plotter.options import GraphicOptionCalculator
+    from milcapy.utils.types import Restraints, VertexLike
 
 class SystemMilcaModel:
     """
@@ -51,18 +45,16 @@ class SystemMilcaModel:
         
         # Colecciones de frontera [UNIQUE]
         self.load_pattern_map: Dict[str, LoadPattern] = {}
-        # self.restraint_map: Dict[int, Restraints] = {}
-        
-        # Matrices calculadas [MOD]
-        self.global_load_vector: Optional[np.ndarray] = None
-        self.global_stiffness_matrix: Optional[np.ndarray] = None
-
-        # Resultados de analisis matricial [MOD]
-        self.displacements: Optional[np.ndarray] = None
-        self.reactions: Optional[np.ndarray] = None
         
         # coleccion de resultados incluyendo postprocesamiento [ADD]
         self.loadpattern_results: Dict[str, Results] = {}
+
+
+        # vectores y matrices [ADD]
+        self.load_vector: Optional[np.ndarray] = None
+        self.stiffness_matrix: Optional[np.ndarray] = None
+        self.displacements: Optional[np.ndarray] = None
+        self.reactions: Optional[np.ndarray] = None
 
         # Análisis [UNIQUE]
         self.analysis: AnalysisManager = AnalysisManager(self)
@@ -70,17 +62,13 @@ class SystemMilcaModel:
         # Visualización [UNIQUE]
         self.plotter: Optional[Plotter] = None
         self.plotter_values_factory: Optional[PlotterValuesFactory] = None
-        self.plotter_options_calculator: Optional[GraphicOptionCalculator] = None
 
         # Opciones del modelo [UNIQUE]
         self.analysis_options: "AnalysisOptions" = LinearStaticOptions() # IMPLEMETAR PARA CADA TIPO DE ANALISIS
-        self.results_options: "ResultOptions" = ResultOptions()
-        self.plotter_options: "PlotterOptions" = None
+        self.plotter_options: "PlotterOptions" = PlotterOptions()
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=5)
-        self.solver_options: "DirectStiffnessSolverrOptions" = DirectStiffnessSolverrOptions()
 
-    def inicialize_plotter(self) -> None:
-        self.plotter_options_calculator = GraphicOptionCalculator(self)
+    def _inicialize_plotter(self) -> None:
         self.plotter_options = PlotterOptions(self.plotter_options_calculator)
         self.plotter_values_factory = PlotterValuesFactory(self)
         self.plotter = Plotter(self)
@@ -239,7 +227,7 @@ class SystemMilcaModel:
         if node_id not in self.node_map:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
             
-        self.node_map[node_id].add_restraints(restraints)
+        self.node_map[node_id].set_restraints(restraints)
     
     def add_load_pattern(
         self,
@@ -293,10 +281,10 @@ class SystemMilcaModel:
         self,
         node_id: int,
         load_pattern_name: str,
-        CSys: Union[str, CoordinateSystemType] = "GLOBAL",
         fx: float = 0.0,
         fy: float = 0.0,
         mz: float = 0.0,
+        CSys: Union[str, CoordinateSystemType] = "GLOBAL",
         angle_rot: Optional[float] = None,
         replace: bool = False
     ) -> None:
@@ -340,12 +328,12 @@ class SystemMilcaModel:
         self,
         element_id: int,
         load_pattern_name: str,
-        CSys: Union[str, CoordinateSystemType] = "LOCAL",
         load_start: float = 0.0,
         load_end: float = 0.0,
-        replace: bool = False,
+        CSys: Union[str, CoordinateSystemType] = "LOCAL",
         direction: Union[str, DirectionType] = "LOCAL_2",
-        load_type: Union[str, LoadType] = "FORCE"
+        load_type: Union[str, LoadType] = "FORCE",
+        replace: bool = False,
     ) -> None:
         """
         Asigna una carga distribuida a un elemento dentro de un patrón de carga.
@@ -353,12 +341,12 @@ class SystemMilcaModel:
         Args:
             element_id (int): Identificador del elemento.
             load_pattern_name (str): Nombre del patrón de carga.
-            CSys (str o CoordinateSystemType, opcional): Sistema de coordenadas. Default es "LOCAL".
             load_start (float, opcional): Magnitud de la carga en el inicio. Default es 0.0.
             load_end (float, opcional): Magnitud de la carga en el final. Default es 0.0.
-            replace (bool, opcional): Si se reemplaza la carga existente. Default es False.
+            CSys (str o CoordinateSystemType, opcional): Sistema de coordenadas. Default es "LOCAL".
             direction (str o DirectionType, opcional): Dirección de la carga. Default es "LOCAL_2".
             load_type (str o LoadType, opcional): Tipo de carga. Default es "FORCE".
+            replace (bool, opcional): Si se reemplaza la carga existente. Default es False.
             
         Raises:
             ValueError: Si no existe el elemento o el patrón de carga.
@@ -416,73 +404,3 @@ class SystemMilcaModel:
         self.analysis.run()
         
         return self.loadpattern_results
-
-    def show_structure(
-        self,
-        axes_i: int = 0,
-        labels_nodes: bool = False,
-        labels_elements: bool = False,
-        color_nodes: str = "red",
-        color_elements: str = "blue",
-        color_labels_node: str = "red",
-        color_labels_element: str = "red",
-        labels_point_loads: bool = True,
-        labels_distributed_loads: bool = True,
-        color_point_loads: str = "green",
-        color_distributed_loads: str = "purple",
-        show: bool = True
-    ) -> None:
-        """
-        Muestra la estructura del modelo con sus nodos, elementos y cargas.
-        
-        Args:
-            axes_i (int, opcional): Índice del eje para graficar. Default es 0.
-            labels_nodes (bool, opcional): Mostrar etiquetas de nodos. Default es False.
-            labels_elements (bool, opcional): Mostrar etiquetas de elementos. Default es False.
-            color_nodes (str, opcional): Color de los nodos. Default es "red".
-            color_elements (str, opcional): Color de los elementos. Default es "blue".
-            color_labels_node (str, opcional): Color de las etiquetas de nodos. Default es "red".
-            color_labels_element (str, opcional): Color de las etiquetas de elementos. Default es "red".
-            labels_point_loads (bool, opcional): Mostrar etiquetas de cargas puntuales. Default es True.
-            labels_distributed_loads (bool, opcional): Mostrar etiquetas de cargas distribuidas. Default es True.
-            color_point_loads (str, opcional): Color de las cargas puntuales. Default es "green".
-            color_distributed_loads (str, opcional): Color de las cargas distribuidas. Default es "purple".
-            show (bool, opcional): Mostrar el gráfico inmediatamente. Default es True.
-        """
-        if self.plotter is None:
-            self.plotter = Plotter(self)  # Inicializar solo cuando se use
-            
-        self.plotter.plot_structure(
-            axes_i=axes_i,
-            labels_nodes=labels_nodes,
-            labels_elements=labels_elements,
-            color_nodes=color_nodes,
-            color_elements=color_elements,
-            color_labels_node=color_labels_node,
-            color_labels_element=color_labels_element,
-            labels_point_loads=labels_point_loads,
-            labels_distributed_loads=labels_distributed_loads,
-            color_point_loads=color_point_loads,
-            color_distributed_loads=color_distributed_loads,
-            show=show
-        )
-    
-    def reset(self) -> None:
-        """
-        Reinicia el modelo a su estado base sin eliminar los elementos estructurales.
-        Mantiene los materiales, secciones, nodos y elementos, pero limpia las cargas,
-        condiciones de frontera y resultados previos.
-        """
-        # Reiniciar las cargas en los nodos
-        for node in self.node_map.values():
-            node.reset()
-        
-        # Reiniciar las cargas distribuidas y resultados en los elementos
-        for element in self.element_map.values():
-            element.reset()
-        
-        # Reiniciar matrices y resultados globales
-        self.global_load_vector = None
-        self.global_stiffness_matrix = None
-        self.displacements = None
-        self.reactions = None
