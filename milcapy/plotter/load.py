@@ -1,7 +1,7 @@
 import numpy as np
 from typing import TYPE_CHECKING
 from matplotlib.patches import FancyArrowPatch
-from milcapy.utils import vertex_range, rotate_xy
+from milcapy.utils import rotate_xy
 
 
 if TYPE_CHECKING:

@@ -8,18 +8,7 @@ if TYPE_CHECKING:
 
 
 class Node:
-    """
-    Representa un nodo en el modelo estructural.
-
-    Atributos:
-        id (int): Identificador único del nodo.
-        vertex (Vertex): Coordenadas (x, y) del nodo.
-        restraints (Restraints): Restricciones del nodo [ux, uy, theta].
-        dof (np.ndarray): Grados de libertad del nodo.
-        loads (Dict[str, PointLoad]): Cargas aplicadas al nodo.
-        displacement (np.ndarray): Desplazamientos calculados del nodo.
-        reaction (np.ndarray): Reacciones calculadas en el nodo.
-    """
+    """Representa un nodo en el modelo estructural."""
 
     def __init__(self, id: int, vertex: "Vertex") -> None:
         """
@@ -31,7 +20,8 @@ class Node:
         """
         self.id: int = id
         self.vertex: "Vertex" = vertex
-        self.restraints: "Restraints" = (False, False, False)  # Restricciones del nodo
+        self.restraints: "Restraints" = (
+            False, False, False)  # Restricciones del nodo
 
         # Cálculo de los índices de grados de libertad
         self.dof: np.ndarray = np.array([
@@ -46,29 +36,14 @@ class Node:
         # Patrón de carga actual
         self.current_load_pattern: Optional[str] = None
 
+    def set_current_load_pattern(self, load_pattern_name: str) -> None:
+        """Establece el patrón de carga actual del nodo."""
+        self.current_load_pattern = load_pattern_name
+
     def set_restraints(self, restraints: "Restraints") -> None:
-        """
-        Asigna restricciones al nodo.
+        """Establece las restricciones del nodo."""
+        self.restraints = restraints
 
-        Args:
-            restraints (Restraints): Restricciones [ux, uy, theta].
-        """
-        self.restraints = restraints 
-
-    def set_load(self, load: PointLoad) -> None:
-        """
-        Suma una carga puntual a las fuerzas existentes en el nodo.
-
-        Args:
-            load (PointLoad): Carga puntual aplicada al nodo.
-        """
+    def set_load(self, load: "PointLoad") -> None:
+        """Establece una carga puntual en el nodo."""
         self.loads[self.current_load_pattern] = load
-
-    def __str__(self) -> str:
-        """
-        Representación en cadena del nodo.
-        
-        Returns:
-            str: Descripción del nodo.
-        """
-        return f"Node {self.id}: {self.vertex}, Restraints: {self.restraints}, Loads: {self.loads}"

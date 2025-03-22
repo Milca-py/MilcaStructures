@@ -24,11 +24,10 @@ class LinearStaticAnalysis:
         """
         self.system = system
         self.analysis_options = analysis_options
-        self.solver_options = analysis_options.solver_options
 
     def run(self):
         """Ejecuta el análisis estático lineal."""
-        solution = DirectStiffnessSolver(self.system, self.analysis_options, self.solver_options)
+        solution = DirectStiffnessSolver(self.system, self.analysis_options)
         solution.assemble_global_load_vector()
         solution.assemble_global_stiffness_matrix()
         solution.solve()

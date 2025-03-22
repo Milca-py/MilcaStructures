@@ -6,7 +6,7 @@ from milcapy.assembly.dof_mapper import DOFMapper
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
-    from milcapy.analysis.static import LinearStaticOptions
+    from milcapy.analysis.options import LinearStaticOptions
 
 
 class DirectStiffnessSolver:
@@ -17,7 +17,7 @@ class DirectStiffnessSolver:
     """
 
     def __init__(
-        self, 
+        self,
         model: "SystemMilcaModel",
         analysis_options: "LinearStaticOptions",
         ) -> None:
@@ -26,19 +26,18 @@ class DirectStiffnessSolver:
 
         Args:
             model: Modelo estructural que contiene K_global y F_global.
-            method (str): Método de solución. Opciones: "LU", "Cholesky", "QR".
+            analysis_options: Opciones de análisis.
         """
         self.model = model
-        self.K_global = model.global_stiffness_matrix  # Referencia a la matriz de rigidez del modelo
-        self.F_global = model.global_load_vector  # Referencia al vector de cargas
+        self.stiffness_matrix = model.stiffness_matrix  # Referencia a la matriz de rigidez del modelo
+        self.load_vector = model.load_vector  # Referencia al vector de cargas
         self.analysis_options = analysis_options
 
         # Información de grados de libertad
         self._dof_mapper = DOFMapper(self.model)
-        self.dofs = self._dof_mapper.dofs
         self.free_dofs = self._dof_mapper.free_dofs
         self.restrained_dofs = self._dof_mapper.restrained_dofs
-        # self.constrained_dofs = self.dof_mapper.constrained_dofs 
+        # self.constrained_dofs = self.dof_mapper.constrained_dofs
 
         # Rendimiento y diagnóstico
         self.solution_time = 0.0
@@ -50,27 +49,27 @@ class DirectStiffnessSolver:
         Returns:
             np.ndarray: Vector de carga global.
         """
-        star_time = time.time()
-        
-        nn = len(self.model.node_map)
-        self.model.global_load_vector = np.zeros(nn * 3)
-        F = self.model.global_load_vector
+        start_time = time.time()
+
+        nn = len(self.model.nodes)
+        self.load_vector = np.zeros(nn * 3)
+        F = self.load_vector
 
         # Asignar fuerzas nodales almacenadas en los nodos
-        for nodo in self.model.node_map.values():
-            F[nodo.dof[0] - 1] = nodo.forces.fx
-            F[nodo.dof[1] - 1] = nodo.forces.fy
-            F[nodo.dof[2] - 1] = nodo.forces.mz
+        for node in self.model.node_map.values():
+            F[node.dof[0] - 1] = node.forces.fx
+            F[node.dof[1] - 1] = node.forces.fy
+            F[node.dof[2] - 1] = node.forces.mz
 
         # Agregar el vector de fuerzas globales almacenadas en los elementos
-        for elemento in self.model.element_map.values():
-            f = elemento.global_load_vector
-            dof = elemento.dof_map
+        for element in self.model.element_map.values():
+            f = element.global_load_vector
+            dof = element.dof_map
             F[dof - 1] += f
 
         end_time = time.time()
-        self.assembly_time += (end_time - star_time)
-        
+        self.assembly_time += (end_time - start_time)
+
         return F
 
     def assemble_global_stiffness_matrix(self) -> np.ndarray:
@@ -79,20 +78,20 @@ class DirectStiffnessSolver:
         Returns:
             np.ndarray: Matriz de rigidez global.
         """
-        star_time = time.time()
+        start_time = time.time()
         nn = len(self.model.node_map)
-        self.model.global_stiffness_matrix = np.zeros((nn * 3, nn * 3))
-        K = self.model.global_stiffness_matrix
+        self.stiffness_matrix = np.zeros((nn * 3, nn * 3))
+        K = self.stiffness_matrix
 
         # Ensamblar la matriz de rigidez global
-        for elemento in self.model.element_map.values():
-            k = elemento.global_stiffness_matrix
-            dof = elemento.dof_map
-            
+        for element in self.model.element_map.values():
+            k = element.global_stiffness_matrix
+            dof = element.dof_map
+
             rows = np.repeat(dof - 1, 6)
             cols = np.tile(dof - 1, 6)
             values = k.flatten()
-            
+
             for i, j, val in zip(rows, cols, values):
                 K[i, j] += val
 
@@ -105,7 +104,7 @@ class DirectStiffnessSolver:
         """Aplica condiciones de frontera.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]: 
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
                 - K_d: Matriz de rigidez para grados de libertad libres.
                 - K_dc: Matriz de rigidez que relaciona GDL libres con restringidos.
                 - K_cd: Matriz de rigidez que relaciona GDL restringidos con libres.
@@ -125,7 +124,7 @@ class DirectStiffnessSolver:
         K_dc = self.model.global_stiffness_matrix[np.ix_(free_dofs, restrained_dofs)]
         K_cd = self.model.global_stiffness_matrix[np.ix_(restrained_dofs, free_dofs)]
         K_c = self.model.global_stiffness_matrix[np.ix_(restrained_dofs, restrained_dofs)]
-        
+
         # Reducir el vector de fuerzas
         #     | Fd |
         # F = |    |
@@ -135,20 +134,20 @@ class DirectStiffnessSolver:
 
         return K_d, K_dc, K_cd, K_c, F_d, F_c
 
-    def solve(self):
+    def solve(self) -> Tuple[np.ndarray, np.ndarray]:
         """Resuelve el sistema de ecuaciones F = KU.
 
         Args:
             modelo (SystemMilcaModel): Modelo estructural.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: 
+            Tuple[np.ndarray, np.ndarray]:
                 - Desplazamientos nodales
                 - Reacciones en los apoyos.
         """
 
         star_time = time.time()
-        
+
         K_d, K_dc, K_cd, K_c, F_d, F_c = self.apply_boundary_conditions()
 
         free_dofs = self.free_dofs
@@ -158,14 +157,14 @@ class DirectStiffnessSolver:
 
         # Colocar los desplazamientos en los grados de libertad libres
         nn = len(self.model.node_map)
-        
+
         self.model.displacements = np.zeros(nn * 3)
         self.model.displacements[free_dofs] = U_red
 
         # Calcular las reacciones en los apoyos
         # R = Kcd * Ud - Fc
         reacciones = K_cd @ U_red - F_c
-        
+
         # Completar el vector de reacciones
         self.model.reactions = np.zeros(nn * 3)
         self.model.reactions[restrained_dofs] = reacciones

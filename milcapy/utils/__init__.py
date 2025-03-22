@@ -1,12 +1,4 @@
-from ..utils.vertex import (
-    Vertex,
-    vertex_range
-)
 from .types import (
-    NumberLike,
-    VertexLike,
-    AxisNumber,
-    SequenceLike,
     Restraints
 )
 

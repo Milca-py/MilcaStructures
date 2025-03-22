@@ -4,8 +4,7 @@ from milcapy.material.material import Material, GenericMaterial
 from milcapy.section.section import Section, RectangularSection
 from milcapy.core.node import Node
 from milcapy.core.results import Results
-from milcapy.elements.element import Element
-from milcapy.utils.vertex import Vertex
+from milcapy.elements.member import Member
 from milcapy.plotter.plotter import Plotter, PlotterOptions
 from milcapy.plotter.plotter_values import PlotterValuesFactory
 from milcapy.analysis.options import AnalysisOptions, LinearStaticOptions
@@ -36,25 +35,22 @@ class SystemMilcaModel:
     def __init__(self) -> None:
         """Inicializa un nuevo modelo estructural vacío."""
         # Propiedades de los elementos [UNIQUE]
-        self.material_map: Dict[str, Material] = {}
-        self.section_map: Dict[str, Section] = {}
+        self.materials: Dict[str, Material] = {}
+        self.sections: Dict[str, Section] = {}
         
-        # Elementos del modelo [UNIQUE / MOD]
-        self.node_map: Dict[int, Node] = {}
-        self.element_map: Dict[int, Element] = {}
+        # Elementos del modelo [UNIQUE / ADD]
+        self.nodes: Dict[int, Node] = {}
+        self.elements: Dict[int, Element] = {}
         
         # Colecciones de frontera [UNIQUE]
-        self.load_pattern_map: Dict[str, LoadPattern] = {}
+        self.load_patterns: Dict[str, LoadPattern] = {}
         
         # coleccion de resultados incluyendo postprocesamiento [ADD]
-        self.loadpattern_results: Dict[str, Results] = {}
-
+        self.load_pattern_results: Dict[str, Results] = {}
 
         # vectores y matrices [ADD]
-        self.load_vector: Optional[np.ndarray] = None
-        self.stiffness_matrix: Optional[np.ndarray] = None
-        self.displacements: Optional[np.ndarray] = None
-        self.reactions: Optional[np.ndarray] = None
+        self.load_vector: Dict[str, np.ndarray] = {}
+        self.stiffness_matrix: Dict[str, np.ndarray] = {}
 
         # Análisis [UNIQUE]
         self.analysis: AnalysisManager = AnalysisManager(self)
@@ -95,11 +91,11 @@ class SystemMilcaModel:
         Raises:
             ValueError: Si ya existe un material con el mismo nombre.
         """
-        if name in self.material_map:
+        if name in self.materials:
             raise ValueError(f"Ya existe un material con el nombre '{name}'")
             
         material = GenericMaterial(name, modulus_elasticity, poisson_ratio, specific_weight)
-        self.material_map[name] = material
+        self.materials[name] = material
         return material
     
     def add_rectangular_section(
@@ -124,14 +120,14 @@ class SystemMilcaModel:
         Raises:
             ValueError: Si ya existe una sección con el mismo nombre o si no existe el material.
         """
-        if name in self.section_map:
+        if name in self.sections:
             raise ValueError(f"Ya existe una sección con el nombre '{name}'")
             
-        if material_name not in self.material_map:
+        if material_name not in self.materials:
             raise ValueError(f"No existe un material con el nombre '{material_name}'")
             
-        section = RectangularSection(name, self.material_map[material_name], base, height)
-        self.section_map[name] = section
+        section = RectangularSection(name, self.materials[material_name], base, height)
+        self.sections[name] = section
         return section
 
     def add_node(
@@ -152,11 +148,11 @@ class SystemMilcaModel:
         Raises:
             ValueError: Si ya existe un nodo con el mismo ID.
         """
-        if id in self.node_map:
+        if id in self.nodes:
             raise ValueError(f"Ya existe un nodo con el ID {id}")
             
         node = Node(id, Vertex(vertex))
-        self.node_map[id] = node
+        self.nodes[id] = node
         return node
     
     def add_element(
@@ -183,16 +179,16 @@ class SystemMilcaModel:
         Raises:
             ValueError: Si ya existe un elemento con el mismo ID, o si no existen los nodos o la sección.
         """
-        if id in self.element_map:
+        if id in self.elements:
             raise ValueError(f"Ya existe un elemento con el ID {id}")
             
-        if node_i_id not in self.node_map:
+        if node_i_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_i_id}")
             
-        if node_j_id not in self.node_map:
+        if node_j_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_j_id}")
             
-        if section_name not in self.section_map:
+        if section_name not in self.sections:
             raise ValueError(f"No existe una sección con el nombre '{section_name}'")
         
         # Convertir a enum si es string

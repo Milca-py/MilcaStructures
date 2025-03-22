@@ -149,8 +149,6 @@ class LoadPattern:
         name: str,
         pattern_type: LoadPatternType = LoadPatternType.DEAD,
         self_weight_multiplier: float = 0.0,
-        auto_load_pattern: bool = False,
-        create_load_case: bool = False,
         state: State = State.ACTIVE,
         system: Optional["SystemMilcaModel"] = None,
     ) -> None:
@@ -161,8 +159,6 @@ class LoadPattern:
             name: Nombre identificativo del patrón de carga.
             pattern_type: Tipo de patrón de carga a aplicar.
             self_weight_multiplier: Factor multiplicador para el peso propio.
-            auto_load_pattern: Si True, el patrón se genera automáticamente.
-            create_load_case: Si True, se crea un caso de carga asociado.
             state: Estado inicial del patrón de carga.
             system: Sistema estructural al que pertenece el patrón de carga.
 
@@ -179,8 +175,6 @@ class LoadPattern:
         self.name = name
         self.pattern_type = pattern_type
         self.self_weight_multiplier = float(self_weight_multiplier)
-        self.auto_load_pattern = auto_load_pattern
-        self.create_load_case = create_load_case
         self.state = state
         self.analyzed = False
 
@@ -274,29 +268,19 @@ class LoadPattern:
             existing_load = self.distributed_loads_map.get(element_id, DistributedLoad())
             self.distributed_loads_map[element_id] = existing_load + transformed_load
 
-    def assign_loads_to_nodes(self, system: "SystemMilcaModel") -> None:
-        """
-        Asigna las cargas puntuales a los nodos correspondientes del sistema.
-
-        Args:
-            system: Modelo estructural que contiene los nodos.
-        """
+    def assign_loads_to_nodes(self) -> None:
+        """Asigna las cargas puntuales a los nodos correspondientes del sistema."""
         for node_id, load in self.point_loads_map.items():
-            node = system.node_map.get(node_id)
+            node = self._system.node_map.get(node_id)
             if node:
                 node.set_forces(load)
             else:
                 warnings.warn(f"Nodo {node_id} no encontrado en el sistema")
 
-    def assign_loads_to_elements(self, system: "SystemMilcaModel") -> None:
-        """
-        Asigna las cargas distribuidas a los elementos correspondientes del sistema.
-
-        Args:
-            system: Modelo estructural que contiene los elementos.
-        """
+    def assign_loads_to_elements(self) -> None:
+        """Asigna las cargas distribuidas a los elementos correspondientes del sistema."""
         for element_id, load in self.distributed_loads_map.items():
-            element = system.element_map.get(element_id)
+            element = self._system.element_map.get(element_id)
             if element:
                 element.add_distributed_load(load, self.name)
             else:
