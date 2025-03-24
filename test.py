@@ -1,4 +1,7 @@
 from milcapy import SystemMilcaModel
+from milcapy.plotter.UIdisplay import main_window
+import numpy as np
+import matplotlib.pyplot as plt
 # UNIDADES: (kN, m)
 
 portico = SystemMilcaModel()
@@ -46,9 +49,11 @@ portico.add_distributed_load(4, "CARGA2", -5, -5)
 portico.postprocessing_options.n = 40
 portico.solve()
 
-
-import pprint
-# pprint.pprint(portico.results["CARGA1"].get_results_member(1))
-# pprint.pprint(portico.results["CARGA1"].get_results_model())
-pprint.pprint(portico.results["CARGA1"].get_node_reaction(1))
-pprint.pprint(portico.results["CARGA1"].get_node_reaction(5))
+# --------------------------------------------------
+# 6. Resultados
+# --------------------------------------------------
+result_member = portico.results["CARGA1"].get_member_axial_force(3)
+x = np.linspace(0, portico.members[3].length(), len(result_member))
+fig, ax = plt.subplots()
+ax.plot(x, result_member)
+main_window(fig)

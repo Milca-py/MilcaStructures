@@ -12,7 +12,7 @@ def _create_path_patch(vertices, color, lw, closed=False):
 
 def support_ttt(ax, x, y, size=0.1, color='#20dd75', lw=1):
     a = size
-    rect_vertices = [(x - a / 2, y - a), (x + a / 2, y - a), 
+    rect_vertices = [(x - a / 2, y - a), (x + a / 2, y - a),
                      (x + a / 2, y - a / 3), (x - a / 2, y - a / 3), (x - a / 2, y - a)]
     barra_vertices = [(x, y - a/3), (x, y)]
     ax.add_patch(_create_path_patch(rect_vertices, color, lw, closed=True))

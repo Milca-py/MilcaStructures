@@ -29,7 +29,7 @@ class StaticStructureData:
     nodes: Dict[int, Tuple[float, float]]
     # {id_element: array[array[xi, yi], array[xj, yj]]}
     elements: Dict[int, np.ndarray[np.float64]]
-    # {id_node: (dx, dy, rz)}   
+    # {id_node: (dx, dy, rz)}
     restraints: Dict[int, Tuple[bool, bool, bool]]
 
 
@@ -326,85 +326,28 @@ class PlotterValuesFactory:
 
 
 
+"""
+VALORES EN PlotterValues
 
+*** ESTRUCTURA ***
+1. Nodos                    : {id_node: (x, y)}
+2. Elementos                : {id_element: [(x1, y1), (x2, y2)]}
+3. Restricciones            : {id_node: (restricciones)}
+4. Cargas_distribuidas      : {id_element: {q_i, q_j, p_i, p_j, m_i, m_j}}
+5. Cargas_puntuales         : {id_node: {fx, fy, mz}}
 
+*** RESULTADOS DE ANALISIS MATRICIAL***
+1. Desplazamientos nodales  : {id_node: (ux, vy, wz)}
+2. Reacciones               : {id_node: (rx, ry, rz)}
+3. Fuerzas internas         : {id_element: {axial, shear, moment}}
 
+*** RESULTADOS DE POST-PROCESSING***
+1. Fuerzas Axiales          : {id_element: (np.ndarray, np.ndarray)}
+2. Fuerzas Cortantes        : {id_element: (np.ndarray, np.ndarray)}
+3. Momentos Flectores       : {id_element: (np.ndarray, np.ndarray)}
+4. Giros                    : {id_element: (np.ndarray, np.ndarray)}
+5. Deflexiones              : {id_element: (np.ndarray, np.ndarray)}
+6. Deformada                : {id_element: (np.ndarray, np.ndarray)}
+7. Deformada Rígida         : {id_element: (np.ndarray, np.ndarray)}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # =======================================================================================
-# class PlotterValues:
-#     """Clase que proporciona los valores necesarios para graficar la estructura."""
-
-#     def __init__(self, system: 'SystemMilcaModel'):
-#         """
-#         Inicializa un objeto PlotterValues.
-
-#         Args:
-#             system: Sistema de estructura a graficar.
-#         """
-#         self.system = system
-
-#     def structure(self) -> Tuple[Dict[int, Tuple[float, float]],
-#                                  Dict[int, List[Tuple[float, float]]],
-#                                  Dict[int, Dict],
-#                                  Dict[int, Dict],
-#                                  Dict[int, Tuple[bool, bool, bool]]]:
-#         """
-#         Devuelve los valores necesarios para graficar la estructura.
-
-#         Returns:
-#             Tuple que contiene:
-#             - node_values: Diccionario de nodos {id: (x, y)}
-#             - element_values: Diccionario de elementos {id: [(x1, y1), (x2, y2)]}
-#             - load_elements: Diccionario de cargas distribuidas {id_element: {q_i, q_j, p_i, p_j, m_i, m_j}}
-#             - load_nodes: Diccionario de cargas puntuales {id_node: {fx, fy, mz}}
-#             - restrained_nodes: Diccionario de nodos restringidos {id: (restricciones)}
-#         """
-#         # Obtener los valores para graficar los nodos {id: (x, y)}
-#         node_values = {node.id: (node.vertex.x, node.vertex.y)
-#                        for node in self.system.node_map.values()}
-
-#         # Obtener los valores para graficar los elementos {id: [(x1, y1), (x2, y2)]}
-#         element_values = {}
-#         for element in self.system.element_map.values():
-#             node_i, node_j = element.node_i, element.node_j
-#             element_values[element.id] = [
-#                 (node_i.vertex.x, node_i.vertex.y),
-#                 (node_j.vertex.x, node_j.vertex.y)
-#             ]
-
-#         # Obtener los elementos cargados {id: {q_i, q_j, p_i, p_j, m_i, m_j}}
-#         load_elements = {}
-#         for load_pattern in self.system.load_pattern_map.values():
-#             for id_element, load in load_pattern.distributed_loads_map.items():
-#                 load_elements[id_element] = load.to_dict()
-
-#         # Obtener nodos cargados {id: {fx, fy, mz}}
-#         load_nodes = {}
-#         for load_pattern in self.system.load_pattern_map.values():
-#             for id_node, load in load_pattern.point_loads_map.items():
-#                 load_nodes[id_node] = load.to_dict()
-
-#         # Obtener los nodos restringidos {id: (restricciones)}
-#         restrained_nodes = {}
-#         for node in self.system.node_map.values():
-#             if node.restraints != (False, False, False):
-#                 restrained_nodes[node.id] = node.restraints
-
-#         return node_values, element_values, load_elements, load_nodes, restrained_nodes
-
-# # =======================================================================================
+"""
