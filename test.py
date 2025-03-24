@@ -1,25 +1,54 @@
-from milcapy.core.node import Node
-from milcapy.elements.member import Member
-from milcapy.utils.geometry import Vertex
-from milcapy.loads.load import PointLoad
-from milcapy.section.section import Section
-from milcapy.material.material import Material
-from milcapy.utils.types import ElementType
+from milcapy import SystemMilcaModel
+# UNIDADES: (kN, m)
 
-def test_node():
-    node = Node(1, Vertex(1, 2))
-    node.set_load(PointLoad(1, 2, 3))
-    print(node)
+portico = SystemMilcaModel()
+portico.add_material("concreto", 2.2e7, 0.3)
+portico.add_rectangular_section("sec1", "concreto", 0.5, 0.5)
+portico.add_rectangular_section("sec2", "concreto", 0.3, 0.65)
+
+nodes = {
+    1: (0, 0),
+    2: (0, 4),
+    3: (4, 6),
+    4: (8, 4),
+    5: (8, 0)
+}
+
+for node, coord in nodes.items():
+    portico.add_node(node, *coord)
+
+elements = {
+    1: (1, 2, "sec1"),
+    2: (2, 3, "sec2"),
+    3: (4, 3, "sec2"),
+    4: (5, 4, "sec1")
+}
+
+for element, (node1, node2, section) in elements.items():
+    portico.add_member(element, node1, node2, section)
+
+portico.add_restraint(1, (True, True, True))
+portico.add_restraint(5, (True, True, True))
+
+portico.add_load_pattern("CARGA1")
+portico.add_distributed_load(2, "CARGA1", -5, -5)
+portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
+
+portico.add_load_pattern("CARGA2")
+portico.add_distributed_load(1, "CARGA2", -5, -5)
+portico.add_distributed_load(2, "CARGA2", -5, -5)
+portico.add_distributed_load(3, "CARGA2", -5, -5)
+portico.add_distributed_load(4, "CARGA2", -5, -5)
+
+# --------------------------------------------------
+# 5. Resolución del modelo
+# --------------------------------------------------
+portico.postprocessing_options.n = 40
+portico.solve()
 
 
-def test_member():
-    node_i = Node(1, Vertex(1, 2))
-    node_j = Node(2, Vertex(3, 4))
-    material = Material("mat", 2e6, 0.15, 2400)
-    section = Section("sec1", material)
-    member = Member(1, node_i, node_j, section, ElementType.FRAME)
-    print(member.length)
-
-
-if __name__ == "__main__":
-    test_member()
+import pprint
+# pprint.pprint(portico.results["CARGA1"].get_results_member(1))
+# pprint.pprint(portico.results["CARGA1"].get_results_model())
+pprint.pprint(portico.results["CARGA1"].get_node_reaction(1))
+pprint.pprint(portico.results["CARGA1"].get_node_reaction(5))

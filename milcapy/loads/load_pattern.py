@@ -1,9 +1,9 @@
 from typing import Dict, Optional, TYPE_CHECKING
-import warnings
 import numpy as np
+import warnings
 
 from milcapy.loads import PointLoad, DistributedLoad
-from milcapy.utils import LoadPatternType, CoordinateSystemType, State, DirectionType, LoadType
+from milcapy.utils import LoadPatternType, CoordinateSystemType, StateType, DirectionType, LoadType
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
@@ -35,22 +35,22 @@ def distributed_load_to_local_system(
     csys: CoordinateSystemType,
     direction: DirectionType,
     load_type: LoadType,
-    element_id: int
+    member_id: int
 ) -> DistributedLoad:
     """
-    Transforma una carga distribuida del sistema global al sistema local del elemento.
+    Transforma una carga distribuida del sistema global al sistema local del miembro.
 
     Args:
-        system: Modelo estructural que contiene el elemento.
+        system: Modelo estructural que contiene el miembro.
         load_start: Valor inicial de la carga distribuida.
         load_end: Valor final de la carga distribuida.
         csys: Sistema de coordenadas de la carga.
         direction: Dirección de aplicación de la carga.
         load_type: Tipo de carga (fuerza o momento).
-        element_id: Identificador del elemento.
+        member_id: Identificador del miembro.
 
     Returns:
-        DistributedLoad: Carga transformada al sistema local del elemento.
+        DistributedLoad: Carga transformada al sistema local del miembro.
 
     Raises:
         ValueError: Si la dirección especificada no es válida.
@@ -80,12 +80,12 @@ def distributed_load_to_local_system(
                 )
             else:
                 raise ValueError(f"Dirección de carga no válida para momento: {direction}")
-    
+
     elif csys == CoordinateSystemType.GLOBAL:
-        angle = system.element_map[element_id].angle_x
+        angle = system.members.get(member_id).angle_x()
         cos_a, sin_a = np.cos(angle), np.sin(angle)
         li, lj = load_start, load_end
-        
+
         if load_type == LoadType.FORCE:
             if direction == DirectionType.X:
                 return DistributedLoad(
@@ -125,7 +125,7 @@ def distributed_load_to_local_system(
                 )
             else:
                 raise ValueError(f"Dirección de carga no válida: {direction}")
-        
+
         elif load_type == LoadType.MOMENT and direction == DirectionType.MOMENT:
             return DistributedLoad(
                 q_i=0, q_j=0,
@@ -139,7 +139,7 @@ def distributed_load_to_local_system(
 class LoadPattern:
     """
     Representa un patrón de carga en un modelo estructural.
-    
+
     Esta clase gestiona la aplicación y transformación de cargas puntuales y distribuidas
     en un sistema estructural, permitiendo su manipulación en diferentes sistemas de coordenadas.
     """
@@ -149,7 +149,7 @@ class LoadPattern:
         name: str,
         pattern_type: LoadPatternType = LoadPatternType.DEAD,
         self_weight_multiplier: float = 0.0,
-        state: State = State.ACTIVE,
+        state: StateType = StateType.ACTIVE,
         system: Optional["SystemMilcaModel"] = None,
     ) -> None:
         """
@@ -174,12 +174,12 @@ class LoadPattern:
 
         self.name = name
         self.pattern_type = pattern_type
-        self.self_weight_multiplier = float(self_weight_multiplier)
+        self.self_weight_multiplier = self_weight_multiplier
         self.state = state
         self.analyzed = False
 
-        self.point_loads_map: Dict[int, PointLoad] = {}
-        self.distributed_loads_map: Dict[int, DistributedLoad] = {}
+        self.point_loads: Dict[int, PointLoad] = {}
+        self.distributed_loads: Dict[int, DistributedLoad] = {}
 
     def add_point_load(
         self,
@@ -206,7 +206,7 @@ class LoadPattern:
         if not isinstance(forces, PointLoad):
             raise TypeError("forces debe ser una instancia de PointLoad")
 
-        if csys not in (CoordinateSystemType.GLOBAL, CoordinateSystemType.LOCAL):
+        if csys not in (CoordinateSystemType):
             raise ValueError("Sistema de coordenadas debe ser GLOBAL o LOCAL")
 
         transformed_forces = forces
@@ -219,14 +219,14 @@ class LoadPattern:
             transformed_forces = loads_to_global_system(forces, angle_rot)
 
         if replace:
-            self.point_loads_map[node_id] = transformed_forces
+            self.point_loads[node_id] = transformed_forces
         else:
-            existing_load = self.point_loads_map.get(node_id, PointLoad())
-            self.point_loads_map[node_id] = existing_load + transformed_forces
+            existing_load = self.point_loads.get(node_id, PointLoad())
+            self.point_loads[node_id] = existing_load + transformed_forces
 
     def add_distributed_load(
         self,
-        element_id: int,
+        member_id: int,
         load_start: float,
         load_end: float,
         csys: CoordinateSystemType = CoordinateSystemType.LOCAL,
@@ -235,23 +235,23 @@ class LoadPattern:
         replace: bool = False,
     ) -> None:
         """
-        Agrega o actualiza una carga distribuida en un elemento específico.
+        Agrega o actualiza una carga distribuida en un miembro específico.
 
         Args:
-            element_id: Identificador del elemento objetivo.
+            member_id: Identificador del miembro objetivo.
             load_start: Valor inicial de la carga distribuida.
             load_end: Valor final de la carga distribuida.
             csys: Sistema de coordenadas de la carga.
             direction: Dirección de aplicación de la carga.
             load_type: Tipo de carga (fuerza o momento).
-            replace: Si True, reemplaza cualquier carga existente en el elemento.
+            replace: Si True, reemplaza cualquier carga existente en el miembro.
 
         Raises:
             ValueError: Si el sistema de coordenadas es inválido.
         """
         if self._system is None:
             raise ValueError("Se requiere un sistema válido para transformar cargas distribuidas")
-        
+
         transformed_load = distributed_load_to_local_system(
             system=self._system,
             load_start=load_start,
@@ -259,29 +259,29 @@ class LoadPattern:
             csys=csys,
             direction=direction,
             load_type=load_type,
-            element_id=element_id
+            member_id=member_id
         )
 
         if replace:
-            self.distributed_loads_map[element_id] = transformed_load
+            self.distributed_loads[member_id] = transformed_load
         else:
-            existing_load = self.distributed_loads_map.get(element_id, DistributedLoad())
-            self.distributed_loads_map[element_id] = existing_load + transformed_load
+            existing_load = self.distributed_loads.get(member_id, DistributedLoad())
+            self.distributed_loads[member_id] = existing_load + transformed_load
 
     def assign_loads_to_nodes(self) -> None:
         """Asigna las cargas puntuales a los nodos correspondientes del sistema."""
-        for node_id, load in self.point_loads_map.items():
-            node = self._system.node_map.get(node_id)
+        for node_id, load in self.point_loads.items():
+            node = self._system.nodes.get(node_id)
             if node:
-                node.set_forces(load)
+                node.set_load(load)
             else:
                 warnings.warn(f"Nodo {node_id} no encontrado en el sistema")
 
-    def assign_loads_to_elements(self) -> None:
-        """Asigna las cargas distribuidas a los elementos correspondientes del sistema."""
-        for element_id, load in self.distributed_loads_map.items():
-            element = self._system.element_map.get(element_id)
-            if element:
-                element.add_distributed_load(load, self.name)
+    def assign_loads_to_members(self) -> None:
+        """Asigna las cargas distribuidas a los miembros correspondientes del sistema."""
+        for member_id, load in self.distributed_loads.items():
+            member = self._system.members.get(member_id)
+            if member:
+                member.set_distributed_load(load)
             else:
-                warnings.warn(f"Elemento {element_id} no encontrado en el sistema")
+                warnings.warn(f"Miembro {member_id} no encontrado en el sistema")

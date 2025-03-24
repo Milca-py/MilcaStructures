@@ -1,0 +1,80 @@
+/* Fondo general */
+QWidget {
+    background-color: #1E1E1E;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Etiqueta personalizada */
+QLabel#customLabel {
+    font-size: 16px;
+    font-weight: bold;
+    color: #F2A365;
+}
+
+/* Campo de entrada */
+QLineEdit#customLineEdit {
+    background-color: #2C2C2C;
+    border: 2px solid #F2A365;
+    border-radius: 5px;
+    padding: 5px;
+    color: white;
+}
+QLineEdit#customLineEdit:focus {
+    border-color: #F28D35;
+}
+
+/* Botón estilizado */
+QPushButton#customButton {
+    background-color: #F2A365;
+    border: none;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+}
+QPushButton#customButton:hover {
+    background-color: #F28D35;
+}
+QPushButton#customButton:pressed {
+    background-color: #C7783A;
+}
+
+/* ComboBox */
+QComboBox#customComboBox {
+    background-color: #2C2C2C;
+    border: 1px solid #F2A365;
+    padding: 5px;
+    border-radius: 5px;
+}
+QComboBox#customComboBox::drop-down {
+    border: none;
+}
+
+/* Área de texto */
+QTextEdit#customTextEdit {
+    background-color: #2C2C2C;
+    border: 1px solid #F2A365;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+/* Barra de desplazamiento */
+QScrollBar:vertical {
+    background: #2C2C2C;
+    width: 10px;
+    margin: 2px 0;
+}
+QScrollBar::handle:vertical {
+    background: #F2A365;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #F28D35;
+}
+QScrollBar::sub-line:vertical, 
+QScrollBar::add-line:vertical {
+    background: none;
+    height: 0px;
+}

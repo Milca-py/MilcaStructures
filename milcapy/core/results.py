@@ -1,137 +1,121 @@
-from typing import Dict, TYPE_CHECKING, Optional
-from dataclasses import dataclass
+from __future__ import annotations
+from typing import Dict
 import numpy as np
 
-if TYPE_CHECKING:
-    from milcapy.model.model import SystemMilcaModel
-    from milcapy.elements.element import Element
-    from milcapy.core.node import Node
-
-
-
 class Results:
-    def __init__(
-        self, 
-        system: 'SystemMilcaModel', 
-        ) -> None:
+    """Clase que almacena los resultados de un análisis de un Load Pattern.
+    La estructura de los resultados es la siguiente:
 
-        # parametdos de entrada (objetos)
-        self.system = system
-        
-        self.reactions = self.system.reactions
-        self.displacements = self.system.displacements
+    model: {
+        "displacements": np.ndarray,
+        "reactions": np.ndarray
+    }
 
-        # en coordenadas locales
-        self.integration_coefficients_elements = {} # {element_id: np.ndarray}
-        self.values_axial_force_elements = {}       # {element_id: np.ndarray}
-        self.values_shear_force_elements = {}       # {element_id: np.ndarray}
-        self.values_bending_moment_elements = {}    # {element_id: np.ndarray}
-        self.values_slope_elements = {}             # {element_id: np.ndarray}
-        self.values_deflection_elements = {}        # {element_id: np.ndarray}
-        
-        # en coordenadas globales (x_val, y_val)
-        self.values_deformed_elements = {}          # {element_id: Tuple[np.ndarray, np.ndarray]}
-        self.values_rigid_deformed_elements = {}    # {element_id: Tuple[np.ndarray, np.ndarray]}
+    nodes: {
+        node_id: {
+            "displacements": np.ndarray,
+            "reactions": np.ndarray
+        }
+    }
 
-    @property
-    def global_displacements_nodes(self) -> Dict[int, np.ndarray]:
-        """Desplazamientos globales de los nodos."""
-        displacements_nodes = {}
-        for node in self.system.node_map.values():
-            displacements_nodes[node.id] = self.displacements[node.dof-1]
-        return displacements_nodes
-    
-    @property
-    def global_displacements_elements(self) -> Dict[int, np.ndarray]:
-        """Desplazamientos globales de los elementos."""
-        displacements_elements = {}
-        for element in self.system.element_map.values():
-            displacements_elements[element.id] = np.concatenate([
-                self.displacements[element.node_i.dof-1], 
-                self.displacements[element.node_j.dof-1]
-            ])
-        return displacements_elements
-    
-    @property
-    def local_displacements_elements(self) -> Dict[int, np.ndarray]:
-        """Desplazamientos locales de los elementos."""
-        global_disps = self.global_displacements_elements
-        displacements_elements = {}
-        for element in self.system.element_map.values():
-            displacements_elements[element.id] = np.dot(
-                element.transformation_matrix, 
-                global_disps[element.id]
-            )
-        return displacements_elements
-    
-    @property
-    def local_internal_forces_elements(self) -> Dict[int, np.ndarray]:
-        """Fuerzas internas en los elementos en coordenadas locales."""
-        local_disps = self.local_displacements_elements
-        forces_elements = {}
-        for element in self.system.element_map.values():
-            forces_elements[element.id] = np.dot(
-                element.local_stiffness_matrix, 
-                local_disps[element.id]
-            ) - element.local_load_vector
-        return forces_elements
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Results:
-    """Clase que almacena los resultados de un análisis de un Load Pattern."""
+    members: {
+        member_id: {
+            "displacements": np.ndarray,
+            "internal_forces": np.ndarray,
+            "axial_forces": np.ndarray,
+            "shear_forces": np.ndarray,
+            "bending_moments": np.ndarray,
+            "slopes": np.ndarray,
+            "deflections": np.ndarray
+        }
+    }"""
     def __init__(self):
-        self.nodes: Dict[int, NodeResults] = {}
-        self.elements: Dict[int, ElementResults] = {}
+        self.nodes: Dict[int, Dict[str, np.ndarray]] = {}
+        self.members: Dict[int, Dict[str, np.ndarray]] = {}
+        self.model: Dict[str, np.ndarray] = {}
 
+    def set_model_displacements(self, displacements: np.ndarray) -> None:
+        self.model["displacements"] = displacements
 
-class NodeResults:
-    """Clase que almacena los resultados de un nodo (coordenadas globales)."""
-    def __init__(self, node: "Node") -> None:
-        self.displacement: Optional[np.ndarray] = None
-        self.reaction: Optional[np.ndarray] = None
+    def set_model_reactions(self, reactions: np.ndarray) -> None:
+        self.model["reactions"] = reactions
 
+    def set_node_displacement(self, node_id: int, displacement: np.ndarray) -> None:
+        if node_id not in self.nodes:
+            self.nodes[node_id] = {"displacements": np.zeros(3), "reactions": np.zeros(3)}
+        self.nodes[node_id]["displacements"] = displacement
 
-class ElementResults:
-    """Clase que almacena los resultados de un elemento (coordenadas locales)."""
-    def __init__(self, element: "Element") -> None:
-        self.displacement: Optional[np.ndarray] = None
-        self.internal_forces: Optional[np.ndarray] = None
-        
-        # Resultados del postprocesamiento (en coordenada local)
-        self.integration_coefficients: Optional[np.ndarray] = None
-        self.axial_force: Optional[np.ndarray] = None
-        self.shear_force: Optional[np.ndarray] = None
-        self.bending_moment: Optional[np.ndarray] = None
-        self.deflection: Optional[np.ndarray] = None
-        self.slope: Optional[np.ndarray] = None
-        self.deformed_shape: Optional[np.ndarray] = None
+    def set_node_reaction(self, node_id: int, reaction: np.ndarray) -> None:
+        if node_id not in self.nodes:
+            self.nodes[node_id] = {"displacements": np.zeros(3), "reactions": np.zeros(3)}
+        self.nodes[node_id]["reactions"] = reaction
 
+    def set_member_displacement(self, member_id: int, displacement: np.ndarray) -> None:
+        if member_id not in self.members:
+            self.members[member_id] = {"displacements": np.zeros(6), "internal_forces": np.zeros(6)}
+        self.members[member_id]["displacements"] = displacement
 
-class MoldelResults:
-    """Clase que almacena los resultados de un análisis de un modelo."""
-    def __init__(self):
-        self.stiffness_matrix: Optional[np.ndarray] = None
-        self.load_vector: Optional[np.ndarray] = None
-        self.displacements: Optional[np.ndarray] = None
-        self.reactions: Optional[np.ndarray] = None
+    def set_member_internal_forces(self, member_id: int, internal_forces: np.ndarray) -> None:
+        if member_id not in self.members:
+            self.members[member_id] = {"displacements": np.zeros(6), "internal_forces": np.zeros(6)}
+        self.members[member_id]["internal_forces"] = internal_forces
 
+    def set_member_axial_force(self, member_id: int, axial_force: np.ndarray) -> None:
+        self.members[member_id]["axial_forces"] = axial_force
 
-# ELIMINAR LOS ATRIBUTOS TRANSITORIOS DE LOS ELEMENTOS Y NODOS
-# DISEÑAR CLASE RESULTS
-# ANALYSYS POR CASO DE CARGA
-# IMPLENETAR FUNCIONES HELPERS
-# IMPLEMENTAR ATRIBUTOS DELEGADOS
-# USAR NOTIFICACIONES
+    def set_member_shear_force(self, member_id: int, shear_force: np.ndarray) -> None:
+        self.members[member_id]["shear_forces"] = shear_force
+
+    def set_member_bending_moment(self, member_id: int, bending_moment: np.ndarray) -> None:
+        self.members[member_id]["bending_moments"] = bending_moment
+
+    def set_member_deflection(self, member_id: int, deflection: np.ndarray) -> None:
+        self.members[member_id]["deflections"] = deflection
+
+    def set_member_slope(self, member_id: int, slope: np.ndarray) -> None:
+        self.members[member_id]["slopes"] = slope
+
+    def get_model_displacements(self) -> np.ndarray:
+        return self.model["displacements"]
+
+    def get_model_reactions(self) -> np.ndarray:
+        return self.model["reactions"]
+
+    def get_node_displacement(self, node_id: int) -> np.ndarray:
+        return self.nodes[node_id]["displacements"]
+
+    def get_node_reaction(self, node_id: int) -> np.ndarray:
+        return self.nodes[node_id]["reactions"]
+
+    def get_member_displacement(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["displacements"]
+
+    def get_member_internal_forces(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["internal_forces"]
+
+    def get_member_axial_force(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["axial_forces"]
+
+    def get_member_shear_force(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["shear_forces"]
+
+    def get_member_bending_moment(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["bending_moments"]
+
+    def get_member_deflection(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["deflections"]
+
+    def get_member_slope(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["slopes"]
+
+    def get_results_node(self, node_id: int) -> Dict[str, np.ndarray]:
+        return self.nodes[node_id]
+
+    def get_results_member(self, member_id: int) -> Dict[str, np.ndarray]:
+        return self.members[member_id]
+
+    def get_results_model(self) -> Dict[str, np.ndarray]:
+        return self.model
+
+    def get_results(self) -> Dict[str, Dict[str, np.ndarray]]:
+        return self.results

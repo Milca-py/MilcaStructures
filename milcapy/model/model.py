@@ -1,73 +1,66 @@
-from typing import TYPE_CHECKING, Dict, Optional, Union, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 from milcapy.material.material import Material, GenericMaterial
 from milcapy.section.section import Section, RectangularSection
 from milcapy.core.node import Node
 from milcapy.core.results import Results
 from milcapy.elements.member import Member
-from milcapy.plotter.plotter import Plotter, PlotterOptions
-from milcapy.plotter.plotter_values import PlotterValuesFactory
-from milcapy.analysis.options import AnalysisOptions, LinearStaticOptions
+# from milcapy.plotter.plotter import Plotter, PlotterOptions
+# from milcapy.plotter.plotter_values import PlotterValuesFactory
+from milcapy.analysis.options import AnalysisOptions
 from milcapy.analysis.manager import AnalysisManager
 from milcapy.postprocess.post_processing import PostProcessingOptions
 from milcapy.loads import LoadPattern, PointLoad
+from milcapy.utils.geometry import Vertex
 from milcapy.utils.types import (
     LoadPatternType,
     CoordinateSystemType,
-    State,
-    ElementType,
+    StateType,
+    MemberType,
+    BeamTheoriesType,
     DirectionType,
+    ShearCoefficientMethodType,
     LoadType,
     to_enum,
 )
 
 if TYPE_CHECKING:
-    from milcapy.utils.types import Restraints, VertexLike
+    from milcapy.utils.types import Restraints
 
 class SystemMilcaModel:
-    """
-    Clase que representa el modelo estructural completo para análisis mediante el método de rigidez.
-    
-    Esta clase permite definir materiales, secciones, nodos, elementos y cargas para realizar
-    un análisis estructural completo utilizando el método de rigidez directa.
-    """
+    """Clase que representa el modelo estructural, colecciona materiales, secciones, nodos, miembros, load patterns, resultados"""
 
     def __init__(self) -> None:
         """Inicializa un nuevo modelo estructural vacío."""
         # Propiedades de los elementos [UNIQUE]
         self.materials: Dict[str, Material] = {}
         self.sections: Dict[str, Section] = {}
-        
+
         # Elementos del modelo [UNIQUE / ADD]
         self.nodes: Dict[int, Node] = {}
-        self.elements: Dict[int, Element] = {}
-        
-        # Colecciones de frontera [UNIQUE]
-        self.load_patterns: Dict[str, LoadPattern] = {}
-        
-        # coleccion de resultados incluyendo postprocesamiento [ADD]
-        self.load_pattern_results: Dict[str, Results] = {}
+        self.members: Dict[int, Member] = {}
 
-        # vectores y matrices [ADD]
-        self.load_vector: Dict[str, np.ndarray] = {}
-        self.stiffness_matrix: Dict[str, np.ndarray] = {}
+        # patrones de carga con las asiganciones de carga en los miembros y nodos
+        self.load_patterns: Dict[str, LoadPattern] = {} # {pattern_name: load pattern}
+
+        # coleccion de resultados incluyendo postprocesamiento [ADD]
+        self.results: Dict[str, Results] = {} # {pattern_name: results}
 
         # Análisis [UNIQUE]
-        self.analysis: AnalysisManager = AnalysisManager(self)
+        self.analysis: Optional[AnalysisManager] = None
 
         # Visualización [UNIQUE]
-        self.plotter: Optional[Plotter] = None
-        self.plotter_values_factory: Optional[PlotterValuesFactory] = None
+        # self.plotter: Optional[Plotter] = None
+        # self.plotter_values_factory: Optional[PlotterValuesFactory] = None
 
         # Opciones del modelo [UNIQUE]
-        self.analysis_options: "AnalysisOptions" = LinearStaticOptions() # IMPLEMETAR PARA CADA TIPO DE ANALISIS
-        self.plotter_options: "PlotterOptions" = PlotterOptions()
+        self.analysis_options: "AnalysisOptions" = AnalysisOptions() # IMPLEMENTAR PARA CADA TIPO DE ANALISIS
+        # self.plotter_options: "PlotterOptions" = PlotterOptions()
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=5)
 
-    def _inicialize_plotter(self) -> None:
-        self.plotter_options = PlotterOptions(self.plotter_options_calculator)
-        self.plotter_values_factory = PlotterValuesFactory(self)
-        self.plotter = Plotter(self)
+    # def _inicialize_plotter(self) -> None:
+    #     self.plotter_values_factory = PlotterValuesFactory(self)
+    #     self.plotter = Plotter(self)
 
     def add_material(
         self,
@@ -84,20 +77,20 @@ class SystemMilcaModel:
             modulus_elasticity (float): Módulo de elasticidad (E).
             poisson_ratio (float): Coeficiente de Poisson.
             specific_weight (float, opcional): Peso específico o densidad. Default es 0.0.
-            
+
         Returns:
             Material: El material creado.
-            
+
         Raises:
             ValueError: Si ya existe un material con el mismo nombre.
         """
         if name in self.materials:
             raise ValueError(f"Ya existe un material con el nombre '{name}'")
-            
+
         material = GenericMaterial(name, modulus_elasticity, poisson_ratio, specific_weight)
         self.materials[name] = material
         return material
-    
+
     def add_rectangular_section(
         self,
         name: str,
@@ -113,96 +106,113 @@ class SystemMilcaModel:
             material_name (str): Nombre del material asociado (ya agregado).
             base (float): Base de la sección.
             height (float): Altura de la sección.
-            
+
         Returns:
             Section: La sección creada.
-            
+
         Raises:
             ValueError: Si ya existe una sección con el mismo nombre o si no existe el material.
         """
         if name in self.sections:
             raise ValueError(f"Ya existe una sección con el nombre '{name}'")
-            
+
         if material_name not in self.materials:
             raise ValueError(f"No existe un material con el nombre '{material_name}'")
-            
-        section = RectangularSection(name, self.materials[material_name], base, height)
+
+        # Definir método para calcular el coeficiente de corte
+        shear_method: ShearCoefficientMethodType = to_enum(self.analysis_options.shear_coefficient_method, ShearCoefficientMethodType)
+        section = RectangularSection(
+            name=name,
+            material=self.materials[material_name],
+            base=base,
+            height=height,
+            shear_method=shear_method
+        )
         self.sections[name] = section
         return section
 
     def add_node(
         self,
         id: int,
-        vertex: Union["VertexLike", Tuple[float, float]]
+        x: float,
+        y: float
     ) -> Node:
         """
         Agrega un nodo al modelo.
 
         Args:
             id (int): Identificador del nodo.
-            vertex (VertexLike o Tuple[float, float]): Coordenadas del nodo.
-            
+            x (float): Coordenada x del nodo.
+            y (float): Coordenada y del nodo.
+
         Returns:
             Node: El nodo creado.
-            
+
         Raises:
             ValueError: Si ya existe un nodo con el mismo ID.
         """
         if id in self.nodes:
             raise ValueError(f"Ya existe un nodo con el ID {id}")
-            
-        node = Node(id, Vertex(vertex))
+
+        node = Node(id, Vertex(x, y))
         self.nodes[id] = node
         return node
-    
-    def add_element(
+
+    def add_member(
         self,
         id: int,
         node_i_id: int,
         node_j_id: int,
         section_name: str,
-        element_type: Union[str, ElementType] = ElementType.FRAME
-    ) -> Element:
+        member_type: Union[str, MemberType] = MemberType.FRAME
+    ) -> Member:
         """
-        Agrega un elemento estructural al modelo.
+        Agrega un miembro estructural al modelo.
 
         Args:
-            id (int): Identificador del elemento.
+            id (int): Identificador del miembro.
             node_i_id (int): ID del nodo inicial.
             node_j_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            element_type (str o ElementType, opcional): Tipo de elemento. Por defecto es FRAME.
-            
+            member_type (str, opcional): Tipo de miembro. Por defecto es FRAME.
+
         Returns:
-            Element: El elemento creado.
-            
+            Member: El miembro creado.
+
         Raises:
-            ValueError: Si ya existe un elemento con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si ya existe un miembro con el mismo ID, o si no existen los nodos o la sección.
         """
-        if id in self.elements:
-            raise ValueError(f"Ya existe un elemento con el ID {id}")
-            
+        if id in self.members:
+            raise ValueError(f"Ya existe un miembro con el ID {id}")
+
         if node_i_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_i_id}")
-            
+
         if node_j_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_j_id}")
-            
+
         if section_name not in self.sections:
             raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-        
+
         # Convertir a enum si es string
-        if isinstance(element_type, str):
-            element_type = to_enum(element_type, ElementType)
-            
-        element = Element(
+        if isinstance(member_type, str):
+            member_type = to_enum(member_type, MemberType)
+
+        # teoria de vigas para el miembro
+        if self.analysis_options.include_shear_deformations:
+            beam_theory = BeamTheoriesType.TIMOSHENKO
+        else:
+            beam_theory = BeamTheoriesType.EULER_BERNOULLI
+
+        element = Member(
             id=id,
-            type=element_type,
-            node_i=self.node_map[node_i_id],
-            node_j=self.node_map[node_j_id],
-            section=self.section_map[section_name]
+            node_i=self.nodes[node_i_id],
+            node_j=self.nodes[node_j_id],
+            section=self.sections[section_name],
+            member_type=member_type,
+            beam_theory=beam_theory,
         )
-        self.element_map[id] = element
+        self.members[id] = element
         return element
 
     def add_restraint(
@@ -216,23 +226,21 @@ class SystemMilcaModel:
         Args:
             node_id (int): Identificador del nodo.
             restraints (Restraints): Tupla booleana con las restricciones.
-            
+
         Raises:
             ValueError: Si no existe el nodo.
         """
-        if node_id not in self.node_map:
+        if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
-            
-        self.node_map[node_id].set_restraints(restraints)
-    
+
+        self.nodes[node_id].set_restraints(restraints)
+
     def add_load_pattern(
         self,
         name: str,
         pattern_type: Union[str, LoadPatternType] = LoadPatternType.DEAD,
         self_weight_multiplier: float = 0.0,
-        auto_load_pattern: bool = False,
-        create_load_case: bool = False,
-        state: Union[str, State] = State.ACTIVE
+        state: Union[str, StateType] = StateType.ACTIVE
     ) -> LoadPattern:
         """
         Agrega un patrón de carga al modelo.
@@ -241,38 +249,34 @@ class SystemMilcaModel:
             name (str): Nombre del patrón de carga.
             pattern_type (str o LoadPatternType, opcional): Tipo de carga. Default es DEAD.
             self_weight_multiplier (float, opcional): Multiplicador del peso propio. Default es 0.0.
-            auto_load_pattern (bool, opcional): Si se genera automáticamente. Default es False.
-            create_load_case (bool, opcional): Si se crea un caso de carga asociado. Default es False.
             state (str o State, opcional): Estado del patrón. Default es ACTIVE.
-            
+
         Returns:
             LoadPattern: El patrón de carga creado.
-            
+
         Raises:
             ValueError: Si ya existe un patrón con el mismo nombre.
         """
-        if name in self.load_pattern_map:
+        if name in self.load_patterns:
             raise ValueError(f"Ya existe un patrón de carga con el nombre '{name}'")
-        
+
         # Convertir a enum si son strings
         if isinstance(pattern_type, str):
             pattern_type = to_enum(pattern_type, LoadPatternType)
-        
+
         if isinstance(state, str):
-            state = to_enum(state, State)
-            
+            state = to_enum(state, StateType)
+
         load_pattern = LoadPattern(
             name=name,
             pattern_type=pattern_type,
             self_weight_multiplier=self_weight_multiplier,
-            auto_load_pattern=auto_load_pattern,
-            create_load_case=create_load_case,
             state=state,
             system=self,
         )
-        self.load_pattern_map[name] = load_pattern
+        self.load_patterns[name] = load_pattern
         return load_pattern
-    
+
     def add_point_load(
         self,
         node_id: int,
@@ -296,33 +300,33 @@ class SystemMilcaModel:
             mz (float, opcional): Momento en Z. Default es 0.0.
             angle_rot (float, opcional): Ángulo de rotación en radianes. Default es None.
             replace (bool, opcional): Si se reemplaza la carga existente. Default es False.
-            
+
         Raises:
             ValueError: Si no existe el nodo o el patrón de carga.
         """
-        if node_id not in self.node_map:
+        if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
-            
-        if load_pattern_name not in self.load_pattern_map:
+
+        if load_pattern_name not in self.load_patterns:
             raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
-        
+
         # Convertir a enum si es string
         if isinstance(CSys, str):
             csys_enum = to_enum(CSys, CoordinateSystemType)
         else:
             csys_enum = CSys
-            
-        self.load_pattern_map[load_pattern_name].add_point_load(
+
+        self.load_patterns[load_pattern_name].add_point_load(
             node_id=node_id,
             forces=PointLoad(fx=fx, fy=fy, mz=mz),
             csys=csys_enum,
             angle_rot=angle_rot,
             replace=replace
         )
-    
+
     def add_distributed_load(
         self,
-        element_id: int,
+        member_id: int,
         load_pattern_name: str,
         load_start: float = 0.0,
         load_end: float = 0.0,
@@ -332,10 +336,10 @@ class SystemMilcaModel:
         replace: bool = False,
     ) -> None:
         """
-        Asigna una carga distribuida a un elemento dentro de un patrón de carga.
+        Asigna una carga distribuida a un miembro dentro de un patrón de carga.
 
         Args:
-            element_id (int): Identificador del elemento.
+            member_id (int): Identificador del miembro.
             load_pattern_name (str): Nombre del patrón de carga.
             load_start (float, opcional): Magnitud de la carga en el inicio. Default es 0.0.
             load_end (float, opcional): Magnitud de la carga en el final. Default es 0.0.
@@ -343,60 +347,61 @@ class SystemMilcaModel:
             direction (str o DirectionType, opcional): Dirección de la carga. Default es "LOCAL_2".
             load_type (str o LoadType, opcional): Tipo de carga. Default es "FORCE".
             replace (bool, opcional): Si se reemplaza la carga existente. Default es False.
-            
+
         Raises:
-            ValueError: Si no existe el elemento o el patrón de carga.
+            ValueError: Si no existe el miembro o el patrón de carga.
         """
-        if element_id not in self.element_map:
-            raise ValueError(f"No existe un elemento con el ID {element_id}")
-            
-        if load_pattern_name not in self.load_pattern_map:
+        if member_id not in self.members:
+            raise ValueError(f"No existe un miembro con el ID {member_id}")
+
+        if load_pattern_name not in self.load_patterns:
             raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
-        
+
         # Convertir a enum si son strings
         if isinstance(CSys, str):
             csys_enum = to_enum(CSys, CoordinateSystemType)
         else:
             csys_enum = CSys
-            
+
         if isinstance(direction, str):
             direction_enum = to_enum(direction, DirectionType)
         else:
             direction_enum = direction
-            
+
         if isinstance(load_type, str):
             load_type_enum = to_enum(load_type, LoadType)
         else:
             load_type_enum = load_type
-        
-        self.load_pattern_map[load_pattern_name].add_distributed_load(
-            element_id=element_id,
+
+        self.load_patterns[load_pattern_name].add_distributed_load(
+            member_id=member_id,
             load_start=load_start,
             load_end=load_end,
-            load_type=load_type_enum,
             csys=csys_enum,
+            direction=direction_enum,
+            load_type=load_type_enum,
             replace=replace,
-            direction=direction_enum
         )
-    
+
     def solve(self) -> Dict[str, Results]:
         """
         Resuelve el sistema estructural aplicando el método de rigidez:
         - Asigna las cargas a nodos y elementos.
         - Calcula el vector de fuerzas y la matriz de rigidez global.
         - Resuelve el sistema de ecuaciones para obtener los desplazamientos y reacciones.
-        
+
         Returns:
             Dict[str, Results]: Objeto con los resultados del análisis.
-            
+
         Raises:
             ValueError: Si no hay patrones de carga definidos.
         """
         # Verificar que exista al menos un patrón de carga
-        if not self.load_pattern_map:
+        if not self.load_patterns:
             raise ValueError("No hay patrones de carga definidos. Agregue al menos uno para resolver el sistema.")
-            
+
         # Inicializar análisis
-        self.analysis.run()
-        
-        return self.loadpattern_results
+        self.analysis = AnalysisManager(self)
+        self.analysis.analyze()
+
+        return self.results

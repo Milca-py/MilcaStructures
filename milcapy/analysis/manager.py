@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, Dict
-from milcapy.core.results import Results
-from milcapy.postprocess.post_processing import PostProcessing
+from typing import TYPE_CHECKING, ValuesView
 from milcapy.analysis.linear_static import LinearStaticAnalysis
+from milcapy.postprocess.post_processing import PostProcessing
+from milcapy.core.results import Results
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
+    from milcapy.loads.load_pattern import LoadPattern
 
 
 
@@ -11,7 +12,7 @@ class AnalysisManager:
     """Clase mananger para el análisis estructural.
     maneja los tipos de análisis y opciones de análisis estructural.
     realiza el análisis estructural para todos las condiciones de carga."""
-    
+
     def __init__(
         self,
         model: "SystemMilcaModel",
@@ -23,40 +24,57 @@ class AnalysisManager:
             model: Sistema estructural a analizar.
         """
         self.model = model
-        self.load_patterns = self.model.load_patterns.values()
-
-        # guardar resultados del análisis para cada condición de carga en diferentes objetos
-        self.load_pattern_results: Dict[str, Results] = self.model.load_pattern_results
-
+        self.load_patterns = model.load_patterns
+        self.results = model.results
+        self.current_load_pattern: str | None = None
 
 
-    def run(self) -> None:
+    def notify_all(self) -> None:
+        """Notifica a todos los componentes del modelo."""
+        # Notificar a todos los miembros del modelo
+        for member in self.model.members.values():
+            member.set_current_load_pattern(self.current_load_pattern)
+        # Notificar a todos los nodos del modelo
+        for node in self.model.nodes.values():
+            node.set_current_load_pattern(self.current_load_pattern)
+
+    def analyze(self, load_pattern_name: list[str] | None = None) -> None:
         """Ejecuta el análisis estructural para todas las condiciones de carga."""
-        
-        # solucionar para cada load pattern
-        for load_pattern in self.load_patterns:
 
-            # Asignar las cargas a los nodos y elementos almacenados en el patrón de carga
+        patterns_to_analyze: list[LoadPattern] | ValuesView[LoadPattern] = []
+
+        if load_pattern_name is not None:
+            patterns_to_analyze = [self.load_patterns[name] for name in load_pattern_name]
+        else:
+            patterns_to_analyze = self.load_patterns.values()
+
+        # solucionar para cada load pattern
+        for load_pattern in patterns_to_analyze:
+            # SYSTEM NOTIFICATION: notificar a todos los componentes del modelo
+            self.current_load_pattern = load_pattern.name
+            self.notify_all()
+
+            # Asignar las cargas a los nodos y miembros almacenados en el patrón de carga
             load_pattern.assign_loads_to_nodes()
-            load_pattern.assign_loads_to_elements()
-            # Compilar las matrices y vectores de cada elemento
-            for element in self.model.elements.values():
-                element.compile_transformation_matrix()
-                element.compile_local_stiffness_matrix()
-                element.compile_global_stiffness_matrix()
-                element.compile_local_load_vector()
-                element.compile_global_load_vector()
+            load_pattern.assign_loads_to_members()
 
             # resolver el modelo
             analysis = LinearStaticAnalysis(self.model, self.model.analysis_options)
-            analysis.run()
+            displacements, reactions = analysis.solve()
 
             # Crear un objeto de resultados para almacenar los resultados del análisis
-            self.load_pattern_results[load_pattern.name] = Results(self.model, self.model.results_options)
-            
+            self.results[load_pattern.name] = Results()
+            self.results[load_pattern.name].set_model_displacements(displacements)
+            self.results[load_pattern.name].set_model_reactions(reactions)
+
+
             # crear un objeto de post-procesamiento para procesar los resultados
-            post_processing = PostProcessing(self.model, self.load_pattern_results[load_pattern.name], self.model.postprocessing_options)
-            post_processing.process_all_elements()
+            post_processing = PostProcessing(self.model, self.results[load_pattern.name], self.model.postprocessing_options, load_pattern.name)
+            post_processing.process_displacements_for_nodes()
+            post_processing.process_reactions_for_nodes()
+            post_processing.process_displacements_for_members()
+            post_processing.process_internal_forces_for_members()
+            post_processing.post_process_for_members()
 
             # actualizar el estado de analisis en LoadPattern
             load_pattern.analyzed = True

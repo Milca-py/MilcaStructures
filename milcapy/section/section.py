@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from milcapy.material.material import Material
+from math import pi
+from milcapy.utils.types import ShearCoefficientMethodType
 
 class Section(ABC):
     """
@@ -8,7 +10,8 @@ class Section(ABC):
     def __init__(
         self,
         name: str,
-        material: "Material"
+        material: Material,
+        shear_method: ShearCoefficientMethodType
     ):
         """
         Inicializa una sección estructural.
@@ -16,27 +19,45 @@ class Section(ABC):
         Args:
             name (str): Nombre de la sección.
             material (Material): Material asociado a la sección.
+            shear_method (ShearCoefficientMethodType): Método de cálculo del coeficiente de corte.
         """
         self.name = name
         self.material = material
+        self.shear_method = shear_method
+
+    def v(self) -> float:
+        """Coeficiente de Poisson."""
+        return self.material.v
+
+    def E(self) -> float:
+        """Módulo de elasticidad."""
+        return self.material.E
+
+    def g(self) -> float:
+        """Peso específico."""
+        return self.material.g
+
+    def G(self) -> float:
+        """Módulo de corte."""
+        return self.material.G
 
     @abstractmethod
-    def area(self) -> float:
+    def A(self) -> float:
         """Área de la sección transversal."""
         pass
 
     @abstractmethod
-    def moment_of_inertia(self) -> float:
+    def I(self) -> float:
         """Momento de inercia de la sección."""
         pass
 
     @abstractmethod
-    def timoshenko_coefficient(self) -> float:
+    def k(self) -> float:
         """Coeficiente de corte o Timoshenko de la sección."""
         pass
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}: name={self.name}, material=({self.material.name}), A={self.area:.3f}, I={self.moment_of_inertia:.2f}, k={self.shear_coefficient:.2f}"
+        return f"{self.__class__.__name__}: name={self.name}, material=({self.material.name}), A={self.A():.3f}, I={self.I():.3f}, k={self.k():.3f}"
 
 
 class RectangularSection(Section):
@@ -46,9 +67,10 @@ class RectangularSection(Section):
     def __init__(
         self,
         name: str,
-        material: "Material",
+        material: Material,
         base: float,
-        height: float
+        height: float,
+        shear_method: ShearCoefficientMethodType
     ):
         """
         Inicializa una sección rectangular.
@@ -58,30 +80,42 @@ class RectangularSection(Section):
             material (Material): Material asociado a la sección.
             base (float): Base de la sección (en unidades de longitud).
             height (float): Altura de la sección (en unidades de longitud).
+            shear_method (ShearCoefficientMethodType): Método de cálculo del coeficiente de corte.
 
         Raises:
             ValueError: Si la base o la altura son menores o iguales a cero.
         """
         if base <= 0 or height <= 0:
             raise ValueError("La base y la altura deben ser mayores que cero.")
-        super().__init__(name, material)
+        super().__init__(name, material, shear_method)
         self.base = base
         self.height = height
+        self.shear_method = shear_method
 
-    @property
-    def area(self) -> float:
+    def A(self) -> float:
         """Área de la sección transversal."""
         return self.base * self.height
 
-    @property
-    def moment_of_inertia(self) -> float:
+    def I(self) -> float:
         """Momento de inercia de la sección."""
-        return self.base * self.height ** 3 / 12
+        return (self.base * self.height ** 3) / 12
 
-    @property
-    def timoshenko_coefficient(self) -> float:
-        """Coeficiente de corte de Timoshenko de la sección."""
-        return 5/6 #10 * (1 + self.material.poisson_ratio) / (12 + 11 * self.material.poisson_ratio)
+    def k(self) -> float:
+        """
+        Coeficiente de corte de Timoshenko de la sección.
+
+        Returns:
+            float: Coeficiente de corte
+
+        Raises:
+            ValueError: Si el método no es válido
+        """
+        if self.shear_method == ShearCoefficientMethodType.TIMOSHENKO:
+            return 5/6
+        elif self.shear_method == ShearCoefficientMethodType.COWPER:
+            return 10 * (1 + self.v()) / (12 + 11 * self.v())
+        else:
+            raise ValueError(f"Método de coeficiente no válido: {self.shear_method}. Opciones válidas: 'TIMOSHENKO', 'COWPER'")
 
 
 class CircularSection(Section):
@@ -91,8 +125,9 @@ class CircularSection(Section):
     def __init__(
         self,
         name: str,
-        material: "Material",
-        radius: float
+        material: Material,
+        radius: float,
+        shear_method: ShearCoefficientMethodType
     ):
         """
         Inicializa una sección circular.
@@ -101,31 +136,40 @@ class CircularSection(Section):
             name (str): Nombre de la sección.
             material (Material): Material asociado a la sección.
             radius (float): Radio de la sección.
-
+            shear_method (ShearCoefficientMethodType): Método de cálculo del coeficiente de corte.
         Raises:
             ValueError: Si el radio es menor o igual a cero.
         """
-        super().__init__(name, material)
         if radius <= 0:
             raise ValueError("El radio debe ser positivo.")
+        super().__init__(name, material, shear_method)
         self.radius = radius
+        self.shear_method = shear_method
 
-    @property
-    def area(self) -> float:
+    def A(self) -> float:
         """Área de la sección transversal."""
-        from math import pi
         return pi * self.radius ** 2
 
-    @property
-    def moment_of_inertia(self) -> float:
+    def I(self) -> float:
         """Momento de inercia de la sección."""
-        from math import pi
         return (pi * self.radius ** 4) / 4
 
-    @property
-    def timoshenko_coefficient(self) -> float:
-        """Coeficiente de corte o Timoshenko de la sección."""
-        return 6 * (1 + self.material.poisson_ratio) / (7 + 6 * self.material.poisson_ratio)
+    def k(self) -> float:
+        """
+        Coeficiente de corte o Timoshenko de la sección.
+
+        Returns:
+            float: Coeficiente de corte
+
+        Raises:
+            ValueError: Si el método no es válido
+        """
+        if self.shear_method == ShearCoefficientMethodType.TIMOSHENKO:
+            return 6/7
+        elif self.shear_method == ShearCoefficientMethodType.COWPER:
+            return 10 * (1 + self.v()) / (12 + 11 * self.v())
+        else:
+            raise ValueError(f"Método de coeficiente no válido: {self.shear_method}. Opciones válidas: 'TIMOSHENKO', 'COWPER'")
 
 
 class GenericSection(Section):
@@ -134,10 +178,11 @@ class GenericSection(Section):
     def __init__(
         self,
         name: str,
-        material: "Material",
+        material: Material,
         area: float,
-        moment_of_inertia: float,
-        timoshenko_coefficient: float
+        inertia: float,
+        k_factor: float,
+        shear_method: ShearCoefficientMethodType
     ):
         """
         Inicializa una sección genérica.
@@ -146,32 +191,35 @@ class GenericSection(Section):
             name (str): Nombre de la sección.
             material (Material): Material asociado a la sección.
             area (float): Área de la sección.
-            moment_of_inertia (float): Momento de inercia de la sección.
-            timoshenko_coefficient (float): Coeficiente de corte de la sección.
+            inertia (float): Momento de inercia de la sección.
+            k_factor (float): Coeficiente de corte de la sección.
+            shear_method (ShearCoefficientMethodType): Método de cálculo del coeficiente de corte.
 
         Raises:
             ValueError: Si el área, el momento de inercia o el coeficiente de corte son inválidos.
         """
-        self._validate_properties(area, moment_of_inertia, timoshenko_coefficient)
-        super().__init__(name, material)
-        self._area = area
-        self._moment_of_inertia = moment_of_inertia
-        self._timoshenko_coefficient = timoshenko_coefficient
-
-    @staticmethod
-    def _validate_properties(area: float, moment_of_inertia: float, timoshenko_coefficient: float):
-        """Valida que las propiedades sean positivas."""
-        if area <= 0 or moment_of_inertia <= 0 or timoshenko_coefficient <= 0:
+        if area <= 0 or inertia <= 0 or k_factor <= 0:
             raise ValueError("El área, el momento de inercia y el coeficiente de corte deben ser mayores que cero.")
+        super().__init__(name, material, shear_method)
+        self._area = area
+        self._inertia = inertia
+        self._k_factor = k_factor
+        self.shear_method = shear_method
 
-    @property
-    def area(self) -> float:
+    def A(self) -> float:
+        """Área de la sección transversal."""
         return self._area
 
-    @property
-    def moment_of_inertia(self) -> float:
-        return self._moment_of_inertia
+    def I(self) -> float:
+        """Momento de inercia de la sección."""
+        return self._inertia
 
-    @property
-    def timoshenko_coefficient(self) -> float:
-        return self._timoshenko_coefficient
+    def k(self) -> float:
+        """
+        Coeficiente de corte de Timoshenko de la sección.
+
+        Returns:
+            float: Coeficiente de corte
+        """
+        return self._k_factor
+

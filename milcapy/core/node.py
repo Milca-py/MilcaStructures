@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Dict, Optional
+from milcapy.loads.load import PointLoad
 import numpy as np
 
 if TYPE_CHECKING:
     from milcapy.utils.types import Restraints
     from milcapy.utils.geometry import Vertex
-    from milcapy.loads.load import PointLoad
 
 
 class Node:
@@ -24,10 +24,10 @@ class Node:
             False, False, False)  # Restricciones del nodo
 
         # Cálculo de los índices de grados de libertad
-        self.dof: np.ndarray = np.array([
+        self.dofs: np.ndarray = np.array([
             self.id * 3 - 2,  # DOF en x
             self.id * 3 - 1,  # DOF en y
-            self.id * 3       # DOF en theta (corregido: era -0)
+            self.id * 3       # DOF en theta
         ], dtype=int)
 
         # Cargas aplicadas al nodo
@@ -35,6 +35,12 @@ class Node:
 
         # Patrón de carga actual
         self.current_load_pattern: Optional[str] = None
+
+    def load_vector(self) -> np.ndarray:
+        """Vector de cargas aplicadas al nodo para el patrón de carga actual en sistema global."""
+        load = self.loads.get(self.current_load_pattern, PointLoad())
+
+        return load.components
 
     def set_current_load_pattern(self, load_pattern_name: str) -> None:
         """Establece el patrón de carga actual del nodo."""

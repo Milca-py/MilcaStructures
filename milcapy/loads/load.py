@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 class Load(ABC):
     """
     Clase base abstracta que define la interfaz común para diferentes tipos de cargas estructurales.
-    
+
     Esta clase implementa operaciones básicas como comparación, inversión y conversión,
     que son comunes a todos los tipos de cargas.
-    
+
     Attributes:
         id (Optional[int]): Identificador único de la carga. Por defecto es None.
     """
@@ -28,7 +28,7 @@ class Load(ABC):
     def components(self) -> np.ndarray:
         """
         Obtiene los componentes de la carga como un array NumPy.
-        
+
         Returns:
             np.ndarray: Array con los componentes de la carga.
         """
@@ -38,7 +38,7 @@ class Load(ABC):
     def to_dict(self) -> Dict[str, Union[int, float, None]]:
         """
         Convierte la carga a un diccionario serializable.
-        
+
         Returns:
             Dict[str, Union[int, float, None]]: Diccionario con los atributos de la carga.
         """
@@ -47,10 +47,10 @@ class Load(ABC):
     def __eq__(self, other: object) -> bool:
         """
         Compara si dos cargas son aproximadamente iguales.
-        
+
         Args:
             other: Objeto a comparar.
-            
+
         Returns:
             bool: True si las cargas son aproximadamente iguales, False en caso contrario.
         """
@@ -61,7 +61,7 @@ class Load(ABC):
     def __neg__(self) -> 'Load':
         """
         Devuelve una nueva instancia con todos los componentes de carga invertidos.
-        
+
         Returns:
             Load: Nueva instancia con cargas negativas.
         """
@@ -70,7 +70,7 @@ class Load(ABC):
     def __pos__(self) -> 'Load':
         """
         Devuelve la misma instancia sin modificaciones (operador unario +).
-        
+
         Returns:
             Load: La misma instancia sin cambios.
         """
@@ -80,27 +80,27 @@ class Load(ABC):
 class PointLoad(Load):
     """
     Representa una carga puntual en un sistema estructural 2D.
-    
+
     Esta clase modela una carga concentrada con:
     - Fuerza de corte perpendicular al eje de la viga (fx)
     - Fuerza axial a lo largo del eje x de la viga (fy)
     - Momento que genera rotación alrededor del eje z (mz)
-    
+
     Attributes:
         fx (float): Fuerza de corte perpendicular al eje de la viga.
         fy (float): Fuerza axial a lo largo del eje x de la viga.
         mz (float): Momento alrededor del eje z.
         id (Optional[int]): Identificador único de la carga.
     """
-    
+
     __slots__ = ('fx', 'fy', 'mz', 'id')
     ZERO = np.zeros(3, dtype=np.float64)
 
-    def __init__(self, fx: float = 0.0, fy: float = 0.0, mz: float = 0.0, 
+    def __init__(self, fx: float = 0.0, fy: float = 0.0, mz: float = 0.0,
                  id: Optional[int] = None) -> None:
         """
         Inicializa una nueva carga puntual.
-        
+
         Args:
             fx: Fuerza de corte perpendicular al eje de la viga.
             fy: Fuerza axial a lo largo del eje x de la viga.
@@ -116,7 +116,7 @@ class PointLoad(Load):
     def components(self) -> np.ndarray:
         """
         Obtiene los componentes de la carga como un array NumPy.
-        
+
         Returns:
             np.ndarray: Array con [fx, fy, mz].
         """
@@ -125,7 +125,7 @@ class PointLoad(Load):
     def to_dict(self) -> Dict[str, Union[int, float, None]]:
         """
         Convierte la carga puntual a un diccionario serializable.
-        
+
         Returns:
             Dict[str, Union[int, float, None]]: Diccionario con los componentes de la carga.
         """
@@ -134,13 +134,13 @@ class PointLoad(Load):
     def __add__(self, other: "PointLoad") -> "PointLoad":
         """
         Suma dos cargas puntuales.
-        
+
         Args:
             other: Otra carga puntual a sumar.
-            
+
         Returns:
             PointLoad: Nueva carga puntual resultante de la suma.
-            
+
         Raises:
             TypeError: Si other no es una instancia de PointLoad.
         """
@@ -156,13 +156,13 @@ class PointLoad(Load):
     def __sub__(self, other: "PointLoad") -> "PointLoad":
         """
         Resta dos cargas puntuales.
-        
+
         Args:
             other: Carga puntual a restar.
-            
+
         Returns:
             PointLoad: Nueva carga puntual resultante de la resta.
-            
+
         Raises:
             TypeError: Si other no es una instancia de PointLoad.
         """
@@ -178,13 +178,13 @@ class PointLoad(Load):
     def __mul__(self, scalar: Union[float, int]) -> "PointLoad":
         """
         Multiplica la carga por un escalar.
-        
+
         Args:
             scalar: Factor de escala.
-            
+
         Returns:
             PointLoad: Nueva carga puntual escalada.
-            
+
         Raises:
             TypeError: Si scalar no es un número.
         """
@@ -202,13 +202,13 @@ class PointLoad(Load):
     def __truediv__(self, scalar: Union[float, int]) -> "PointLoad":
         """
         Divide la carga por un escalar.
-        
+
         Args:
             scalar: Divisor.
-            
+
         Returns:
             PointLoad: Nueva carga puntual dividida.
-            
+
         Raises:
             TypeError: Si scalar no es un número.
             ZeroDivisionError: Si scalar es cero.
@@ -228,12 +228,12 @@ class PointLoad(Load):
 class DistributedLoad(Load):
     """
     Representa una carga distribuida en un elemento estructural 2D.
-    
+
     Esta clase modela cargas distribuidas con valores iniciales (i) y finales (j):
     - q: Carga distribuida perpendicular al eje de la viga
     - p: Carga distribuida axial a lo largo del eje de la viga
     - m: Momento distribuido que genera rotación alrededor del eje z
-    
+
     Attributes:
         q_i (float): Carga de corte inicial, perpendicular al eje de la viga, eje y.
         q_j (float): Carga de corte final, perpendicular al eje de la viga, eje y.
@@ -243,7 +243,7 @@ class DistributedLoad(Load):
         m_j (float): Momento final alrededor del eje z.
         id (Optional[int]): Identificador único de la carga.
     """
-    
+
     __slots__ = ('q_i', 'q_j', 'p_i', 'p_j', 'm_i', 'm_j', 'id')
     ZERO = np.zeros(6, dtype=np.float64)
 
@@ -253,7 +253,7 @@ class DistributedLoad(Load):
                  id: Optional[int] = None) -> None:
         """
         Inicializa una nueva carga distribuida.
-        
+
         Args:
             q_i: Carga de corte inicial, perpendicular al eje de la viga.
             q_j: Carga de corte final, perpendicular al eje de la viga.
@@ -262,16 +262,16 @@ class DistributedLoad(Load):
             m_i: Momento inicial alrededor del eje z.
             m_j: Momento final alrededor del eje z.
             id: Identificador único opcional.
-            
+
         Raises:
             TypeError: Si alguno de los valores no es un número real.
         """
         super().__init__(id)
-        
+
         # Validación de tipos y conversión
-        load_params = {'q_i': q_i, 'q_j': q_j, 'p_i': p_i, 
+        load_params = {'q_i': q_i, 'q_j': q_j, 'p_i': p_i,
                     'p_j': p_j, 'm_i': m_i, 'm_j': m_j}
-        
+
         for name, value in load_params.items():
             if not isinstance(value, (int, float)):
                 raise TypeError(f"El parámetro {name} debe ser un número real")
@@ -281,17 +281,17 @@ class DistributedLoad(Load):
     def components(self) -> np.ndarray:
         """
         Obtiene los componentes de la carga como un array NumPy.
-        
+
         Returns:
             np.ndarray: Array con [q_i, q_j, p_i, p_j, m_i, m_j].
         """
-        return np.array([self.q_i, self.q_j, self.p_i, self.p_j, self.m_i, self.m_j], 
+        return np.array([self.q_i, self.q_j, self.p_i, self.p_j, self.m_i, self.m_j],
                        dtype=np.float64)
 
     def to_dict(self) -> Dict[str, Union[int, float, None]]:
         """
         Convierte la carga distribuida a un diccionario serializable.
-        
+
         Returns:
             Dict[str, Union[int, float, None]]: Diccionario con los componentes de la carga.
         """
@@ -305,13 +305,13 @@ class DistributedLoad(Load):
     def __add__(self, other: "DistributedLoad") -> "DistributedLoad":
         """
         Suma dos cargas distribuidas.
-        
+
         Args:
             other: Otra carga distribuida a sumar.
-            
+
         Returns:
             DistributedLoad: Nueva carga distribuida resultante de la suma.
-            
+
         Raises:
             TypeError: Si other no es una instancia de DistributedLoad.
         """
@@ -330,13 +330,13 @@ class DistributedLoad(Load):
     def __sub__(self, other: "DistributedLoad") -> "DistributedLoad":
         """
         Resta dos cargas distribuidas.
-        
+
         Args:
             other: Carga distribuida a restar.
-            
+
         Returns:
             DistributedLoad: Nueva carga distribuida resultante de la resta.
-            
+
         Raises:
             TypeError: Si other no es una instancia de DistributedLoad.
         """
@@ -355,13 +355,13 @@ class DistributedLoad(Load):
     def __mul__(self, scalar: Union[float, int]) -> "DistributedLoad":
         """
         Multiplica la carga por un escalar.
-        
+
         Args:
             scalar: Factor de escala.
-            
+
         Returns:
             DistributedLoad: Nueva carga distribuida escalada.
-            
+
         Raises:
             TypeError: Si scalar no es un número.
         """
@@ -382,13 +382,13 @@ class DistributedLoad(Load):
     def __truediv__(self, scalar: Union[float, int]) -> "DistributedLoad":
         """
         Divide la carga por un escalar.
-        
+
         Args:
             scalar: Divisor.
-            
+
         Returns:
             DistributedLoad: Nueva carga distribuida dividida.
-            
+
         Raises:
             TypeError: Si scalar no es un número.
             ZeroDivisionError: Si scalar es cero.

@@ -2,6 +2,7 @@ import numpy as np
 from typing import TYPE_CHECKING, Optional, Dict
 from milcapy.utils.geometry import angle_x_axis
 from milcapy.loads.load import DistributedLoad
+from milcapy.utils.types import BeamTheoriesType
 from milcapy.utils.element import (
     local_stiffness_matrix,
     transformation_matrix,
@@ -10,7 +11,7 @@ from milcapy.utils.element import (
 
 if TYPE_CHECKING:
     from milcapy.core.node import Node
-    from milcapy.utils.types import ElementType
+    from milcapy.utils.types import MemberType
     from milcapy.section.section import Section
 
 
@@ -23,7 +24,8 @@ class Member:
         node_i: "Node",
         node_j: "Node",
         section: "Section",
-        type: "ElementType",
+        member_type: "MemberType",
+        beam_theory: "BeamTheoriesType",
     ) -> None:
         """Inicializa un miembro estructural."""
 
@@ -31,10 +33,11 @@ class Member:
         self.node_i = node_i
         self.node_j = node_j
         self.section = section
-        self.type = type
+        self.member_type = member_type
+        self.beam_theory = beam_theory
 
         # Mapa de grados de libertad
-        self.dof: np.ndarray = np.concatenate([node_i.dof, node_j.dof]) # [dofs node_i, dofs node_j]
+        self.dofs: np.ndarray = np.concatenate([node_i.dofs, node_j.dofs]) # [dofs node_i, dofs node_j]
 
         # Cargas distribuidas
         self.distributed_load: Dict[str, DistributedLoad] = {}  # {pattern_name: DistributedLoad}
@@ -42,12 +45,10 @@ class Member:
         # Patrón de carga actual
         self.current_load_pattern: Optional[str] = None
 
-    @property
     def length(self) -> float:
         """Longitud del miembro."""
         return (self.node_i.vertex.distance_to(self.node_j.vertex))
 
-    @property
     def angle_x(self) -> float:
         """Ángulo del miembro respecto al eje X del sistema global."""
         return angle_x_axis(
@@ -55,20 +56,23 @@ class Member:
             self.node_j.vertex.y - self.node_i.vertex.y
         )
 
-    @property
     def phi(self) -> float:
         """Ángulo de corte para efectos de deformación por cortante (parámetro phi).
 
         phi = (12 * E * I) / (L**2 * A * k * G)
         """
-        E = self.section.material.modulus_elasticity
-        I = self.section.moment_of_inertia
-        L = self.length
-        A = self.section.area
-        k = self.section.timoshenko_coefficient
-        G = self.section.material.shear_modulus
+        if self.beam_theory == BeamTheoriesType.EULER_BERNOULLI:
+            return 0
 
-        return (12 * E * I) / (L**2 * A * k * G)
+        elif self.beam_theory == BeamTheoriesType.TIMOSHENKO:
+            E = self.section.E()
+            I = self.section.I()
+            L = self.length()
+            A = self.section.A()
+            k = self.section.k()
+            G = self.section.G()
+
+            return (12 * E * I) / (L**2 * A * k * G)
 
     def set_current_load_pattern(self, load_pattern_name: str) -> None:
         """Establece el patrón de carga actual del miembro."""
@@ -84,47 +88,59 @@ class Member:
             raise ValueError("Debe establecer un patrón de carga actual antes de asignar una carga distribuida.")
         self.distributed_load[self.current_load_pattern] = load
 
+    def get_distributed_load(self, load_pattern_name: str) -> Optional["DistributedLoad"]:
+        """Obtiene la carga distribuida para el patrón de carga actual.
+
+        Returns:
+            Optional["DistributedLoad"]: Carga distribuida.
+        """
+        load = self.distributed_load.get(load_pattern_name, None)
+        if load is None:
+            return DistributedLoad()
+        return load
+
     def transformation_matrix(self) -> np.ndarray:
-        """Compila la matriz de transformación del miembro.
+        """Calcula la matriz de transformación del miembro.
 
         Returns:
             np.ndarray: Matriz de transformación.
         """
         return transformation_matrix(
-            angle=self.angle_x
+            angle=self.angle_x()
         )
 
     def local_stiffness_matrix(self) -> np.ndarray:
-        """Compila la matriz de rigidez local del miembro.
+        """Calcula la matriz de rigidez local del miembro.
 
         Returns:
             np.ndarray: Matriz de rigidez en local.
         """
         return local_stiffness_matrix(
-            E=self.section.material.modulus_elasticity,
-            I=self.section.moment_of_inertia,
-            A=self.section.area,
-            L=self.length,
-            phi=self.phi,
+            E=self.section.E(),
+            I=self.section.I(),
+            A=self.section.A(),
+            L=self.length(),
+            phi=self.phi(),
         )
 
     def local_load_vector(self) -> np.ndarray:
-        """Determina el vector de fuerzas equivalentes debido a la carga distribuida.
+        """Calcula el vector de fuerzas equivalentes debido a la carga distribuida para el patron de carga actual.
 
         Returns:
             np.ndarray: Vector de fuerzas equivalentes en el sistema local.
         """
+        load = self.get_distributed_load(self.current_load_pattern)
         return local_load_vector(
-            L=self.length,
-            phi=self.phi,
-            q_i=self.distributed_load[self.current_load_pattern].q_i,
-            q_j=self.distributed_load[self.current_load_pattern].q_j,
-            p_i=self.distributed_load[self.current_load_pattern].p_i,
-            p_j=self.distributed_load[self.current_load_pattern].p_j
+            L=self.length(),
+            phi=self.phi(),
+            q_i=load.q_i,
+            q_j=load.q_j,
+            p_i=load.p_i,
+            p_j=load.p_j
         )
 
     def global_stiffness_matrix(self) -> np.ndarray:
-        """Compila la matriz de rigidez global del miembro.
+        """Calcula la matriz de rigidez global del miembro.
 
         Returns:
             np.ndarray: Matriz de rigidez global.
@@ -134,9 +150,11 @@ class Member:
         )
 
     def global_load_vector(self) -> np.ndarray:
-        """Compila el vector de fuerzas global del miembro.
+        """Calcula el vector de fuerzas global del miembro para el patron de carga actual.
 
         Returns:
             np.ndarray: Vector de fuerzas global.
         """
+        if self.current_load_pattern is None:
+            raise ValueError("Debe establecer un patrón de carga actual antes de calcular el vector de fuerzas global.")
         return self.transformation_matrix().T @ self.local_load_vector()

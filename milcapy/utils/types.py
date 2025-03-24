@@ -5,13 +5,23 @@ from enum import Enum
 Restraints = Tuple[bool, bool, bool]
 
 
-class ElementType(Enum):
-    """Tipos de elementos en la estructura."""
+class ShearCoefficientMethodType(Enum):
+    """Métodos para el cálculo del coeficiente de corte."""
+    TIMOSHENKO = 'TIMOSHENKO'
+    COWPER = 'COWPER'
+
+
+class MemberType(Enum):
+    """Tipos de miembros en la estructura."""
     FRAME = 'FRAME'
     TRUSS = 'TRUSS'
     BEAM = 'BEAM'
     BRACE = 'BRACE'
 
+class BeamTheoriesType(Enum):
+    """Tipos de teorías de miembros."""
+    TIMOSHENKO = 'TIMOSHENKO'
+    EULER_BERNOULLI = 'EULER_BERNOULLI'
 
 class LoadPatternType(Enum):
     """Tipos de patrones de carga."""
@@ -41,23 +51,23 @@ class DirectionType(Enum):
     LOCAL_3 = 'LOCAL_3' # MOMENT
 
 
-class CodeType(Enum):
-    """Códigos para materiales y normas de diseño."""
-    USER = 'USER'  # Coeficientes personalizados
-    E010 = 'E010'  # Madera
-    E020 = 'E020'  # Cargas
-    E030 = 'E030'  # Diseño Sismorresistente
-    E031 = 'E031'  # Aislamiento Sísmico
-    E040 = 'E040'  # Vidrio
-    E050 = 'E050'  # Suelos y Cimentaciones
-    E060 = 'E060'  # Concreto Armado
-    E070 = 'E070'  # Albañilería
-    E080 = 'E080'  # Diseño y construcción con tierra reforzada
-    E090 = 'E090'  # Estructuras Metálicas
-    E100 = 'E100'  # Bambú
+# class CodeType(Enum):
+#     """Códigos para materiales y normas de diseño."""
+#     USER = 'USER'  # Coeficientes personalizados
+#     E010 = 'E010'  # Madera
+#     E020 = 'E020'  # Cargas
+#     E030 = 'E030'  # Diseño Sismorresistente
+#     E031 = 'E031'  # Aislamiento Sísmico
+#     E040 = 'E040'  # Vidrio
+#     E050 = 'E050'  # Suelos y Cimentaciones
+#     E060 = 'E060'  # Concreto Armado
+#     E070 = 'E070'  # Albañilería
+#     E080 = 'E080'  # Diseño y construcción con tierra reforzada
+#     E090 = 'E090'  # Estructuras Metálicas
+#     E100 = 'E100'  # Bambú
 
 
-class State(Enum):
+class StateType(Enum):
     """Estado de los elementos o componentes."""
     ACTIVE = 'ACTIVE'
     INACTIVE = 'INACTIVE'
@@ -71,24 +81,24 @@ class LoadType(Enum):
     MOMENT = 'MOMENT'
 
 
-class LoadCaseType(Enum):
-    """Tipos de casos de carga."""
-    STATIC_LINEAR = 'STATIC_LINEAR'
+# class LoadCaseType(Enum):
+#     """Tipos de casos de carga."""
+#     STATIC_LINEAR = 'STATIC_LINEAR'
 
 
-class CaseLoadType(Enum):
-    """Tipos de carga para un caso específico."""
-    LOAD = 'LOAD'
-    ACCELERATION = 'ACCELERATION'
+# class CaseLoadType(Enum):
+#     """Tipos de carga para un caso específico."""
+#     LOAD = 'LOAD'
+#     ACCELERATION = 'ACCELERATION'
 
 
-class ComboType(Enum):
-    """Tipos de combinaciones de carga."""
-    LINEAR = 'LINEAR'
-    ENVELOPE = 'ENVELOPE'
-    ABSOLUTE_ADDITIVE = 'ABSOLUTE_ADDITIVE'
-    SRSS = 'SRSS'
-    RANGE_ADDITIVE = 'RANGE_ADDITIVE'
+# class ComboType(Enum):
+#     """Tipos de combinaciones de carga."""
+#     LINEAR = 'LINEAR'
+#     ENVELOPE = 'ENVELOPE'
+#     ABSOLUTE_ADDITIVE = 'ABSOLUTE_ADDITIVE'
+#     SRSS = 'SRSS'
+#     RANGE_ADDITIVE = 'RANGE_ADDITIVE'
 
 
 

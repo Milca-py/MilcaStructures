@@ -3,16 +3,17 @@ from .types import (
 )
 
 from .types import (
-    ElementType,
+    MemberType,
     LoadPatternType,
     CoordinateSystemType,
     DirectionType,
-    CodeType,
-    State,
+    # CodeType,
+    StateType,
     LoadType,
-    LoadCaseType,
-    CaseLoadType,
-    ComboType,
+    # LoadCaseType,
+    # CaseLoadType,
+    # ComboType,
+    BeamTheoriesType,
     to_enum
 )
 

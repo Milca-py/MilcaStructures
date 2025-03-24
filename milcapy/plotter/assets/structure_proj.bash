@@ -19,7 +19,7 @@ fem_library/
 │   │
 │   ├── beams/                      # Elementos tipo viga
 │       └── frame.py                # Elemento de marco
-│    
+│
 ├── materials/                      # Implementaciones de materiales
 │   ├── elastic.py                  # Material elástico lineal
 │   ├── concrete.py                 # Modelos de concreto
@@ -55,7 +55,7 @@ fem_library/
 ├── solvers/                        # Resolvedores
 │   ├── linear/                     # Solvers lineales
 │       ├── direct_solver.py        # Solucionador directo
-│   
+│
 ├── analysis/                       # Tipos de análisis
 │   ├── static.py                   # Análisis estático
 │

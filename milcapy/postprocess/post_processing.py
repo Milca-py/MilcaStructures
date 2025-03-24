@@ -1,15 +1,7 @@
+from milcapy.postprocess.member import BeamSeg
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from milcapy.postprocess.internal_forces import (
-    integration_coefficients,
-    axial_force,
-    shear_force,
-    bending_moment,
-    slope,
-    deflection,
-    deformed,
-    rigid_deformed
-)
+import numpy as np
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
@@ -24,65 +16,100 @@ class PostProcessingOptions:
     n: int         # Número de puntos para discretizar los elementos
 
 
-class PostProcessing:
+class PostProcessing:   # para un solo load pattern
     """Clase para el post-procesamiento de resultados estructurales."""
 
     def __init__(
         self,
-        system: "SystemMilcaModel",
-        results: "Results",
-        options: "PostProcessingOptions"
+        model: "SystemMilcaModel",
+        results: "Results",                 # ya viene con U, R del modelo para el LP activo
+        options: "PostProcessingOptions",
+        load_pattern_name: str
     ) -> None:
         """
         Inicializa el post-procesamiento para un sistema estructural.
 
         Args:
-            system: Sistema estructural analizado
+            model: Sistema estructural analizado
+            results: Resultados del análisis
             options: Opciones de post-procesamiento
+            load_pattern_name: Nombre del patrón de carga
         """
-        self.system = system
+        self.model = model
         self.results = results
         self.options = options
+        self.load_pattern_name = load_pattern_name
 
-    def process_all_elements(self) -> None:
-        """Calcula todos los resultados para cada elemento."""
-        factor = self.options.factor
+        self.reactions = self.results.model["reactions"]
+        self.displacements = self.results.model["displacements"]
+
+    def process_displacements_for_nodes(self) -> None:
+        """Almacena las desplazamientos de los nodos en el objeto Results."""
+        for id, node in self.model.nodes.items():
+            array_displacements = self.displacements[node.dofs-1]
+            self.results.set_node_displacement(id, array_displacements)
+
+    def process_reactions_for_nodes(self) -> None:
+        """Almacena las reacciones de los nodos en el objeto Results."""
+        for id, node in self.model.nodes.items():
+            if np.all(self.reactions[node.dofs - 1] == 0):
+                pass
+            else:
+                array_reactions = self.reactions[node.dofs-1]
+                self.results.set_node_reaction(id, array_reactions)
+
+    def process_displacements_for_members(self) -> None:
+        """Almacena las desplazamientos de los miembros en sistema local en el objeto Results."""
+        for id, member in self.model.members.items():
+            global_displacements = self.displacements[member.dofs-1]
+            array_displacements = np.dot(member.transformation_matrix(), global_displacements)
+            self.results.set_member_displacement(id, array_displacements)
+
+    def process_internal_forces_for_members(self) -> None:
+        """Almacena las fuerzas internas de los miembros en sistema local en el objeto Results."""
+        for id, member in self.model.members.items():
+            local_displacements = self.results.get_member_displacement(id)
+            load_vector = member.local_load_vector()
+            stiffness_matrix = member.local_stiffness_matrix()
+            array_internal_forces = np.dot(stiffness_matrix, local_displacements) - load_vector
+            self.results.set_member_internal_forces(id, array_internal_forces)
+
+    def post_process_for_members(self) -> None:
+        """Almacena todos los resultados para cada miembro en el objeto Results."""
         n = self.options.n
+        calculator = BeamSeg()
 
-        for element in self.system.element_map.values():
-            # Calcular coeficientes de integración
-            self.results.integration_coefficients_elements[element.id] = integration_coefficients(
-                element)
-            element.integration_coefficients = self.results.integration_coefficients_elements[
-                element.id]
+        for id, member in self.model.members.items():
+            result = self.results.get_results_member(id)
+            calculator.process_builder(member, result, self.load_pattern_name)
+            calculator.coefficients()
 
-            # Calcular fuerzas y momentos
-            self.results.values_axial_force_elements[element.id] = axial_force(
-                element, factor, n)
-            element.axial_force = self.results.values_axial_force_elements[element.id][1]
+            x_val = np.linspace(0, member.length(), n)
 
-            self.results.values_shear_force_elements[element.id] = shear_force(
-                element, factor, n)
-            element.shear_force = self.results.values_shear_force_elements[element.id][1]
+            array_axial_force = np.zeros(n)
+            array_shear_force = np.zeros(n)
+            array_bending_moment = np.zeros(n)
+            array_slope = np.zeros(n)
+            array_deflection = np.zeros(n)
 
-            self.results.values_bending_moment_elements[element.id] = bending_moment(
-                element, factor, n)
-            element.bending_moment = self.results.values_bending_moment_elements[element.id][1]
+            for i, x in enumerate(x_val):
+                # Calcular fuerzas axiales
+                array_axial_force[i] = calculator.axial(x)
 
-            # Calcular deformaciones
-            self.results.values_slope_elements[element.id] = slope(
-                element, factor, n)
-            element.slope = self.results.values_slope_elements[element.id][1]
+                # Calcular fuerzas cortantes
+                array_shear_force[i] = calculator.shear(x)
 
-            self.results.values_deflection_elements[element.id] = deflection(
-                element, factor, n)
-            element.deflection = self.results.values_deflection_elements[element.id][1]
+                # Calcular momentos de flexión
+                array_bending_moment[i] = calculator.moment(x)
 
-            self.results.values_deformed_elements[element.id] = deformed(
-                element, factor)
-            element.deformed_shape = self.results.values_deformed_elements[element.id]
+                # Calcular pendientes
+                array_slope[i] = calculator.slope(x)
 
-            self.results.values_rigid_deformed_elements[element.id] = rigid_deformed(
-                element, factor)
-            element.rigid_deformed_shape = self.results.values_rigid_deformed_elements[
-                element.id]
+                # Calcular deflexiones
+                array_deflection[i] = calculator.deflection(x)
+
+            self.results.set_member_axial_force(id, array_axial_force)
+            self.results.set_member_shear_force(id, array_shear_force)
+            self.results.set_member_bending_moment(id, array_bending_moment)
+            self.results.set_member_slope(id, array_slope)
+            self.results.set_member_deflection(id, array_deflection)
