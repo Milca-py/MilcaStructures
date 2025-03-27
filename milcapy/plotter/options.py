@@ -151,7 +151,7 @@ class PlotterOptions:        # ✅✅✅
         self.moment_scale[pattern_name] = 0.15 * val["length_max"] / val["bending_max"]
         self.slope_scale[pattern_name] = 0.15 * val["length_max"] / val["slope_max"]
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"]
-        self.UI_deformation_scale[pattern_name] = 400 #0.15 * val["length_max"] / val["deflection_max"]
+        self.UI_deformation_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"]
 
     def _calculate_max(self, pattern_name: str):
         length_max = 0

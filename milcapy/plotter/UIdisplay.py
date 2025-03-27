@@ -351,7 +351,7 @@ class GraphicOptionsDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self, model: 'SystemMilcaModel'):
         super().__init__()
-        self.setWindowTitle("Aplicación con Menú")
+        self.setWindowTitle("MILCApy")
         self.setGeometry(100, 100, 800, 800)
         self.setWindowIcon(QIcon("milcapy/plotter/assets/milca.ico"))
 
