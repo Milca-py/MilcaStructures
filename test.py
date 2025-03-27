@@ -32,16 +32,16 @@ portico.add_restraint(1, (True, True, True))
 portico.add_restraint(5, (True, True, True))
 
 portico.add_load_pattern("CARGA1")
-portico.add_point_load(3, "CARGA1", 10, 10, 10)
+portico.add_distributed_load(1, "CARGA1", -5, -5)
 portico.add_distributed_load(2, "CARGA1", -5, -5)
-portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA2")
-portico.add_point_load(3, "CARGA2", -10, -10, -10)
-portico.add_distributed_load(1, "CARGA2", -5, -5)
 portico.add_distributed_load(2, "CARGA2", -5, -5)
-portico.add_distributed_load(3, "CARGA2", -5, -5)
-portico.add_distributed_load(4, "CARGA2", -5, -5)
+portico.add_distributed_load(3, "CARGA2", 5, 5)
+
+portico.add_load_pattern("CARGA3")
+portico.add_distributed_load(3, "CARGA3", 5, 5)
+portico.add_distributed_load(4, "CARGA3", 5, 5)
 
 # --------------------------------------------------
 # 5. Resolución del modelo
@@ -52,16 +52,8 @@ portico.solve()
 # --------------------------------------------------
 # 6. Resultados
 # --------------------------------------------------
-from milcapy.plotter.plotter import Plotter
-
 portico._inicialize_plotter()
-portico.plotter.set_load_pattern_name("CARGA1")
-portico.plotter.plot_nodes()
-portico.plotter.plot_node_labels()
-portico.plotter.plot_members()
-portico.plotter.plot_member_labels()
-portico.plotter.plot_supports()
-# portico.plotter.plot_point_loads()
+portico.plotter.initialize_plot()
 main_window(portico)
 
 

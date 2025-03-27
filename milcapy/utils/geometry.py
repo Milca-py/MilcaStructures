@@ -89,3 +89,18 @@ def angle_x_axis(delta_x: float, delta_y: float) -> float:
     """
     angle = np.arccos(delta_x / np.hypot(delta_x, delta_y))
     return 2 * np.pi - angle if delta_y < 0 else angle
+
+def vertex_range(v1: Vertex, v2: Vertex, n: int) -> list:
+    """
+    Genera una lista de n+1 vértices que se encuentran en el rango entre v1 y v2.
+
+    Args:
+        v1 (Vertex): Vértice inicial.
+        v2 (Vertex): Vértice final.
+        n (int): Número de vértices a generar.
+
+    Returns:
+        list: Lista de vértices.
+    """
+    dv = v2 - v1
+    return [v1 + dv * i / n for i in range(n + 1)]

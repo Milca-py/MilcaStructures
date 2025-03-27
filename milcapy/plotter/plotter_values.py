@@ -68,7 +68,6 @@ class PlotterValues:
         self,
         model: 'SystemMilcaModel',
         current_load_pattern: str,
-        results: 'Results'
     ) -> None:
         """
         Inicializa los valores para un load pattern específico.
@@ -83,7 +82,7 @@ class PlotterValues:
 
         self.model = model
         self.current_load_pattern = current_load_pattern
-        self.results = results
+        self.results = model.results[current_load_pattern]
         self.load_pattern = model.load_patterns.get(current_load_pattern, None)
 
         if not self.load_pattern:
@@ -92,8 +91,6 @@ class PlotterValues:
 
         # Procesamiento de datos dinámicos específicos del load pattern
         self._process_load_data()
-        # self._process_analysis_results()
-        # self._process_post_processing_results()
 
     def _process_load_data(self) -> None:
         """Procesa los datos de cargas para el load pattern actual."""
@@ -107,63 +104,6 @@ class PlotterValues:
         for node_id, loads in self.load_pattern.point_loads.items():
             self.point_loads[node_id] = loads.to_dict()
 
-    # def _process_analysis_results(self) -> None:
-    #     """Procesa los resultados del análisis matricial."""
-    #     # Desplazamientos nodales
-    #     self.nodal_displacements = {}
-    #     for node_id, node in self.system.nodes.items():
-    #         # Extraer desplazamientos del vector global
-    #         dofs = node.dof - 1  # Convertir a índice base 0
-    #         ux = self.results.displacements[dofs[0]] if dofs[0] >= 0 else 0.0
-    #         uy = self.results.displacements[dofs[1]] if dofs[1] >= 0 else 0.0
-    #         rz = self.results.displacements[dofs[2]] if dofs[2] >= 0 else 0.0
-    #         self.nodal_displacements[node_id] = (ux, uy, rz)
-
-    #     # Reacciones nodales
-    #     self.reactions = {}
-    #     for node_id, node in self.system.nodes.items():
-    #         # Extraer reacciones del vector global
-    #         dofs = node.dof - 1  # Convertir a índice base 0
-    #         rx = self.results.reactions[dofs[0]] if dofs[0] >= 0 else 0.0
-    #         ry = self.results.reactions[dofs[1]] if dofs[1] >= 0 else 0.0
-    #         rz = self.results.reactions[dofs[2]] if dofs[2] >= 0 else 0.0
-    #         self.reactions[node_id] = (rx, ry, rz)
-
-    #     # Fuerzas internas
-    #     self.internal_forces = {}
-    #     for member_id, member in self.system.members.items():
-    #         forces = self.results.local_internal_forces_elements[member_id]
-
-    #         # Organizando las fuerzas internas por tipo
-    #         # Asumiendo el orden: [Ni, Vi, Mi, Nj, Vj, Mj]
-    #         self.internal_forces[member_id] = {
-    #             'axial': (forces[0], forces[3]),  # Ni, Nj
-    #             'shear': (forces[1], forces[4]),  # Vi, Vj
-    #             'moment': (forces[2], forces[5])  # Mi, Mj
-    #         }
-
-    # def _process_post_processing_results(self) -> None:
-    #     """Procesa los resultados del post-procesamiento."""
-    #     # Fuerzas axiales
-    #     self.axial_forces = self.results.values_axial_force_elements
-
-    #     # Fuerzas cortantes
-    #     self.shear_forces = self.results.values_shear_force_elements
-
-    #     # Momentos flectores
-    #     self.bending_moments = self.results.values_bending_moment_elements
-
-    #     # Giros
-    #     self.slopes = self.results.values_slope_elements
-
-    #     # Deflexiones
-    #     self.deflections = self.results.values_deflection_elements
-
-    #     # Deformada
-    #     self.deformed_shapes = self.results.values_deformed_elements
-
-    #     # Deformada rígida
-    #     self.rigid_deformed_shapes = self.results.values_rigid_deformed_elements
 
     # Propiedades para acceder a datos estáticos
     @property
@@ -181,35 +121,23 @@ class PlotterValues:
         """Devuelve las restricciones de los nodos."""
         return self._static_data['restraints']
 
-    # def get_member_global_coordinates(self, element_id: int) -> Tuple[np.ndarray, np.ndarray]:
-    #     """
-    #     Devuelve las coordenadas del miembro en el sistema global.
+    def rigid_deformed(self, member_id: int, escale: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+        member = self.model.members[member_id]
+        MT = member.transformation_matrix()
+        arraydisp = self.results.members[member_id]['displacements']
+        arraydisp = np.dot(MT.T, arraydisp)
+        x_val = np.array([
+            member.node_i.vertex.x + arraydisp[0] * escale,
+            member.node_j.vertex.x + arraydisp[3] * escale
+        ])
+        y_val = np.array([
+            member.node_i.vertex.y + arraydisp[1] * escale,
+            member.node_j.vertex.y + arraydisp[4] * escale
+        ])
+        return x_val, y_val
 
-    #     Args:
-    #         element_id: ID del miembro
-
-    #     Returns:
-    #         Tuple[np.ndarray, np.ndarray]: Coordenadas (x, y) del miembro
-    #     """
-    #     if element_id not in self._static_data.members:
-    #         raise ValueError(f"Element with ID {element_id} not found")
-
-    #     element_coords = self._static_data.members[element_id]
-    #     x_coords = np.array([coord[0] for coord in element_coords])
-    #     y_coords = np.array([coord[1] for coord in element_coords])
-    #     return x_coords, y_coords
 
     # def get_deformed_shape_global(self, element_id: int, factor: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
-    #     """
-    #     Devuelve la forma deformada del miembro en coordenadas globales.
-
-    #     Args:
-    #         element_id: ID del miembro
-    #         factor: Factor de escala para la visualización
-
-    #     Returns:
-    #         Tuple[np.ndarray, np.ndarray]: Coordenadas (x, y) de la forma deformada
-    #     """
     #     if element_id not in self.deformed_shapes:
     #         raise ValueError(
     #             f"Deformed shape for element with ID {element_id} not found")

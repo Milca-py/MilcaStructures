@@ -38,7 +38,7 @@ class Results:
         self.model["displacements"] = displacements
 
     def set_model_reactions(self, reactions: np.ndarray) -> None:
-        self.model["reactions"] = reactions
+        self.model["reactions"] = reactions 
 
     def set_node_displacement(self, node_id: int, displacement: np.ndarray) -> None:
         if node_id not in self.nodes:

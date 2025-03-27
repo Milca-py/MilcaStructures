@@ -22,5 +22,6 @@ from ..utils.geometry import (
     rotation_matrix,
     rotate_xy,
     traslate_xy,
-    angle_x_axis
+    angle_x_axis,
+    vertex_range
 )

@@ -381,7 +381,7 @@ class SystemMilcaModel:
             replace=replace,
         )
 
-    def solve(self) -> Dict[str, Results]:
+    def solve(self, load_pattern_name: list[str] | None = None) -> Dict[str, Results]:
         """
         Resuelve el sistema estructural aplicando el método de rigidez:
         - Asigna las cargas a nodos y elementos.
@@ -400,6 +400,6 @@ class SystemMilcaModel:
 
         # Inicializar análisis
         self.analysis = AnalysisManager(self)
-        self.analysis.analyze()
+        self.analysis.analyze(load_pattern_name)
 
         return self.results

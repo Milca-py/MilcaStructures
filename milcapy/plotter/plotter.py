@@ -1,3 +1,4 @@
+from ast import Dict
 from typing import TYPE_CHECKING, Optional
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +11,7 @@ from milcapy.plotter.suports import (
     support_ftt, support_tff, support_ftf, support_fft
 )
 from milcapy.plotter.load import (
-    graphic_one_arrow, moment_fancy_arrow
+    graphic_one_arrow, moment_fancy_arrow, graphic_n_arrow
 )
 from milcapy.plotter.plotter_values import PlotterValues
 from milcapy.plotter.options import PlotterOptions
@@ -25,21 +26,19 @@ class Plotter:
     def __init__(
         self,
         model: 'SystemMilcaModel',
-        options: Optional['PlotterOptions'] = None
     ) -> None:
         self.model = model
-        self.plotter_values: Dict[str, 'PlotterValues'] = {}    # {load_pattern_name: PlotterValues}
-        self.plotter_options = options if options else model.plotter_options
-        self.plotter_options.load_mean("CARGA1")
+        self.plotter_values: Dict[str, 'PlotterValues'] = {}
         self.figure: Figure = None
         self.axes: Axes = None
-        self.current_values: 'PlotterValues' | None = None
+        self.current_values: 'PlotterValues' = PlotterValues(self.model,
+                                list(self.model.results.keys())[0])
         self.initialize_figure() # Inicializar figura
-        # contenedores de artists de matplotlib
 
         # todos los que tengan 🐍 se calculan para cada load pattern
         # todos los que tengan ✅ ya estan implementados
-
+        # ! SOLO SE PLOTEAN LOS LOAD_PATTERN QUE ESTAN ANALIZADOS
+        # ? (SOLO LOS QUE TIENEN RESULTADOS EN MODEL.RESULTS)
         # nodos
         self.nodes= {}              # ✅visibilidad, color
         # nodos deformados
@@ -49,10 +48,12 @@ class Plotter:
         self.members = {}           # ✅visibilidad, color
         # forma deformada
         self.deformed_shape = {}    # 🐍 visibilidad, setdata, setType: colorbar
+        # forma regida de la deformada
+        self.rigid_deformed_shape = {} # 🐍 visibilidad, setdata, setType: colorbar
         # cargas puntuales
-        self.point_loads = {}       # 🐍 visibilidad
+        self.point_loads = {}       # ✅🐍 visibilidad
         # cargas distribuidas
-        self.distributed_loads = {} # 🐍 visibilidad
+        self.distributed_loads = {} # ✅🐍 visibilidad
         # fuerzas internas (line2D: borde)
         self.internal_forces = {}   # 🐍 visibilidad, setdata, setType: colorbar
         # fillings for internal forces
@@ -64,13 +65,22 @@ class Plotter:
         # etiquetas
         self.node_labels = {}            # ✅visibilidad, setdata
         self.member_labels = {}          # ✅visibilidad, setdata
-        self.point_load_labels = {}      # 🐍 visibilidad, setdata
-        self.distributed_load_labels = {}# 🐍 visibilidad, setdata
+        self.point_load_labels = {}      # ✅🐍 visibilidad, setdata
+        self.distributed_load_labels = {}# ✅🐍 visibilidad, setdata
         self.internal_forces_labels = {} # 🐍 visibilidad, setdata
         self.reactions_labels = {}       # 🐍 visibilidad, setdata
         self.displacement_labels = {}    # 🐍 visibilidad, setdata
         # reacciones
         self.reactions = {}         # 🐍 visibilidad, setdata
+
+
+    @property
+    def plotter_options(self) -> 'PlotterOptions':
+        return self.model.plotter_options
+
+    @plotter_options.setter
+    def plotter_options(self, value: 'PlotterOptions') -> None:
+        self.model.plotter_options = value
 
     @property
     def current_load_pattern(self) -> Optional[str]:
@@ -80,25 +90,57 @@ class Plotter:
     def current_load_pattern(self, value: Optional[str]):
         self.model.current_load_pattern = value
 
-    # ! EJECUTAR AL INICIO DE LA APLICACIÓN Y CADA VEZ QUE SE CAMBIA EL LOAD_PATTERN
-    def set_load_pattern_name(self, load_pattern_name: str):
-        """Sistemas de NOTIFICACION para establecer el load pattern actual"""
-        self.current_load_pattern = load_pattern_name
-        self.current_values = self.get_plotter_values(load_pattern_name)
-        if self.nodes is {}:
-            self.plot_nodes()
-        if self.members is {}:
-            self.plot_members()
-        # if self.point_loads.get(self.current_load_pattern, None) is None or self.point_loads is {}:
-            # self.plot_point_loads()
-        if self.supports is {}:
-            self.plot_supports()
-        if self.node_labels is {}:
-            self.plot_node_labels()
-        if self.member_labels is {}:
-            self.plot_member_labels()
+    def initialize_plot(self):
+        """Plotea por primera y unica vez (crea los objetos artist)"""
+        self.plotter_options.load_max(list(self.model.results.keys())[0])
+        self.plot_nodes()
+        self.plot_members()
+        self.plot_supports()
+        self.plot_node_labels()
+        self.plot_member_labels()
+        for load_pattern_name in self.model.results.keys():
+            self.plotter_options.load_max(load_pattern_name)
+            self.current_load_pattern = load_pattern_name
+            self.current_values = self.get_plotter_values(load_pattern_name)
+            self.plot_point_loads()
+            self.plot_distributed_loads()
+            self.plot_rigid_deformed()
+
+            if load_pattern_name != list(self.model.results.keys())[0]:
+                # actualizar visualizacion para el load pattern actual
+                self.update_point_load(visibility=False)
+                self.update_point_load_labels(visibility=False)
+                self.update_distributed_loads(visibility=False)
+                self.update_distributed_load_labels(visibility=False)
+                # self.update_rigid_deformed(visibility=False)
+
+        # actualizar pattern actual al primero
+        self.current_load_pattern = list(self.model.results.keys())[0]
+        # self.update_change()
+
+    def update_change(self):
+        """Oculta atists para todos los load patterns excepto el actual"""
+        pt_cache = self.current_load_pattern
+        for load_pattern_name in self.model.results.keys():
+            self.current_load_pattern = load_pattern_name
+            if load_pattern_name != pt_cache:
+                self.update_point_load(visibility=False)
+                self.update_point_load_labels(visibility=False)
+                self.update_distributed_loads(visibility=False)
+                self.update_distributed_load_labels(visibility=False)
+                self.update_rigid_deformed(visibility=False)
+            elif load_pattern_name == pt_cache:
+                if self.plotter_options.UI_load:
+                    self.update_point_load(visibility=True)
+                    self.update_point_load_labels(visibility=True)
+                    self.update_distributed_loads(visibility=True)
+                    self.update_distributed_load_labels(visibility=True)
+                elif not self.plotter_options.UI_rigid_deformed:
+                    self.update_rigid_deformed(visibility=True)
 
 
+        self.figure.canvas.draw_idle()
+        self.current_load_pattern = pt_cache
 
 
     def get_plotter_values(self, load_pattern_name: str) -> 'PlotterValues':
@@ -114,11 +156,8 @@ class Plotter:
         if load_pattern_name not in self.model.results:
             raise ValueError(f"Los resultados para el load pattern '{load_pattern_name}' no se encontraron")
 
-        # Obtener los resultados para este load pattern
-        results = self.model.results[load_pattern_name]
-
         # Crear nueva instancia de PlotterValues
-        plotter_values = PlotterValues(self.model, load_pattern_name, results)
+        plotter_values = PlotterValues(self.model, load_pattern_name)
 
         # Guardar en caché
         self.plotter_values[load_pattern_name] = plotter_values
@@ -185,12 +224,17 @@ class Plotter:
         # Cambiar color del fondo exterior (Canvas)
         self.figure.patch.set_facecolor("#f5f5f5")  # Color gris oscuro
 
+    def change_background_color(self):
+        # self.figure.patch.set_facecolor(self.plotter_options.UI_background_color)
+        self.axes.set_facecolor(self.plotter_options.UI_background_color)
+        self.figure.canvas.draw()
+
     def plot_nodes(self):
         """
         Dibuja los nodos de la estructura.
         """
-        if not self.plotter_options.UI_show_nodes:
-            return
+        # if not self.plotter_options.UI_show_nodes:
+        #     return
         for id, coord in self.current_values.nodes.items():
             x = [coord[0]]
             y = [coord[1]]
@@ -198,19 +242,19 @@ class Plotter:
             node = self.axes.scatter(x, y, c=self.plotter_options.node_color, s=self.plotter_options.node_size, marker='o')
             self.nodes[id] = node
             node.set_visible(self.plotter_options.UI_show_nodes)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
 
     def update_nodes(self):
         for node in self.nodes.values():
             node.set_visible(self.plotter_options.UI_show_nodes)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
 
     def plot_members(self):
         """
         Dibuja los elementos de la estructura.
         """
-        if not self.plotter_options.UI_show_members:
-            return
+        # if not self.plotter_options.UI_show_members:
+        #     return
         for id, coord in self.current_values.members.items():
             x_coords = [coord[0][0], coord[1][0]]
             y_coords = [coord[0][1], coord[1][1]]
@@ -222,14 +266,12 @@ class Plotter:
     def update_members(self):
         for member in self.members.values():
             member.set_visible(self.plotter_options.UI_show_members)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
 
     def plot_supports(self):
         """
         Dibuja los apoyos de la estructura.
         """
-        if not self.plotter_options.show_supports:
-            return
         support_functions = {
             (True, True, True): support_ttt,
             (False, False, True): support_fft,
@@ -254,8 +296,6 @@ class Plotter:
                     self.plotter_options.support_color
                 )
                 self.supports[id] = sup_lines
-                for line in sup_lines:
-                    line.set_visible(self.plotter_options.show_supports)
         self.figure.canvas.draw_idle()
 
     def update_supports(self):
@@ -285,7 +325,7 @@ class Plotter:
     def update_node_labels(self):
         for text in self.node_labels.values():
             text.set_visible(self.plotter_options.UI_node_labels)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
 
     def plot_member_labels(self):
         for element_id, coords in self.current_values.members.items():
@@ -306,157 +346,195 @@ class Plotter:
                         clip_on=True)
             self.member_labels[element_id] = text
             text.set_visible(self.plotter_options.UI_member_labels)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
 
     def update_member_labels(self):
         for text in self.member_labels.values():
             text.set_visible(self.plotter_options.UI_member_labels)
-            self.figure.canvas.draw_idle()
+        self.figure.canvas.draw_idle()
+
+    def plot_point_loads(self) -> None:
+        """
+        Grafica las cargas puntuales.
+        """
+        # if not self.plotter_options.UI_point_load:
+        #     return
+        self.point_loads[self.current_load_pattern] = {}
+        self.point_load_labels[self.current_load_pattern] = {}
+        for id_node, load in self.current_values.point_loads.items():
+            coords = self.current_values.nodes[id_node]
+
+            arrows = []
+            texts = []
+
+            # Fuerza en dirección X
+            if load["fx"] != 0:
+                arrow, text = graphic_one_arrow(
+                    x=coords[0],
+                    y=coords[1],
+                    load=load["fx"],
+                    length_arrow=self.plotter_options.point_load_length_arrow,
+                    angle=0 if load["fx"] < 0 else np.pi,
+                    ax=self.axes,
+                    color=self.plotter_options.point_load_color,
+                    label=self.plotter_options.point_load_label,
+                    color_label=self.plotter_options.point_load_label_color,
+                    label_font_size=self.plotter_options.point_load_label_font_size
+                )
+                arrows.append(arrow)
+                texts.append(text)
+
+            # Fuerza en dirección Y
+            if load["fy"] != 0:
+                arrow, text = graphic_one_arrow(
+                    x=coords[0],
+                    y=coords[1],
+                    load=load["fy"],
+                    length_arrow=self.plotter_options.point_load_length_arrow,
+                    angle=np.pi/2 if load["fy"] < 0 else 3*np.pi/2,
+                    ax=self.axes,
+                    color=self.plotter_options.point_load_color,
+                    label=self.plotter_options.point_load_label,
+                    color_label=self.plotter_options.point_load_label_color,
+                    label_font_size=self.plotter_options.point_load_label_font_size
+                )
+                arrows.append(arrow)
+                texts.append(text)
 
 
+            # Momento en Z
+            if load["mz"] != 0:
+                arrow, text = moment_fancy_arrow(
+                    ax=self.axes,
+                    x=coords[0],
+                    y=coords[1],
+                    moment=load["mz"],
+                    radio= 0.70 * self.plotter_options.point_moment_length_arrow,
+                    color=self.plotter_options.point_load_color,
+                    clockwise=True,
+                    label=self.plotter_options.point_load_label,
+                    color_label=self.plotter_options.point_load_label_color,
+                    label_font_size=self.plotter_options.point_load_label_font_size
+                )
+                arrows.append(arrow)
+                texts.append(text)
 
 
-    # def plot_point_loads(self) -> None:
-    #     """
-    #     Grafica las cargas puntuales.
-    #     """
-    #     if not self.plotter_options.UI_point_load:
-    #         return
-    #     self.point_loads[self.current_load_pattern] = {}
-    #     self.point_load_labels[self.current_load_pattern] = {}
-    #     for id_node, load in self.current_values.point_loads.items():
-    #         coords = self.current_values.nodes[id_node]
+            self.point_loads[self.current_load_pattern][id_node] = arrows
+            self.point_load_labels[self.current_load_pattern][id_node] = texts
+        # for arrow, text in zip(arrows, texts):
+        #     arrow.set_visible(self.plotter_options.point_load)
+        #     text.set_visible(self.plotter_options.point_load_label)
+        self.figure.canvas.draw_idle()
 
-    #         arrows = []
-    #         texts = []
+    def update_point_load(self, visibility: bool|None=None):
+        visibility = self.plotter_options.UI_load if visibility is None else visibility
+        for arrows in self.point_loads[self.current_load_pattern].values():
+            for arrow in arrows:
+                arrow.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
-    #         # Fuerza en dirección X
-    #         if load["fx"] != 0:
-    #             arrow, text = graphic_one_arrow(
-    #                 x=coords[0],
-    #                 y=coords[1],
-    #                 load=load["fx"],
-    #                 length_arrow=self.plotter_options.point_load_length_arrow,
-    #                 angle=0 if load["fx"] < 0 else np.pi,
-    #                 ax=self.axes,
-    #                 color=self.plotter_options.point_load_color,
-    #                 label=self.plotter_options.UI_point_load_label,
-    #                 color_label=self.plotter_options.point_load_label_color,
-    #                 label_font_size=self.plotter_options.point_load_label_font_size
-    #             )
-    #             arrows.append(arrow)
-    #             texts.append(text)
+    def update_point_load_labels(self, visibility: bool|None=None):
+        visibility = self.plotter_options.UI_load if visibility is None else visibility
+        for texts in self.point_load_labels[self.current_load_pattern].values():
+            for text in texts:
+                text.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
-    #         # Fuerza en dirección Y
-    #         if load["fy"] != 0:
-    #             arrow, text = graphic_one_arrow(
-    #                 x=coords[0],
-    #                 y=coords[1],
-    #                 load=load["fy"],
-    #                 length_arrow=self.plotter_options.point_load_length_arrow,
-    #                 angle=np.pi/2 if load["fy"] < 0 else 3*np.pi/2,
-    #                 ax=self.axes,
-    #                 color=self.plotter_options.point_load_color,
-    #                 label=self.plotter_options.UI_point_load_label,
-    #                 color_label=self.plotter_options.point_load_label_color,
-    #                 label_font_size=self.plotter_options.point_load_label_font_size
-    #             )
-    #             arrows.append(arrow)
-    #             texts.append(text)
+    def plot_distributed_loads(self) -> None:
 
+        self.distributed_loads[self.current_load_pattern] = {}
+        self.distributed_load_labels[self.current_load_pattern] = {}
+        for id_element, load in self.current_values.distributed_loads.items():
 
-    #         # Momento en Z
-    #         if load["mz"] != 0:
-    #             arrow, text = moment_fancy_arrow(
-    #                 ax=self.axes,
-    #                 x=coords[0],
-    #                 y=coords[1],
-    #                 moment=load["mz"],
-    #                 radio= 0.70 * self.plotter_options.point_moment_length_arrow,
-    #                 color=self.plotter_options.point_load_color,
-    #                 clockwise=True,
-    #                 label=self.plotter_options.UI_point_load_label,
-    #                 color_label=self.plotter_options.point_load_label_color,
-    #                 label_font_size=self.plotter_options.point_load_label_font_size
-    #             )
-    #             arrows.append(arrow)
-    #             texts.append(text)
+            arrowslist = []
+            textslist = []
 
+            coords = self.current_values.members[id_element]
 
-    #         self.point_loads[self.current_load_pattern][id_node] = arrows
-    #         self.point_load_labels[self.current_load_pattern][id_node] = texts
-    #     for arrow, text in zip(arrows, texts):
-    #         arrow.set_visible(self.plotter_options.UI_point_load)
-    #         text.set_visible(self.plotter_options.UI_point_load)
-    #     self.figure.canvas.draw_idle()
+            # Calcular longitud y ángulo de rotación del elemento
+            element = self.model.members[id_element]
+            length = element.length()
+            angle_rotation = element.angle_x()
 
-    # def update_point_load(self):
-    #     for arrows in self.point_loads[self.current_load_pattern].values():
-    #         for arrow in arrows:
-    #             arrow.set_visible(self.plotter_options.UI_point_load)
-    #     self.figure.canvas.draw_idle()
+            # Cargas verticales
+            if load["q_i"] != 0 or load["q_j"] != 0:
+                arrows, texts = graphic_n_arrow(
+                    x=coords[0][0],
+                    y=coords[0][1],
+                    load_i=-load["q_i"],
+                    load_j=-load["q_j"],
+                    angle=np.pi/2,
+                    length=length,
+                    ax=self.axes,
+                    ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
+                    nrof_arrows=self.plotter_options.nrof_arrows,
+                    color=self.plotter_options.distributed_load_color,
+                    angle_rotation=angle_rotation,
+                    label=self.plotter_options.distributed_load_label,
+                    color_label=self.plotter_options.distributed_load_label_color,
+                    label_font_size=self.plotter_options.distributed_load_label_font_size
+                )
+                arrowslist = arrowslist + arrows
+                textslist = textslist + texts
 
-    # def update_point_load_labels(self):
-    #     for texts in self.point_load_labels[self.current_load_pattern].values():
-    #         for text in texts:
-    #             text.set_visible(self.plotter_options.UI_point_load)
-    #     self.figure.canvas.draw_idle()
+            # Cargas axiales
+            if load["p_i"] != 0 or load["p_j"] != 0:
+                arrows, texts = graphic_n_arrow(
+                    x=coords[0][0],
+                    y=coords[0][1],
+                    load_i=-load["p_i"],
+                    load_j=-load["p_j"],
+                    angle=0,
+                    length=length,
+                    ax=self.axes,
+                    ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
+                    nrof_arrows=self.plotter_options.nrof_arrows,
+                    color=self.plotter_options.distributed_load_color,
+                    angle_rotation=angle_rotation,
+                    label=self.plotter_options.distributed_load_label,
+                    color_label=self.plotter_options.distributed_load_label_color,
+                    label_font_size=self.plotter_options.distributed_load_label_font_size
+                )
+                arrowslist = arrowslist + arrows
+                textslist = textslist + texts
+            # Momentos distribuidos (no implementados)
+            if load["m_i"] != 0 or load["m_j"] != 0:
+                raise NotImplementedError("Momentos distribuidos no implementados.")
 
+            self.distributed_loads[self.current_load_pattern][id_element] = arrowslist
+            self.distributed_load_labels[self.current_load_pattern][id_element] = textslist
+        self.figure.canvas.draw_idle()
 
+    def update_distributed_loads(self, visibility: Optional[bool] = None):
+        visibility = bool(self.plotter_options.UI_load) if visibility is None else visibility
+        for arrows in self.distributed_loads[self.current_load_pattern].values():
+            for arrow in arrows:
+                arrow.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
+    def update_distributed_load_labels(self, visibility: Optional[bool] = None):
+        visibility = self.plotter_options.UI_load if visibility is None else visibility
+        for texts in self.distributed_load_labels[self.current_load_pattern].values():
+            for text in texts:
+                text.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
+    def plot_rigid_deformed(self, escala: float|None = None):
+        self.rigid_deformed_shape[self.current_load_pattern] = {}
+        escala = self.plotter_options.UI_deformation_scale[self.current_load_pattern] if escala is None else escala
+        for member_id in self.model.members.keys():
+            x, y = self.current_values.rigid_deformed(member_id, escala)
+            line, = self.axes.plot(x, y, color=self.plotter_options.rigid_deformed_color)
+            self.rigid_deformed_shape[self.current_load_pattern][member_id] = line
+            line.set_visible(self.plotter_options.UI_rigid_deformed)
+        self.figure.canvas.draw_idle()
 
-    # def plot_distributed_loads(self) -> None:
-    #     for id_element, load in self.plotter_values.distributed_loads.items():
-    #         coords = self.plotter_values.elements[id_element]
-
-    #         # Calcular longitud y ángulo de rotación del elemento
-    #         x_diff = coords[1][0] - coords[0][0]
-    #         y_diff = coords[1][1] - coords[0][1]
-    #         length = np.sqrt(x_diff**2 + y_diff**2)
-    #         angle_rotation = np.arctan2(y_diff, x_diff)
-
-    #         # Cargas verticales
-    #         if load["q_i"] != 0 or load["q_j"] != 0:
-    #             graphic_n_arrow(
-    #                 x=coords[0][0],
-    #                 y=coords[0][1],
-    #                 load_i=load["q_i"],
-    #                 load_j=load["q_j"],
-    #                 angle=np.pi/2,
-    #                 length=length,
-    #                 ax=self.axes,
-    #                 ratio_scale=self.options.ratio_scale_load,
-    #                 nrof_arrows=self.options.nrof_arrows,
-    #                 color=self.options.distributed_load_color,
-    #                 angle_rotation=angle_rotation,
-    #                 label=self.options.distributed_load_label,
-    #                 color_label=self.options.distributed_load_label_color,
-    #                 label_font_size=self.options.distributed_load_label_font_size
-    #             )
-
-    #         # Cargas axiales
-    #         if load["p_i"] != 0 or load["p_j"] != 0:
-    #             graphic_n_arrow(
-    #                 x=coords[0][0],
-    #                 y=coords[0][1],
-    #                 load_i=load["p_i"],
-    #                 load_j=load["p_j"],
-    #                 angle=0,
-    #                 length=length,
-    #                 ax=self.axes,
-    #                 ratio_scale=self.options.ratio_scale_load,
-    #                 nrof_arrows=self.options.nrof_arrows,
-    #                 color=self.options.distributed_load_color,
-    #                 angle_rotation=angle_rotation,
-    #                 label=self.options.distributed_load_label,
-    #                 color_label=self.options.distributed_load_label_color,
-    #                 label_font_size=self.options.distributed_load_label_font_size
-    #             )
-
-    #         # Momentos distribuidos (no implementados)
-    #         if load["m_i"] != 0 or load["m_j"] != 0:
-    #             raise NotImplementedError("Momentos distribuidos no implementados.")
+    def update_rigid_deformed(self, visibility: Optional[bool] = None):
+        visibility = self.plotter_options.UI_rigid_deformed if visibility is None else visibility
+        for line in self.rigid_deformed_shape[self.current_load_pattern].values():
+            line.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
     # def plot_axial_force(self):
 
@@ -608,28 +686,3 @@ class Plotter:
     #         x, y = deformed(element, escala)
     #         self.axes.plot(x, y, lw=self.options.deformation_line_width,
     #                     color=self.options.deformation_color)
-
-    # def plot_rigid_deformed(self) -> None:
-    #     escala = self.options.deformation_scale
-    #     for element in self.model.element_map.values():
-    #         x, y = rigid_deformed(element, escala)
-    #         self.axes.plot(
-    #             x,
-    #             y,
-    #             lw=1,
-    #             color='#54becb',
-    #             linestyle="--"
-    #         )
-
-    # def plot_structure(self) -> None:
-    #     self.plot_elements()
-    #     self.plot_supports()
-    #     self.plot_point_loads()
-    #     self.plot_distributed_loads()
-
-    # def show(self):
-    #     """
-    #     Muestra la gráfica.
-    #     """
-    #     root = create_plot_window(self.figure)
-    #     root.mainloop()
