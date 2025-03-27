@@ -5,7 +5,7 @@ from milcapy.section.section import Section, RectangularSection
 from milcapy.core.node import Node
 from milcapy.core.results import Results
 from milcapy.elements.member import Member
-# from milcapy.plotter.plotter import Plotter, PlotterOptions
+from milcapy.plotter.plotter import Plotter, PlotterOptions
 # from milcapy.plotter.plotter_values import PlotterValuesFactory
 from milcapy.analysis.options import AnalysisOptions
 from milcapy.analysis.manager import AnalysisManager
@@ -50,17 +50,15 @@ class SystemMilcaModel:
         self.analysis: Optional[AnalysisManager] = None
 
         # Visualización [UNIQUE]
-        # self.plotter: Optional[Plotter] = None
-        # self.plotter_values_factory: Optional[PlotterValuesFactory] = None
+        self.plotter: Optional[Plotter] = None
 
         # Opciones del modelo [UNIQUE]
         self.analysis_options: "AnalysisOptions" = AnalysisOptions() # IMPLEMENTAR PARA CADA TIPO DE ANALISIS
-        # self.plotter_options: "PlotterOptions" = PlotterOptions()
+        self.plotter_options: "PlotterOptions" = PlotterOptions(self)
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=5)
 
-    # def _inicialize_plotter(self) -> None:
-    #     self.plotter_values_factory = PlotterValuesFactory(self)
-    #     self.plotter = Plotter(self)
+    def _inicialize_plotter(self) -> None:
+        self.plotter = Plotter(self)
 
     def add_material(
         self,

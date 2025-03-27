@@ -6,20 +6,21 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
     QPushButton, QCheckBox, QComboBox, QLineEdit, QColorDialog, QWidget, QWidgetAction
 )
-
+from milcapy.plotter.options import PlotterOptions
+from milcapy.model.model import SystemMilcaModel
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 
 # Clase para mostrar un gráfico de Matplotlib en un widget de Qt
 class MatplotlibCanvas(QWidget):
-    def __init__(self, parent, figure):
+    def __init__(self, parent, model: 'SystemMilcaModel'):
         super().__init__(parent)
-        self.figure = figure
+        self.model = model
+        self.plotter = model.plotter
+        self.figure = model.plotter.figure
+        self.plotter_options = model.plotter_options
         self.axes = self.figure.axes  # Obtener todos los ejes
-
-        if not self.axes:
-            raise ValueError("Figure must contain at least one axis")
 
         # Almacenar límites originales de cada eje
         self.original_limits = {
@@ -27,6 +28,7 @@ class MatplotlibCanvas(QWidget):
 
         # Crear el lienzo de Matplotlib
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.draw()
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
@@ -36,32 +38,14 @@ class MatplotlibCanvas(QWidget):
         self.pan_active = False
         self.active_ax = None  # Eje activo
 
+
+
         # Conectar eventos de ratón
         self._connect_events()
 
-        # Diccionario de nodos
-        self.nodes= {}              # visibilidad, color
-        # nodos deformados
-        self.deformed_nodes = {}    # interactividad al pasar el ratón
-        # Diccionario de miembros
-        self.members = {}           # visibilidad, color
-        # forma deformada
-        self.deformed_shape = {}    # visibilidad, setdata, setType: colorbar
-        # Diccionario de cargas (puntuales y distribuidas)
-        self.loads = {}             # visibilidad
-        # fuerzas internas (line2D: borde)
-        self.internal_forces = {}   # visibilidad, setdata, setType: colorbar
-        # fillings for internal forces
-        self.fillings = {}          # visibilidad, setdata, setType: colorbar
-        # apooyos
-        self.supports = {}          # visibilidad, color, setdata
-        # apoyos dezplados
-        self.displaced_supports = {}# visibilidad, color, setdata
-        # etiquetas
-        self.labels = {}            # visibilidad, setdata
-        # reacciones
-        self.reactions = {}         # visibilidad, setdata
-
+    @property
+    def current_load_pattern(self) -> str | None:
+        return self.model.current_load_pattern
 
     def _connect_events(self):
         self.canvas.mpl_connect('scroll_event', self._on_scroll)
@@ -128,16 +112,27 @@ class MatplotlibCanvas(QWidget):
         """Establece la visibilidad y el color de los nodos."""
         self.nodes = nodes
 
+
+
+
+
+
 # Clase para la ventana de opciones de gráfico (ventas emergente)
 class GraphicOptionsDialog(QDialog):
     """Ventana emergente para opciones de gráfico."""
-
-    def __init__(self, parent=None):
+    # _instance = None
+    def __init__(self, parent=None, model: 'SystemMilcaModel' = None, options=None):
+        # if GraphicOptionsDialog._instance is not None:
+        #     GraphicOptionsDialog._instance.raise_()
+        #     return
         super().__init__(parent)
+        # GraphicOptionsDialog._instance = self
+        # self.setWindowModality(Qt.NonModal)
         self.setWindowTitle("Opciones de Gráfico")
         self.setMinimumSize(400, 500)
-
-        self.options = {}  # Diccionario para almacenar opciones seleccionadas
+        self.model = model
+        self.plotter_options = model.plotter.plotter_options
+        self.options = options  # Diccionario para almacenar opciones seleccionadas
 
         main_layout = QVBoxLayout()
 
@@ -149,25 +144,34 @@ class GraphicOptionsDialog(QDialog):
         main_layout.addWidget(self.create_deformed_shape_options())
         main_layout.addWidget(self.create_internal_forces_options())
 
-        # Botones Aceptar / Restaurar / Cancelar
+        # Botones Aceptar / Restaurar / Aplicar / Cancelar
         button_layout = QHBoxLayout()
         accept_button = QPushButton("Aceptar")
         restore_button = QPushButton("Restaurar Valores")
+        apply_button = QPushButton("Aplicar")
         cancel_button = QPushButton("Cancelar")
 
         accept_button.clicked.connect(self.accept_changes)
         restore_button.clicked.connect(self.restore_defaults)
+        apply_button.clicked.connect(self.apply_changes)
         cancel_button.clicked.connect(self.reject)
 
         button_layout.addWidget(accept_button)
         button_layout.addWidget(restore_button)
+        button_layout.addWidget(apply_button)
         button_layout.addWidget(cancel_button)
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
 
-        # Restaurar valores por defecto al iniciar
-        self.restore_defaults()
+    @property
+    def current_load_pattern(self) -> str | None:
+        return self.model.current_load_pattern
+
+
+    def closeEvent(self, event):
+        GraphicOptionsDialog._instance = None
+        super().closeEvent(event)
 
     def create_general_options(self):
         """Opciones generales como color de fondo."""
@@ -228,7 +232,7 @@ class GraphicOptionsDialog(QDialog):
 
         self.deformation_scale_input = QLineEdit()
         self.deformation_scale_input.setPlaceholderText(
-            "Escala de deformación (ej. 40)")
+            "Escala de deformación")
         self.deformation_scale_input.setValidator(
             QDoubleValidator(0.01, 1000.0, 2))
 
@@ -242,13 +246,6 @@ class GraphicOptionsDialog(QDialog):
         group = QGroupBox("Fuerzas Internas")
         layout = QVBoxLayout()
 
-        # Escala de fuerzas internas (Input numérico)
-        self.internal_forces_input = QLineEdit()
-        self.internal_forces_input.setPlaceholderText(
-            "Escala de fuerzas internas (ej. 0.03)")
-        self.internal_forces_input.setValidator(
-            QDoubleValidator(0.0001, 10.0, 4))
-
         # Tipo de relleno
         self.filling_type_combo = QComboBox()
         self.filling_type_combo.addItems(["Sólido", "Sin Relleno", "Colormap"])
@@ -260,8 +257,6 @@ class GraphicOptionsDialog(QDialog):
         # Checkbox para barra de colores
         self.show_colorbar_checkbox = QCheckBox("Mostrar Barra de Colores")
 
-        layout.addWidget(QLabel("Escala de Fuerzas Internas"))
-        layout.addWidget(self.internal_forces_input)
         layout.addWidget(QLabel("Tipo de Relleno"))
         layout.addWidget(self.filling_type_combo)
         layout.addWidget(QLabel("Colormap"))
@@ -279,14 +274,13 @@ class GraphicOptionsDialog(QDialog):
 
     def restore_defaults(self):
         """Restablece las opciones a los valores por defecto."""
-        self.show_nodes_checkbox.setChecked(True)
+        self.show_nodes_checkbox.setChecked(False)
         self.node_labels_checkbox.setChecked(False)
         self.show_members_checkbox.setChecked(True)
         self.member_labels_checkbox.setChecked(False)
         self.show_loads_checkbox.setChecked(False)
 
         self.deformation_scale_input.setText("40")
-        self.internal_forces_input.setText("0.03")
 
         self.filling_type_combo.setCurrentText("Sólido")
         self.colormap_combo.setCurrentText("Jet")
@@ -296,8 +290,8 @@ class GraphicOptionsDialog(QDialog):
             "UI_background_color": "white",
             "UI_show_nodes": True,
             "UI_node_labels": False,
-            "UI_show_elements": True,
-            "UI_element_labels": False,
+            "UI_show_members": True,
+            "UI_member_labels": False,
             "UI_point_load": False,
             "UI_deformation_scale": 40,
             "UI_internal_forces_scale": 0.03,
@@ -305,44 +299,109 @@ class GraphicOptionsDialog(QDialog):
             "UI_colormap": "Jet",
             "UI_show_colorbar": True,
         }
+        self.transfer_changes()
+        self.apply_changer()
         print("Restaurado a valores por defecto.")
 
     def accept_changes(self):
         """Guarda las opciones seleccionadas y las imprime."""
         self.options["UI_show_nodes"] = self.show_nodes_checkbox.isChecked()
         self.options["UI_node_labels"] = self.node_labels_checkbox.isChecked()
-        self.options["UI_show_elements"] = self.show_members_checkbox.isChecked()
-        self.options["UI_element_labels"] = self.member_labels_checkbox.isChecked()
+        self.options["UI_show_members"] = self.show_members_checkbox.isChecked()
+        self.options["UI_member_labels"] = self.member_labels_checkbox.isChecked()
         self.options["UI_point_load"] = self.show_loads_checkbox.isChecked()
 
         deformation_scale_text = self.deformation_scale_input.text()
-        forces_scale_text = self.internal_forces_input.text()
 
         self.options["UI_deformation_scale"] = float(
             deformation_scale_text) if deformation_scale_text else 40
-        self.options["UI_internal_forces_scale"] = float(
-            forces_scale_text) if forces_scale_text else 0.03
 
         self.options["UI_filling_type"] = self.filling_type_combo.currentText()
         self.options["UI_colormap"] = self.colormap_combo.currentText()
         self.options["UI_show_colorbar"] = self.show_colorbar_checkbox.isChecked()
 
         print("Opciones seleccionadas:", self.options)
+        self.apply_changer()
         self.accept()
+
+    def apply_changes(self):
+        """Aplica las opciones seleccionadas pero no cierra la ventana."""
+        self.options["UI_show_nodes"] = self.show_nodes_checkbox.isChecked()
+        self.options["UI_node_labels"] = self.node_labels_checkbox.isChecked()
+        self.options["UI_show_members"] = self.show_members_checkbox.isChecked()
+        self.options["UI_member_labels"] = self.member_labels_checkbox.isChecked()
+        self.options["UI_point_load"] = self.show_loads_checkbox.isChecked()
+
+        deformation_scale_text = self.deformation_scale_input.text()
+
+        self.options["UI_deformation_scale"] = float(
+            deformation_scale_text) if deformation_scale_text else 40
+
+        self.options["UI_filling_type"] = self.filling_type_combo.currentText()
+        self.options["UI_colormap"] = self.colormap_combo.currentText()
+        self.options["UI_show_colorbar"] = self.show_colorbar_checkbox.isChecked()
+
+        print("Opciones seleccionadas:", self.options)
+        self.apply_changer()
+
+    def transfer_changes(self):
+        """Transfiere las opciones seleccionadas al objeto PlotterOptions."""
+        op = self.plotter_options
+        op.UI_background_color = self.options.get("UI_background_color", "white")
+        op.UI_show_nodes = self.options.get("UI_show_nodes", True)
+        op.UI_show_members = self.options.get("UI_show_members", True)
+        op.UI_node_labels = self.options.get("UI_node_labels", False)
+        op.UI_member_labels = self.options.get("UI_member_labels", False)
+        op.UI_point_load = self.options.get("UI_point_load", False)
+        op.UI_deformation_scale = self.options.get("UI_deformation_scale", 40)
+        if self.options.get("UI_filling_type", "Sólido") == "Sin Relleno":
+            op.UI_fill_diagram = False
+        else:
+            op.UI_filling_type = self.options.get("UI_filling_type", "Sólido")
+        op.UI_colormap = self.options.get("UI_colormap", "Jet")
+        op.UI_show_colorbar = self.options.get("UI_show_colorbar", True)
+
+
+    def keep_data(self):
+        self.show_nodes_checkbox.setChecked(self.options.get("UI_show_nodes", True))
+        self.node_labels_checkbox.setChecked(self.options.get("UI_node_labels", False))
+        self.show_members_checkbox.setChecked(self.options.get("UI_show_members", True))
+        self.member_labels_checkbox.setChecked(self.options.get("UI_member_labels", False))
+        self.show_loads_checkbox.setChecked(self.options.get("UI_point_load", False))
+
+        self.deformation_scale_input.setText(str(self.options.get("UI_deformation_scale", 40)))
+
+        self.filling_type_combo.setCurrentText(self.options.get("UI_filling_type", "Sólido"))
+        self.colormap_combo.setCurrentText(self.options.get("UI_colormap", "Jet"))
+        self.show_colorbar_checkbox.setChecked(self.options.get("UI_show_colorbar", True))
+
+        self.transfer_changes()
+
+
+    def apply_changer(self):
+        self.transfer_changes()
+        self.model.plotter.update_nodes()
+        self.model.plotter.update_members()
+        self.model.plotter.update_node_labels()
+        self.model.plotter.update_member_labels()
+        self.model.plotter.update_supports()
+        # self.model.plotter.update_point_load()
+        # self.model.plotter.update_point_load_labels()
+
 
 
 # Clase para la ventana principal
 class MainWindow(QMainWindow):
-    """Ventana principal con barra de menús"""
-
-    def __init__(self, fig):
+    def __init__(self, model: 'SystemMilcaModel'):
         super().__init__()
         self.setWindowTitle("Aplicación con Menú")
-        self.setGeometry(100, 100, 1700, 800)
+        self.setGeometry(100, 100, 800, 800)
         self.setWindowIcon(QIcon("milcapy/plotter/assets/milca.ico"))
 
+        self.model = model
+
         # Crear el widget de Matplotlib
-        self.plot_widget = MatplotlibCanvas(self, fig)
+        self.plot_widget = MatplotlibCanvas(self, self.model)
         self.setCentralWidget(self.plot_widget)
 
         # Crear la barra de herramientas
@@ -367,7 +426,8 @@ class MainWindow(QMainWindow):
 
         # SELECCIONAR LOAD PATERNS
         self.combo = QComboBox()
-        self.combo.addItems(["COMBO 1", "COMBO 2", "COMBO 3"])
+        lista_patterns = list(self.model.load_patterns.keys())
+        self.combo.addItems(lista_patterns)
         self.combo.currentTextChanged.connect(self.on_pattern_selected)
 
         # Envolver el ComboBox en un QWidgetAction
@@ -411,14 +471,34 @@ class MainWindow(QMainWindow):
         # Inicialmente oculta la barra de herramientas
         self.toolbar.setVisible(True)
 
+
+
+
+
+        #####################################################
+        self.options_values = {
+            "UI_background_color": "white",
+            "UI_show_nodes": True,
+            "UI_node_labels": False,
+            "UI_show_members": True,
+            "UI_member_labels": False,
+            "UI_point_load": False,
+            "UI_deformation_scale": 40,
+            "UI_internal_forces_scale": 0.03,
+            "UI_filling_type": "Sólido",
+            "UI_colormap": "Jet",
+            "UI_show_colorbar": True,
+        }
+        #####################################################
     def toggle_toolbar(self):
         """Activa/Desactiva la barra de herramientas"""
         self.toolbar.setVisible(not self.toolbar.isVisible())
 
     def abrir_opciones_grafico(self):
         """Abre la ventana emergente de opciones de gráfico"""
-        dialog = GraphicOptionsDialog(self)
-        dialog.exec()
+        dialog = GraphicOptionsDialog(self, self.model, self.options_values)
+        dialog.keep_data()
+        dialog.show()
 
     def guardar_archivo(self):
         """Guarda la imagen del gráfico"""
@@ -467,6 +547,7 @@ class MainWindow(QMainWindow):
             print("Deformada rígida ocultada")
 
     def on_pattern_selected(self, text):
+        self.NOTIFICATION(text)
         print(f"Seleccionaste el patron: {text}")
         self.DFA.setChecked(False)
         self.DFC.setChecked(False)
@@ -475,11 +556,15 @@ class MainWindow(QMainWindow):
         self.DEFORMADA.setChecked(False)
         self.DEFORMADA_RIGIDA.setChecked(False)
 
+    def NOTIFICATION(self, current_load_pattern):
+        self.model.current_load_pattern = current_load_pattern
+        self.model.plotter.set_load_pattern_name(current_load_pattern)
 
-def main_window(fig):
+
+def main_window(model: 'SystemMilcaModel'):
     app = QApplication.instance()
     if app is None:  # Si no existe una instancia, créala
         app = QApplication(sys.argv)
-    window = MainWindow(fig)
+    window = MainWindow(model)
     window.show()
     sys.exit(app.exec())

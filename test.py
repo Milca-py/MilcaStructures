@@ -1,7 +1,5 @@
 from milcapy import SystemMilcaModel
 from milcapy.plotter.UIdisplay import main_window
-import numpy as np
-import matplotlib.pyplot as plt
 # UNIDADES: (kN, m)
 
 portico = SystemMilcaModel()
@@ -34,10 +32,12 @@ portico.add_restraint(1, (True, True, True))
 portico.add_restraint(5, (True, True, True))
 
 portico.add_load_pattern("CARGA1")
+portico.add_point_load(3, "CARGA1", 10, 10, 10)
 portico.add_distributed_load(2, "CARGA1", -5, -5)
 portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA2")
+portico.add_point_load(3, "CARGA2", -10, -10, -10)
 portico.add_distributed_load(1, "CARGA2", -5, -5)
 portico.add_distributed_load(2, "CARGA2", -5, -5)
 portico.add_distributed_load(3, "CARGA2", -5, -5)
@@ -52,8 +52,17 @@ portico.solve()
 # --------------------------------------------------
 # 6. Resultados
 # --------------------------------------------------
-result_member = portico.results["CARGA1"].get_member_axial_force(3)
-x = np.linspace(0, portico.members[3].length(), len(result_member))
-fig, ax = plt.subplots()
-ax.plot(x, result_member)
-main_window(fig)
+from milcapy.plotter.plotter import Plotter
+
+portico._inicialize_plotter()
+portico.plotter.set_load_pattern_name("CARGA1")
+portico.plotter.plot_nodes()
+portico.plotter.plot_node_labels()
+portico.plotter.plot_members()
+portico.plotter.plot_member_labels()
+portico.plotter.plot_supports()
+# portico.plotter.plot_point_loads()
+main_window(portico)
+
+
+
