@@ -32,8 +32,10 @@ portico.add_restraint(1, (True, True, True))
 portico.add_restraint(5, (True, True, True))
 
 portico.add_load_pattern("CARGA1")
+portico.add_point_load(3, "CARGA1", 100000)
 portico.add_distributed_load(1, "CARGA1", -5, -5)
 portico.add_distributed_load(2, "CARGA1", -5, -5)
+# portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA2")
 portico.add_distributed_load(2, "CARGA2", -5, -5)
@@ -55,6 +57,3 @@ portico.solve()
 portico._inicialize_plotter()
 portico.plotter.initialize_plot()
 main_window(portico)
-
-
-

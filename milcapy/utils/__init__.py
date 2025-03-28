@@ -14,6 +14,7 @@ from .types import (
     # CaseLoadType,
     # ComboType,
     BeamTheoriesType,
+    InternalForceType,
     to_enum
 )
 

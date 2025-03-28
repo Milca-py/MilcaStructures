@@ -266,6 +266,7 @@ class GraphicOptionsDialog(QDialog):
         self.colormap_combo.setCurrentText("Jet")
         self.show_colorbar_checkbox.setChecked(True)
         self.__recover_values()
+        self.options["UI_background_color"] = '#e5e5e5'  # ! RESTABLECE EL COLOR DE FONDO INICIAL
         self.__transfer_changes()
         self.update_changer()
         print("Restaurado a valores por defecto.")
@@ -282,7 +283,6 @@ class GraphicOptionsDialog(QDialog):
         self.__recover_values()
         self.__transfer_changes()
         self.update_changer()
-        print(self.model.plotter_options.UI_load)
 
     def __recover_values(self):
         """Recupera los valores de los widgets."""
@@ -301,7 +301,7 @@ class GraphicOptionsDialog(QDialog):
     def __transfer_changes(self):
         """Transfiere las opciones seleccionadas al objeto PlotterOptions."""
         op = self.plotter_options
-        op.UI_background_color = self.options.get("UI_background_color", "white")
+        op.UI_background_color = self.options.get("UI_background_color", None)
         op.UI_show_nodes = self.options.get("UI_show_nodes", True)
         op.UI_show_members = self.options.get("UI_show_members", True)
         op.UI_node_labels = self.options.get("UI_node_labels", False)
@@ -329,7 +329,8 @@ class GraphicOptionsDialog(QDialog):
 
     def update_changer(self):
         """Actualiza los cambios al figura principal y su vista inmediata."""
-        self.model.plotter.change_background_color()    # cambia el color de fondo
+        if self.options.get("UI_background_color", None) is not None:
+            self.model.plotter.change_background_color()    # cambia el color de fondo
         self.model.plotter.update_nodes()               # actualiza los nodos
         self.model.plotter.update_members()             # actualiza los miembros
         self.model.plotter.update_node_labels()         # actualiza los labels de los nodos
@@ -339,12 +340,7 @@ class GraphicOptionsDialog(QDialog):
         self.model.plotter.update_point_load_labels()
         self.model.plotter.update_distributed_loads()
         self.model.plotter.update_distributed_load_labels()
-
-        # if self.model.plotter.rigid_deformed_shape != {}:
-        # self.model.plotter.rigid_deformed_shape = {}
-        # for lp_name in self.model.results.keys():
-        #     self.model.plotter.plot_rigid_deformed(escala=self.options.get("UI_deformation_scale", 40))
-
+        # !  IMPLEMNETAR PARA QUE PLOTEE DENUEVO PARA UNA ESCALA DIFERENTE
 
 
 # Clase para la ventana principal
@@ -399,38 +395,44 @@ class MainWindow(QMainWindow):
         self.DFA = QCheckBox("DFA")
         self.DFA.stateChanged.connect(self.mostrar_fuerzas_axiales)
         self.toolbar.addWidget(self.DFA)
+        self.DFA.setChecked(self.model.plotter_options.UI_axial)
         self.toolbar.addSeparator()
         self.DFC = QCheckBox("DFC")
         self.DFC.stateChanged.connect(self.mostrar_fuerzas_cortantes)
         self.toolbar.addWidget(self.DFC)
+        self.DFC.setChecked(self.model.plotter_options.UI_shear)
         self.toolbar.addSeparator()
         self.DMF = QCheckBox("DMF")
-        self.DMF.stateChanged.connect(self.mostrar_fuerzas_momentos)
+        self.DMF.stateChanged.connect(self.mostrar_momentos)
         self.toolbar.addWidget(self.DMF)
+        self.DMF.setChecked(self.model.plotter_options.UI_moment)
         self.toolbar.addSeparator()
         self.REACIONES = QCheckBox("Reacciones")
         self.REACIONES.stateChanged.connect(self.mostrar_reacciones)
         self.toolbar.addWidget(self.REACIONES)
+        self.REACIONES.setChecked(self.model.plotter_options.UI_reactions)
         self.toolbar.addSeparator()
         self.DEFORMADA = QCheckBox("Deformada")
         self.DEFORMADA.stateChanged.connect(self.mostrar_deformada)
         self.toolbar.addWidget(self.DEFORMADA)
+        self.DEFORMADA.setChecked(self.model.plotter_options.UI_deformed)
         self.toolbar.addSeparator()
         self.DEFORMADA_RIGIDA = QCheckBox("Deformada rígida")
         self.DEFORMADA_RIGIDA.stateChanged.connect(
             self.mostrar_deformada_rigida)
         self.toolbar.addWidget(self.DEFORMADA_RIGIDA)
+        self.DEFORMADA_RIGIDA.setChecked(self.model.plotter_options.UI_rigid_deformed)
 
         # Atajo de teclado (Ctrl + H) para mostrar/ocultar la barra de herramientas
         self.toggle_toolbar_shortcut = QShortcut(Qt.CTRL | Qt.Key_H, self)
         self.toggle_toolbar_shortcut.activated.connect(self.toggle_toolbar)
 
-        # Inicialmente oculta la barra de herramientas
+        # Inicialmente visible la barra de herramientas
         self.toolbar.setVisible(True)
 
         #####################################################
         self.options_values = {
-            "UI_background_color": "white",
+            "UI_background_color": None,
             "UI_show_nodes": True,
             "UI_node_labels": False,
             "UI_show_members": True,
@@ -458,53 +460,91 @@ class MainWindow(QMainWindow):
         dialog.show()
 
     def on_pattern_selected(self, value):
-        self.NOTIFICATION(value)
+        # ! NOTIFICATION
+        self.model.current_load_pattern = value
         print(f"Seleccionaste el patron: {value}")
-        self.DFA.setChecked(False)
-        self.DFC.setChecked(False)
-        self.DMF.setChecked(False)
-        self.REACIONES.setChecked(False)
-        self.DEFORMADA.setChecked(False)
-        self.DEFORMADA_RIGIDA.setChecked(False)
+        self.DFA.setChecked(self.model.plotter_options.UI_axial)
+        self.DFC.setChecked(self.model.plotter_options.UI_shear)
+        self.DMF.setChecked(self.model.plotter_options.UI_moment)
+        self.REACIONES.setChecked(self.model.plotter_options.UI_reactions)
+        self.DEFORMADA.setChecked(self.model.plotter_options.UI_deformed)
+        self.DEFORMADA_RIGIDA.setChecked(self.model.plotter_options.UI_rigid_deformed)
 
-    def NOTIFICATION(self, current_load_pattern):
-        self.model.current_load_pattern = current_load_pattern
+        # ! ACTUALIZACIONES DE VISIBILIDAD AL CAMBIAR EL PATRON
+        if self.model.plotter_options.UI_deformed:
+            self.mostrar_deformada(2)
+        elif not self.model.plotter_options.UI_deformed:
+            self.mostrar_deformada(0)
+        if self.model.plotter_options.UI_rigid_deformed:
+            self.mostrar_deformada_rigida(2)
+        elif not self.model.plotter_options.UI_rigid_deformed:
+            self.mostrar_deformada_rigida(0)
         self.model.plotter.update_change()
+        if self.model.plotter_options.UI_axial:
+            self.mostrar_fuerzas_axiales(2)
+        elif not self.model.plotter_options.UI_axial:
+            self.mostrar_fuerzas_axiales(0)
+        if self.model.plotter_options.UI_shear:
+            self.mostrar_fuerzas_cortantes(2)
+        elif not self.model.plotter_options.UI_shear:
+            self.mostrar_fuerzas_cortantes(0)
+        if self.model.plotter_options.UI_moment:
+            self.mostrar_momentos(2)
+        elif not self.model.plotter_options.UI_moment:
+            self.mostrar_momentos(0)
 
     def mostrar_fuerzas_axiales(self, state):
         """Muestra las fuerzas axiales"""
         if state == 2:
+            self.model.plotter_options.UI_axial = True
+            self.model.plotter.update_axial_force(visibility=True)
             print("Fuerzas axiales mostradas")
         elif state == 0:
+            self.model.plotter_options.UI_axial = False
+            self.model.plotter.update_axial_force(visibility=False)
             print("Fuerzas axiales ocultadas")
 
     def mostrar_fuerzas_cortantes(self, state):
         """Muestra las fuerzas cortantes"""
         if state == 2:
+            self.model.plotter_options.UI_shear = True
+            self.model.plotter.update_shear_force(visibility=True)
             print("Fuerzas cortantes mostradas")
         elif state == 0:
+            self.model.plotter_options.UI_shear = False
+            self.model.plotter.update_shear_force(visibility=False)
             print("Fuerzas cortantes ocultadas")
 
-    def mostrar_fuerzas_momentos(self, state):
+    def mostrar_momentos(self, state):
         """Muestra las fuerzas momentos"""
         if state == 2:
+            self.model.plotter_options.UI_moment = True
+            self.model.plotter.update_bending_moment(visibility=True)
             print("Fuerzas momentos mostradas")
         elif state == 0:
+            self.model.plotter_options.UI_moment = False
+            self.model.plotter.update_bending_moment(visibility=False)
             print("Fuerzas momentos ocultadas")
 
     def mostrar_reacciones(self, state):
         """Muestra las reacciones"""
         if state == 2:
             print("Reacciones mostradas")
+            self.model.plotter_options.UI_reactions = True
         elif state == 0:
             print("Reacciones ocultadas")
+            self.model.plotter_options.UI_reactions = False
 
     def mostrar_deformada(self, state):
         """Muestra la deformada"""
         if state == 2:
             print("Deformada mostrada")
+            self.model.plotter_options.UI_deformed = True
+            self.model.plotter.update_deformed()
         elif state == 0:
             print("Deformada ocultada")
+            self.model.plotter_options.UI_deformed = False
+            self.model.plotter.update_deformed()
 
     def mostrar_deformada_rigida(self, state):
         """Muestra la deformada rígida"""

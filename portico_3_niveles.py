@@ -93,6 +93,10 @@ model.solve()
 # --------------------------------------------------
 # 6. Mostrar la ventana con la figura
 # --------------------------------------------------
-model._inicialize_plotter()
-model.plotter.initialize_plot()
-main_window(model)
+# model._inicialize_plotter()
+# model.plotter.initialize_plot()
+# main_window(model)
+
+member = model.members[1]
+import pprint
+pprint.pprint(model.results["Live Load"].get_results_member(member.id))

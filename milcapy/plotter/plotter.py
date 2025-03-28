@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-
+from milcapy.utils import InternalForceType
 
 from milcapy.utils import rotate_xy, traslate_xy
 from milcapy.plotter.suports import (
@@ -32,28 +32,28 @@ class Plotter:
         self.figure: Figure = None
         self.axes: Axes = None
         self.current_values: 'PlotterValues' = PlotterValues(self.model,
-                                list(self.model.results.keys())[0])
-        self.initialize_figure() # Inicializar figura
+                                                             list(self.model.results.keys())[0])
+        self.initialize_figure()  # Inicializar figura
 
         # todos los que tengan 🐍 se calculan para cada load pattern
         # todos los que tengan ✅ ya estan implementados
         # ! SOLO SE PLOTEAN LOS LOAD_PATTERN QUE ESTAN ANALIZADOS
         # ? (SOLO LOS QUE TIENEN RESULTADOS EN MODEL.RESULTS)
         # nodos
-        self.nodes= {}              # ✅visibilidad, color
+        self.nodes = {}              # ✅visibilidad, color
         # nodos deformados
         self.deformed_nodes = {}    # 🐍 interactividad al pasar el ratón
 
         # miembros
         self.members = {}           # ✅visibilidad, color
         # forma deformada
-        self.deformed_shape = {}    # 🐍 visibilidad, setdata, setType: colorbar
+        self.deformed_shape = {}    # ✅🐍 visibilidad, setdata, setType: colorbar
         # forma regida de la deformada
-        self.rigid_deformed_shape = {} # 🐍 visibilidad, setdata, setType: colorbar
+        self.rigid_deformed_shape = {}  # ✅🐍 visibilidad, setdata, setType: colorbar
         # cargas puntuales
         self.point_loads = {}       # ✅🐍 visibilidad
         # cargas distribuidas
-        self.distributed_loads = {} # ✅🐍 visibilidad
+        self.distributed_loads = {}  # ✅🐍 visibilidad
         # fuerzas internas (line2D: borde)
         self.internal_forces = {}   # 🐍 visibilidad, setdata, setType: colorbar
         # fillings for internal forces
@@ -61,18 +61,22 @@ class Plotter:
         # apooyos
         self.supports = {}          # ✅visibilidad, color, setdata
         # apoyos dezplados
-        self.displaced_supports = {}# 🐍 visibilidad, color, setdata
+        self.displaced_supports = {}  # 🐍 visibilidad, color, setdata
         # etiquetas
         self.node_labels = {}            # ✅visibilidad, setdata
         self.member_labels = {}          # ✅visibilidad, setdata
         self.point_load_labels = {}      # ✅🐍 visibilidad, setdata
-        self.distributed_load_labels = {}# ✅🐍 visibilidad, setdata
-        self.internal_forces_labels = {} # 🐍 visibilidad, setdata
+        self.distributed_load_labels = {}  # ✅🐍 visibilidad, setdata
+        self.internal_forces_labels = {}  # 🐍 visibilidad, setdata
         self.reactions_labels = {}       # 🐍 visibilidad, setdata
         self.displacement_labels = {}    # 🐍 visibilidad, setdata
         # reacciones
         self.reactions = {}         # 🐍 visibilidad, setdata
 
+        # fuerzas internas (line2D: borde, polygon: relleno)
+        self.axial_force = {}
+        self.shear_force = {}
+        self.bending_moment = {}
 
     @property
     def plotter_options(self) -> 'PlotterOptions':
@@ -105,18 +109,14 @@ class Plotter:
             self.plot_point_loads()
             self.plot_distributed_loads()
             self.plot_rigid_deformed()
-
-            if load_pattern_name != list(self.model.results.keys())[0]:
-                # actualizar visualizacion para el load pattern actual
-                self.update_point_load(visibility=False)
-                self.update_point_load_labels(visibility=False)
-                self.update_distributed_loads(visibility=False)
-                self.update_distributed_load_labels(visibility=False)
-                # self.update_rigid_deformed(visibility=False)
+            self.plot_deformed()
+            self.plot_axial_force()
+            self.plot_shear_force()
+            self.plot_bending_moment()
 
         # actualizar pattern actual al primero
         self.current_load_pattern = list(self.model.results.keys())[0]
-        # self.update_change()
+        self.update_change()
 
     def update_change(self):
         """Oculta atists para todos los load patterns excepto el actual"""
@@ -129,19 +129,29 @@ class Plotter:
                 self.update_distributed_loads(visibility=False)
                 self.update_distributed_load_labels(visibility=False)
                 self.update_rigid_deformed(visibility=False)
+                self.update_deformed(visibility=False)
+                self.update_axial_force(visibility=False)
+                self.update_shear_force(visibility=False)
+                self.update_bending_moment(visibility=False)
             elif load_pattern_name == pt_cache:
                 if self.plotter_options.UI_load:
                     self.update_point_load(visibility=True)
                     self.update_point_load_labels(visibility=True)
                     self.update_distributed_loads(visibility=True)
                     self.update_distributed_load_labels(visibility=True)
-                elif not self.plotter_options.UI_rigid_deformed:
+                if self.plotter_options.UI_rigid_deformed:
                     self.update_rigid_deformed(visibility=True)
-
+                if self.plotter_options.UI_deformed:
+                    self.update_deformed(visibility=True)
+                if self.plotter_options.UI_axial:
+                    self.update_axial_force(visibility=True)
+                if self.plotter_options.UI_shear:
+                    self.update_shear_force(visibility=True)
+                if self.plotter_options.UI_moment:
+                    self.update_bending_moment(visibility=True)
 
         self.figure.canvas.draw_idle()
         self.current_load_pattern = pt_cache
-
 
     def get_plotter_values(self, load_pattern_name: str) -> 'PlotterValues':
         # Comprobar si ya existe en caché
@@ -150,11 +160,13 @@ class Plotter:
 
         # Verificar que el load pattern existe
         if load_pattern_name not in self.model.load_patterns:
-            raise ValueError(f"El load pattern '{load_pattern_name}' no se encontró")
+            raise ValueError(
+                f"El load pattern '{load_pattern_name}' no se encontró")
 
         # Verificar que existen resultados para este load pattern
         if load_pattern_name not in self.model.results:
-            raise ValueError(f"Los resultados para el load pattern '{load_pattern_name}' no se encontraron")
+            raise ValueError(
+                f"Los resultados para el load pattern '{load_pattern_name}' no se encontraron")
 
         # Crear nueva instancia de PlotterValues
         plotter_values = PlotterValues(self.model, load_pattern_name)
@@ -173,7 +185,8 @@ class Plotter:
             plt.style.use(self.plotter_options.plot_style)
 
         # Crear figura y ejes
-        self.figure = plt.figure(figsize=self.plotter_options.figure_size, dpi=self.plotter_options.dpi, facecolor=self.plotter_options.UI_background_color)
+        self.figure = plt.figure(figsize=self.plotter_options.figure_size,
+                                 dpi=self.plotter_options.dpi, facecolor=self.plotter_options.UI_background_color)
         self.axes = self.figure.add_subplot(111)
 
         # Configurar cuadrícula
@@ -188,7 +201,8 @@ class Plotter:
         plt.axis("equal")
 
         # Activar los ticks secundarios en ambos ejes
-        self.axes.xaxis.set_minor_locator(AutoMinorLocator(5))  # 5 subdivisiones entre cada tick principal
+        # 5 subdivisiones entre cada tick principal
+        self.axes.xaxis.set_minor_locator(AutoMinorLocator(5))
         self.axes.yaxis.set_minor_locator(AutoMinorLocator(5))
 
         # Activar ticks en los 4 lados (mayores y menores)
@@ -196,10 +210,13 @@ class Plotter:
             which="both", direction="in", length=6, width=1,
             top=True, bottom=True, left=True, right=True
         )
-        self.axes.tick_params(which="minor", length=2, width=0.5, color="black")  # Ticks menores más pequeños y rojos
+        # Ticks menores más pequeños y rojos
+        self.axes.tick_params(which="minor", length=2,
+                              width=0.5, color="black")
 
         # Mostrar etiquetas en los 4 lados
-        self.axes.tick_params(labeltop=True, labelbottom=True, labelleft=True, labelright=True)
+        self.axes.tick_params(labeltop=True, labelbottom=True,
+                              labelleft=True, labelright=True)
 
         # Asegurar que los ticks se muestran en ambos lados
         self.axes.xaxis.set_ticks_position("both")
@@ -211,12 +228,16 @@ class Plotter:
             self.axes.spines[spine].set_linewidth(0.5)  # Grosor del borde
 
         # Personalizar las etiquetas de los ejes
-        plt.xticks(fontsize=8, fontfamily="serif", fontstyle="italic", color="#103b58")
-        plt.yticks(fontsize=8, fontfamily="serif", fontstyle="italic", color="#103b58")
+        plt.xticks(fontsize=8, fontfamily="serif",
+                   fontstyle="italic", color="#103b58")
+        plt.yticks(fontsize=8, fontfamily="serif",
+                   fontstyle="italic", color="#103b58")
 
         # Personalizar los ticks del eje X e Y
-        self.axes.tick_params(axis="x", direction="in", length=3.5, width=0.7, color="#21273a")
-        self.axes.tick_params(axis="y", direction="in", length=3.5, width=0.7, color="#21273a")
+        self.axes.tick_params(axis="x", direction="in",
+                              length=3.5, width=0.7, color="#21273a")
+        self.axes.tick_params(axis="y", direction="in",
+                              length=3.5, width=0.7, color="#21273a")
 
         # Cambiar el color de fondo del área de los ejes
         # self.axes.set_facecolor("#222222")  # Fondo oscuro dentro del Axes
@@ -239,7 +260,8 @@ class Plotter:
             x = [coord[0]]
             y = [coord[1]]
 
-            node = self.axes.scatter(x, y, c=self.plotter_options.node_color, s=self.plotter_options.node_size, marker='o')
+            node = self.axes.scatter(
+                x, y, c=self.plotter_options.node_color, s=self.plotter_options.node_size, marker='o')
             self.nodes[id] = node
             node.set_visible(self.plotter_options.UI_show_nodes)
         self.figure.canvas.draw_idle()
@@ -258,7 +280,8 @@ class Plotter:
         for id, coord in self.current_values.members.items():
             x_coords = [coord[0][0], coord[1][0]]
             y_coords = [coord[0][1], coord[1][1]]
-            line, = self.axes.plot(x_coords, y_coords, color=self.plotter_options.element_color, linewidth=self.plotter_options.element_line_width)
+            line, = self.axes.plot(x_coords, y_coords, color=self.plotter_options.element_color,
+                                   linewidth=self.plotter_options.element_line_width)
             self.members[id] = line
             line.set_visible(self.plotter_options.UI_show_members)
         self.figure.canvas.draw_idle()
@@ -306,7 +329,7 @@ class Plotter:
 
     def plot_node_labels(self):
         for id, coord in self.current_values.nodes.items():
-            bbox={
+            bbox = {
                 "boxstyle": "circle",
                 "facecolor": "lightblue",     # Color de fondo
                 "edgecolor": "black",         # Color del borde
@@ -315,9 +338,9 @@ class Plotter:
                 "alpha": 0.8                  # Transparencia
             }
             text = self.axes.text(coord[0], coord[1], str(id),
-                        fontsize=self.plotter_options.label_font_size,
-                        ha='left', va='bottom', color="blue", bbox=bbox,
-                        clip_on=True)
+                                  fontsize=self.plotter_options.label_font_size,
+                                  ha='left', va='bottom', color="blue", bbox=bbox,
+                                  clip_on=True)
             self.node_labels[id] = text
             text.set_visible(self.plotter_options.UI_node_labels)
             self.figure.canvas.draw_idle()
@@ -332,7 +355,7 @@ class Plotter:
             x_val = (coords[0][0] + coords[1][0]) / 2
             y_val = (coords[0][1] + coords[1][1]) / 2
 
-            bbox={
+            bbox = {
                 "boxstyle": "round,pad=0.2",  # Estilo y padding del cuadro
                 "facecolor": "lightblue",     # Color de fondo
                 "edgecolor": "black",         # Color del borde
@@ -341,9 +364,9 @@ class Plotter:
                 "alpha": 0.8                  # Transparencia
             }
             text = self.axes.text(x_val, y_val, str(element_id),
-                        fontsize=self.plotter_options.label_font_size,
-                        ha='center', va='center', color="blue", bbox=bbox,
-                        clip_on=True)
+                                  fontsize=self.plotter_options.label_font_size,
+                                  ha='center', va='center', color="blue", bbox=bbox,
+                                  clip_on=True)
             self.member_labels[element_id] = text
             text.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
@@ -401,7 +424,6 @@ class Plotter:
                 arrows.append(arrow)
                 texts.append(text)
 
-
             # Momento en Z
             if load["mz"] != 0:
                 arrow, text = moment_fancy_arrow(
@@ -409,7 +431,7 @@ class Plotter:
                     x=coords[0],
                     y=coords[1],
                     moment=load["mz"],
-                    radio= 0.70 * self.plotter_options.point_moment_length_arrow,
+                    radio=0.70 * self.plotter_options.point_moment_length_arrow,
                     color=self.plotter_options.point_load_color,
                     clockwise=True,
                     label=self.plotter_options.point_load_label,
@@ -419,7 +441,6 @@ class Plotter:
                 arrows.append(arrow)
                 texts.append(text)
 
-
             self.point_loads[self.current_load_pattern][id_node] = arrows
             self.point_load_labels[self.current_load_pattern][id_node] = texts
         # for arrow, text in zip(arrows, texts):
@@ -427,14 +448,14 @@ class Plotter:
         #     text.set_visible(self.plotter_options.point_load_label)
         self.figure.canvas.draw_idle()
 
-    def update_point_load(self, visibility: bool|None=None):
+    def update_point_load(self, visibility: bool | None = None):
         visibility = self.plotter_options.UI_load if visibility is None else visibility
         for arrows in self.point_loads[self.current_load_pattern].values():
             for arrow in arrows:
                 arrow.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    def update_point_load_labels(self, visibility: bool|None=None):
+    def update_point_load_labels(self, visibility: bool | None = None):
         visibility = self.plotter_options.UI_load if visibility is None else visibility
         for texts in self.point_load_labels[self.current_load_pattern].values():
             for text in texts:
@@ -468,7 +489,7 @@ class Plotter:
                     length=length,
                     ax=self.axes,
                     ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
-                    nrof_arrows=self.plotter_options.nrof_arrows,
+                    nrof_arrows=self.plotter_options.nro_arrows(id_element),
                     color=self.plotter_options.distributed_load_color,
                     angle_rotation=angle_rotation,
                     label=self.plotter_options.distributed_load_label,
@@ -489,7 +510,7 @@ class Plotter:
                     length=length,
                     ax=self.axes,
                     ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
-                    nrof_arrows=self.plotter_options.nrof_arrows,
+                    nrof_arrows=self.plotter_options.nro_arrows(id_element),
                     color=self.plotter_options.distributed_load_color,
                     angle_rotation=angle_rotation,
                     label=self.plotter_options.distributed_load_label,
@@ -500,14 +521,16 @@ class Plotter:
                 textslist = textslist + texts
             # Momentos distribuidos (no implementados)
             if load["m_i"] != 0 or load["m_j"] != 0:
-                raise NotImplementedError("Momentos distribuidos no implementados.")
+                raise NotImplementedError(
+                    "Momentos distribuidos no implementados.")
 
             self.distributed_loads[self.current_load_pattern][id_element] = arrowslist
             self.distributed_load_labels[self.current_load_pattern][id_element] = textslist
         self.figure.canvas.draw_idle()
 
     def update_distributed_loads(self, visibility: Optional[bool] = None):
-        visibility = bool(self.plotter_options.UI_load) if visibility is None else visibility
+        visibility = bool(
+            self.plotter_options.UI_load) if visibility is None else visibility
         for arrows in self.distributed_loads[self.current_load_pattern].values():
             for arrow in arrows:
                 arrow.set_visible(visibility)
@@ -520,12 +543,14 @@ class Plotter:
                 text.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    def plot_rigid_deformed(self, escala: float|None = None):
+    def plot_rigid_deformed(self, escala: float | None = None):
         self.rigid_deformed_shape[self.current_load_pattern] = {}
-        escala = self.plotter_options.UI_deformation_scale[self.current_load_pattern] if escala is None else escala
+        escala = self.plotter_options.UI_deformation_scale[
+            self.current_load_pattern] if escala is None else escala
         for member_id in self.model.members.keys():
             x, y = self.current_values.rigid_deformed(member_id, escala)
-            line, = self.axes.plot(x, y, color=self.plotter_options.rigid_deformed_color)
+            line, = self.axes.plot(
+                x, y, color=self.plotter_options.rigid_deformed_color, lw=0.7, ls='--', zorder=1)
             self.rigid_deformed_shape[self.current_load_pattern][member_id] = line
             line.set_visible(self.plotter_options.UI_rigid_deformed)
         self.figure.canvas.draw_idle()
@@ -536,153 +561,219 @@ class Plotter:
             line.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    # def plot_axial_force(self):
+    def plot_deformed(self, escala: float | None = None) -> None:
+        self.deformed_shape[self.current_load_pattern] = {}
+        escala = self.plotter_options.UI_deformation_scale[
+            self.current_load_pattern] if escala is None else escala
+        for element in self.model.members.values():
+            x, y = self.current_values.get_deformed_shape(element.id, escala)
+            line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
+                                   color=self.plotter_options.deformation_color)
+            self.deformed_shape[self.current_load_pattern][element.id] = line
+            line.set_visible(self.plotter_options.UI_deformed)
+        self.figure.canvas.draw_idle()
 
-    #     for element_id, element in self.model.element_map.items():
+    def update_deformed(self, visibility: Optional[bool] = None):
+        visibility = self.plotter_options.UI_deformed if visibility is None else visibility
+        for line in self.deformed_shape[self.current_load_pattern].values():
+            line.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
-    #         # Obtener valores del diagrama
-    #         x, n = self.plotter_values.axial_forces[element_id]
+    def plot_internal_forces(self, type: InternalForceType, escala: float | None = None) -> None:
 
-    #         n = n*self.options.internal_forces_scale
-    #         # Obtener coordenadas del elemento
-    #         coord_elem = np.array([
-    #             np.array([element.node_i.vertex.coordinates]),
-    #             np.array([element.node_j.vertex.coordinates])
-    #         ])
+        def calculate_x_intersection(x1, y1, x2, y2):
+            """Calcula la intersección con el eje X entre dos puntos"""
+            if y1 == y2:
+                return x1
+            return x1 - y1 * (x2 - x1) / (y2 - y1)
 
-    #         # Transformar coordenadas
-    #         Nxy = np.column_stack((x, n))
-    #         Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    #         Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    #         Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    #         Nxy = np.append(Nxy, coord_elem[1], axis=0)
+        def separate_areas(array, L):
+            """Separa las áreas positivas y negativas con puntos de intersección"""
+            x_val = np.linspace(0, L, len(array))
+            positive_areas = []
+            negative_areas = []
+            current_pos = []
+            current_neg = []
+            prev_sign = None
 
-    #         # Graficar diagrama
-    #         self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            for i, (x, y) in enumerate(zip(x_val, array)):
+                current_sign = 'pos' if y >= 0 else 'neg'
 
-    #         # Rellenar diagrama si se solicita
-    #         NNxy = np.append(Nxy, coord_elem[0], axis=0)
-    #         self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+                if i == 0:
+                    if current_sign == 'pos':
+                        current_pos.append([x, y])
+                    else:
+                        current_neg.append([x, y])
+                    prev_sign = current_sign
+                    continue
 
-    # def plot_shear_force(self):
+                if current_sign != prev_sign:
+                    # Calcular punto de intersección
+                    x_prev = x_val[i-1]
+                    y_prev = array[i-1]
+                    x_intersect = calculate_x_intersection(
+                        x_prev, y_prev, x, y)
 
-    #     for element_id, element in self.model.element_map.items():
+                    # Cerrar el área anterior
+                    if prev_sign == 'pos':
+                        current_pos.append([x_intersect, 0])
+                        positive_areas.append(current_pos)
+                        current_pos = []
+                    else:
+                        current_neg.append([x_intersect, 0])
+                        negative_areas.append(current_neg)
+                        current_neg = []
 
-    #         # Obtener valores del diagrama
-    #         x, n = self.plotter_values.shear_forces[element_id]
+                    # Iniciar nueva área
+                    if current_sign == 'pos':
+                        current_pos = [[x_intersect, 0], [x, y]]
+                    else:
+                        current_neg = [[x_intersect, 0], [x, y]]
+                    prev_sign = current_sign
+                else:
+                    if current_sign == 'pos':
+                        current_pos.append([x, y])
+                    else:
+                        current_neg.append([x, y])
+                    prev_sign = current_sign
 
-    #         n = n*self.options.internal_forces_scale
-    #         # Obtener coordenadas del elemento
-    #         coord_elem = np.array([
-    #             np.array([element.node_i.vertex.coordinates]),
-    #             np.array([element.node_j.vertex.coordinates])
-    #         ])
+            # Añadir áreas restantes
+            if current_pos:
+                positive_areas.append(current_pos)
+            if current_neg:
+                negative_areas.append(current_neg)
 
-    #         # Transformar coordenadas
-    #         Nxy = np.column_stack((x, n))
-    #         Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    #         Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    #         Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    #         Nxy = np.append(Nxy, coord_elem[1], axis=0)
+            return positive_areas, negative_areas
 
-    #         # Graficar diagrama
-    #         self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+        def process_segments(segments, L):
+            """Añade puntos en el eje X para segmentos en los bordes del dominio"""
+            processed = []
+            for seg in segments:
+                new_seg = []
+                # Verificar inicio
+                if seg and seg[0][0] == 0 and seg[0][1] != 0:
+                    new_seg.append([0.0, 0.0])
 
-    #         # Rellenar diagrama si se solicita
-    #         NNxy = np.append(Nxy, coord_elem[0], axis=0)
-    #         self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+                new_seg.extend(seg)
 
-    # def plot_bending_moment(self):
+                # Verificar final
+                if seg and seg[-1][0] == L and seg[-1][1] != 0:
+                    new_seg.append([L, 0.0])
 
-    #     for element_id, element in self.model.element_map.items():
+                processed.append(new_seg)
+            return processed
 
-    #         # Obtener valores del diagrama
-    #         x, n = self.plotter_values.bending_moments[element_id]
+        # ESCALAS:
+        if type == InternalForceType.AXIAL_FORCE:
+            escala = self.plotter_options.axial_scale[self.current_load_pattern] if escala is None else escala
+            self.axial_force[self.current_load_pattern] = {}
+        elif type == InternalForceType.SHEAR_FORCE:
+            escala = self.plotter_options.shear_scale[self.current_load_pattern] if escala is None else escala
+            self.shear_force[self.current_load_pattern] = {}
+        elif type == InternalForceType.BENDING_MOMENT:
+            escala = self.plotter_options.moment_scale[self.current_load_pattern] if escala is None else escala
+            self.bending_moment[self.current_load_pattern] = {}
 
-    #         n = n*self.options.internal_forces_scale
-    #         # Obtener coordenadas del elemento
-    #         coord_elem = np.array([
-    #             np.array([element.node_i.vertex.coordinates]),
-    #             np.array([element.node_j.vertex.coordinates])
-    #         ])
+        artist = []
+        for member_id, member in self.model.members.items():
 
-    #         # Transformar coordenadas
-    #         Nxy = np.column_stack((x, n))
-    #         Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    #         Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    #         Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    #         Nxy = np.append(Nxy, coord_elem[1], axis=0)
+            # Obtener valores del diagrama
+            if type == InternalForceType.AXIAL_FORCE:
+                y_val = self.model.results[self.current_load_pattern].members[member_id]["axial_forces"] * escala
+            elif type == InternalForceType.SHEAR_FORCE:
+                y_val = self.model.results[self.current_load_pattern].members[member_id]["shear_forces"] * escala
+            elif type == InternalForceType.BENDING_MOMENT:
+                y_val = self.model.results[self.current_load_pattern].members[member_id]["bending_moments"] * escala
+            x_val = np.linspace(0, member.length(), len(y_val))
 
-    #         # Graficar diagrama
-    #         self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
 
-    #         # Rellenar diagrama si se solicita
-    #         NNxy = np.append(Nxy, coord_elem[0], axis=0)
-    #         self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+            # Configuración inicial
+            L = member.length()
+            x = x_val
+            y = y_val
 
-    # def plot_slope(self):
+            # Separar y procesar áreas
+            positive, negative = separate_areas(y, L)
+            positive_processed = process_segments(positive, L)
+            negative_processed = process_segments(negative, L)
 
-    #     for element_id, element in self.model.element_map.items():
+            # areglar el borde
+            val = np.stack((x, y), axis=-1)
+            if val[0][0] == 0 and val[0][1] != 0:
+                val = np.insert(val, 0, [[0.0, 0.0]], axis=0)
+            if val[-1][0] == L and val[-1][1] != 0:
+                val = np.append(val, [[L, 0.0]], axis=0)
 
-    #         # Obtener valores del diagrama
-    #         x, n = self.plotter_values.slopes[element_id]
+            # Transformar coordenadas y PLOTEAR
+            for area in positive_processed:
+                area = rotate_xy(area, member.angle_x(), 0, 0)
+                area = traslate_xy(area, *member.node_i.vertex.coordinates)
+                if len(area) > 2:
+                    polygon, = self.axes.fill(*zip(*area), color='#807fff', alpha=0.7)
+                    artist.append(polygon)
+            for area in negative_processed:
+                area = rotate_xy(area, member.angle_x(), 0, 0)
+                area = traslate_xy(area, *member.node_i.vertex.coordinates)
+                if len(area) > 2:
+                    polygon, = self.axes.fill(*zip(*area), color='#ff897b', alpha=0.7)
+                    artist.append(polygon)
 
-    #         n = n*self.options.internal_forces_scale
-    #         # Obtener coordenadas del elemento
-    #         coord_elem = np.array([
-    #             np.array([element.node_i.vertex.coordinates]),
-    #             np.array([element.node_j.vertex.coordinates])
-    #         ])
+            val = rotate_xy(val, member.angle_x(), 0, 0)
+            val = traslate_xy(val, *member.node_i.vertex.coordinates)
 
-    #         # Transformar coordenadas
-    #         Nxy = np.column_stack((x, n))
-    #         Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    #         Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    #         Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    #         Nxy = np.append(Nxy, coord_elem[1], axis=0)
+            line, = self.axes.plot(*zip(*val), color='#424242', lw=0.5)  # Línea de la curva
+            artist.append(line)
 
-    #         # Graficar diagrama
-    #         self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
+            if type == InternalForceType.AXIAL_FORCE:
+                self.axial_force[self.current_load_pattern][member_id] = artist
+            elif type == InternalForceType.SHEAR_FORCE:
+                self.shear_force[self.current_load_pattern][member_id] = artist
+            elif type == InternalForceType.BENDING_MOMENT:
+                self.bending_moment[self.current_load_pattern][member_id] = artist
+        # visibility
+        if type == InternalForceType.AXIAL_FORCE:
+            visibility = self.plotter_options.UI_axial
+        elif type == InternalForceType.SHEAR_FORCE:
+            visibility = self.plotter_options.UI_shear
+        elif type == InternalForceType.BENDING_MOMENT:
+            visibility = self.plotter_options.UI_moment
+        for artist in artist:
+            artist.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
-    #         # Rellenar diagrama si se solicita
-    #         NNxy = np.append(Nxy, coord_elem[0], axis=0)
-    #         self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
+    def update_internal_forces(self, type: InternalForceType, visibility: Optional[bool] = None) -> None:
+        if type == InternalForceType.AXIAL_FORCE:
+            visibility = self.plotter_options.UI_axial if visibility is None else visibility
+            for listArtist in self.axial_force[self.current_load_pattern].values():
+                for artist in listArtist:
+                    artist.set_visible(visibility)
+        elif type == InternalForceType.SHEAR_FORCE:
+            visibility = self.plotter_options.UI_shear if visibility is None else visibility
+            for listArtist in self.shear_force[self.current_load_pattern].values():
+                for artist in listArtist:
+                    artist.set_visible(visibility)
+        elif type == InternalForceType.BENDING_MOMENT:
+            visibility = self.plotter_options.UI_moment if visibility is None else visibility
+            for listArtist in self.bending_moment[self.current_load_pattern].values():
+                for artist in listArtist:
+                    artist.set_visible(visibility)
+        self.figure.canvas.draw_idle()
 
-    # def plot_deflection(self):
+    def plot_axial_force(self, escala: float | None = None) -> None:
+        self.plot_internal_forces(InternalForceType.AXIAL_FORCE, escala)
 
-    #     for element_id, element in self.model.element_map.items():
+    def update_axial_force(self, visibility: Optional[bool] = None) -> None:
+        self.update_internal_forces(InternalForceType.AXIAL_FORCE, visibility)
 
-    #         # Obtener valores del diagrama
-    #         x, n = self.plotter_values.deflections[element_id]
+    def plot_shear_force(self, escala: float | None = None) -> None:
+        self.plot_internal_forces(InternalForceType.SHEAR_FORCE, escala)
 
-    #         n = n*self.options.internal_forces_scale
-    #         # Obtener coordenadas del elemento
-    #         coord_elem = np.array([
-    #             np.array([element.node_i.vertex.coordinates]),
-    #             np.array([element.node_j.vertex.coordinates])
-    #         ])
+    def update_shear_force(self, visibility: Optional[bool] = None) -> None:
+        self.update_internal_forces(InternalForceType.SHEAR_FORCE, visibility)
 
-    #         # Transformar coordenadas
-    #         Nxy = np.column_stack((x, n))
-    #         Nxy = rotate_xy(Nxy, element.angle_x, 0, 0)
-    #         Nxy = traslate_xy(Nxy, *element.node_i.vertex.coordinates)
-    #         Nxy = np.insert(Nxy, 0, coord_elem[0], axis=0)
-    #         Nxy = np.append(Nxy, coord_elem[1], axis=0)
+    def plot_bending_moment(self, escala: float | None = None) -> None:
+        self.plot_internal_forces(InternalForceType.BENDING_MOMENT, escala)
 
-    #         # Graficar diagrama
-    #         self.axes.plot(Nxy[:, 0], Nxy[:, 1], lw=0.5, color='orange')
-
-    #         # Rellenar diagrama si se solicita
-    #         NNxy = np.append(Nxy, coord_elem[0], axis=0)
-    #         self.axes.fill(NNxy[:, 0], NNxy[:, 1], color='skyblue', alpha=0.5)
-
-    # def plot_deformed(self) -> None:
-    #     if self.options.show_undeformed:
-    #         self.plot_elements()
-    #         self.plot_supports()
-
-    #     escala = self.options.deformation_scale
-    #     for element in self.model.element_map.values():
-    #         x, y = deformed(element, escala)
-    #         self.axes.plot(x, y, lw=self.options.deformation_line_width,
-    #                     color=self.options.deformation_color)
+    def update_bending_moment(self, visibility: Optional[bool] = None) -> None:
+        self.update_internal_forces(
+            InternalForceType.BENDING_MOMENT, visibility)

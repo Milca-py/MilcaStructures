@@ -55,7 +55,7 @@ class SystemMilcaModel:
         # Opciones del modelo [UNIQUE]
         self.analysis_options: "AnalysisOptions" = AnalysisOptions() # IMPLEMENTAR PARA CADA TIPO DE ANALISIS
         self.plotter_options: "PlotterOptions" = PlotterOptions(self)
-        self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=5)
+        self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=17)
 
     def _inicialize_plotter(self) -> None:
         self.plotter = Plotter(self)

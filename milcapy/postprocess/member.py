@@ -119,20 +119,21 @@ class BeamSeg():
         Retorna la fuerza axial en un punto 'x' del segmento
         """
         Pi = self.Pi
-        # Pj = self.Pj
-        pi = self.pi
-        pj = self.pj
+        Pj = self.Pj
+        # pi = self.pi
+        # pj = self.pj
         L = self.Length()
-        A = (pj - pi)/L
-        B = pi
+        # A = (pj - pi)/L
+        # B = pi
 
-        P = Pi + B*x + A*x**2/2
+        # P = Pi + B*x + A*x**2/2
 
-        # A = (Pj + Pi) / L
-        # B = Pi
+        A = (Pj + Pi) / L
+        B = Pi
 
         # * REFACTORIZAR
         # TODO: P = - A*x + B
+        P = - A*x + B
 
         return P
 

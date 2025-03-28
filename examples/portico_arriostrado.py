@@ -1,5 +1,5 @@
 from milcapy import SystemMilcaModel
-
+from milcapy.plotter.UIdisplay import main_window
 model = SystemMilcaModel()
 
 model.add_material("concreto", 25e6, 0.2)
@@ -26,7 +26,7 @@ nodes = {
 }
 
 for node, coord in nodes.items():
-    model.add_node(node, coord)
+    model.add_node(node, *coord)
 
 # elements
 elements = {
@@ -63,7 +63,7 @@ elements = {
 }
 
 for element, nodes in elements.items():
-    model.add_element(element, *nodes, "section")
+    model.add_member(element, *nodes, "section")
 
 # constraints
 model.add_restraint(1, (True, True, True))
@@ -88,55 +88,7 @@ model.postprocessing_options.n = 40
 model.solve()
 
 
-
-model.inicialize_plotter()
-model.plotter_options.internal_forces_scale = 100
-model.plotter_options.deformation_scale = 100
-model.plotter.set_load_pattern_name("LOAD")
-# model.plotter.plot_nodes()
-model.plotter.plot_elements()
-model.plotter.plot_supports()
-# model.plotter.plot_node_labels()
-# model.plotter.plot_element_labels()
-model.plotter.plot_point_loads()
-model.plotter.plot_distributed_loads()
-# model.plotter.plot_axial_force()
-# model.plotter.plot_shear_force()
-# model.plotter.plot_bending_moment()
-# model.plotter.plot_slope()
-# model.plotter.plot_deflection()
-model.plotter.plot_deformed()
-# model.plotter.plot_rigid_deformed()
-# model.plotter.plot_structure()
-model.plotter.show()
-
-
-
-results_elements = {
-                    1: {
-                        "axial_force": [1, 2, 3],
-                        "shear_force": [],
-                        "bending_moment": [],
-                        "slope": [],
-                        "deflection": [],
-                    },
-                    2: {
-                        "axial_force": [],
-                        "shear_force": [],
-                        "bending_moment": [],
-                        "slope": [],
-                        "deflection": [],
-                        
-                    },
-                }
-
-results_nodes = {
-                1: {
-                    "displacements": [],
-                    "reactions": [],
-                },
-                2: {
-                    "displacements": [],
-                    "reactions": [],
-                },
-            }
+# Mostrar la ventana con la figura
+model._inicialize_plotter()
+model.plotter.initialize_plot()
+main_window(model)

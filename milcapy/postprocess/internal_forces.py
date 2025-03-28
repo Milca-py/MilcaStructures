@@ -204,17 +204,18 @@ def deflection(element: "Member", factor: float, n: int) -> Tuple[np.ndarray, np
     return x, u * factor
 
 
-def deformed(element: "Member", factor: float) -> Tuple[np.ndarray, np.ndarray]:
+def deformed(member: "Member", factor: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calcula la forma deformada del elemento.
 
     Args:
-        element: Elemento estructural
+        element_id: ID del elemento
         factor: Factor de escala
 
     Returns:
         Tupla de arrays con las coordenadas x e y de la forma deformada
     """
+    element = self.model.members[element_id]
     Lo = element.length
     # Cálculo de longitud deformada
     vertice_i = np.array(element.node_i.vertex.coordinates)  # (x_i, y_i)
@@ -248,31 +249,31 @@ def deformed(element: "Member", factor: float) -> Tuple[np.ndarray, np.ndarray]:
     return x_val, y_val
 
 
-def rigid_deformed(element: "Member", factor: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Calcula la forma deformada rígida del elemento.
 
-    Args:
-        element: Elemento estructural
-        factor: Factor de escala
+def deformed_shape(member: "Member", results: dict, escale: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Calcula las coordenada de la deformada en sistema local"""
+    Lo = member.length()
 
-    Returns:
-        Tupla de arrays con las coordenadas x e y de la forma deformada rígida
-    """
-    # Cálculo de longitud deformada
-    vertice_i = np.array(element.node_i.vertex.coordinates)  # (x_i, y_i)
-    vertice_j = np.array(element.node_j.vertex.coordinates)  # (x_j, y_j)
+    vtx_local = np.array([
+        [0, 0],
+        [Lo, 0]
+    ])
 
+    disp_local = np.array([
+        [results["displacements"][0], results["displacements"][1]],
+        [results["displacements"][3], results["displacements"][4]]
+    ]) * escale + vtx_local
 
-    # Obtener desplazamientos de los nodos
-    u_i = np.array(element.node_i.displacement[:2])  # (u_xi, u_yi)
-    u_j = np.array(element.node_j.displacement[:2])  # (u_xj, u_yj)
+    # disp_local = np.dot(np.array([
+    #     [results["displacements"][0], results["displacements"][1]],
+    #     [results["displacements"][3], results["displacements"][4]]
+    # ]), rotation_matrix(member.angle_x())) * escale + vtx_local
 
-    # Dibujar la deformada rígida
-    desp_rigid_i = vertice_i + u_i * factor
-    desp_rigid_j = vertice_j + u_j * factor
+    deflection = results["deflections"] * escale
+    x = np.linspace(0, Lo, len(deflection))
 
-    x_val = np.array([desp_rigid_i[0], desp_rigid_j[0]])
-    y_val = np.array([desp_rigid_i[1], desp_rigid_j[1]])
-    return x_val, y_val
+    # Corrección de la deformada por deformación axial
+    Lf = disp_local[1, 0] - disp_local[0, 0]
+    x_val = x * Lf / Lo + disp_local[0, 0]
 
+    return x_val, deflection

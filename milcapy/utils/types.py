@@ -102,6 +102,19 @@ class LoadType(Enum):
 
 
 
+class InternalForceType(Enum):
+    """Enumeración de tipos de Fuerzas Internas."""
+    AXIAL_FORCE = "axial_force"
+    SHEAR_FORCE = "shear_force"
+    BENDING_MOMENT = "bending_moment"
+    SLOPE = "slope"
+    DEFLECTION = "deflection"
+    DEFORMED = "deformed"
+    RIGID_DEFORMED = "rigid_deformed"
+
+
+
+
 def to_enum(key: str, enum: Enum) -> Enum:
     """Convierte un string a un miembro de un Enum."""
     assert isinstance(key, str), 'La clave debe ser un string.'

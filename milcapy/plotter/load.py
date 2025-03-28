@@ -140,7 +140,7 @@ def graphic_n_arrow(
             coord_label = (c + d) / 2
             text = ax.text(
                 coord_label[0], coord_label[1],
-                f"{abs(load_i):.2f}",
+                f"{abs(load_i)}",
                 fontsize=label_font_size,
                 # ha="center",
                 # va="center",
@@ -155,7 +155,7 @@ def graphic_n_arrow(
             else:
                 text = ax.text(
                     coord_label_i[0], coord_label_i[1],
-                    f"{abs(load_i):.2f}",
+                    f"{abs(load_i)}",
                     fontsize=label_font_size,
                     # ha="center",
                     # va="center",
@@ -167,7 +167,7 @@ def graphic_n_arrow(
             else:
                 text = ax.text(
                     coord_label_j[0], coord_label_j[1],
-                    f"{abs(load_j):.2f}",
+                    f"{abs(load_j)}",
                     fontsize=label_font_size,
                     # ha="center",
                     # va="center",

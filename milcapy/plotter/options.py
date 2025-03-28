@@ -59,7 +59,6 @@ class PlotterOptions:        # ✅✅✅
         # CARGAS DISTRIBUIDAS
         self.distributed_load = self.UI_load #True              #######
         self.scale_dist_load = {}                     ####
-        self.nrof_arrows = 10                           #######
         self.distributed_load_color = '#831f7a'         ########
         # ETIQUETAS DE CARGAS DISTRIBUIDAS
         self.distributed_load_label = self.UI_load #True              #######
@@ -68,9 +67,9 @@ class PlotterOptions:        # ✅✅✅
 
         # DEFORMADA
         self.UI_deformation_scale = {} ########### # Factor de escala para deformaciones
-        self.UI_deformed = True ########### # mostrar la deformada
+        self.UI_deformed = False ########### # mostrar la deformada
         self.UI_rigid_deformed = False ########### # Color para deformaciones
-        self.rigid_deformed_color = '#007acc' ########### # Color para deformaciones
+        self.rigid_deformed_color = '#e81f64' ########### # Color para deformaciones
         self.deformation_line_width = 1.0 ######### # Ancho de línea para deformaciones
         self.deformation_color = '#007acc' ########### # Color para deformaciones
         # CON ESTOS DATOS DE ACTUALIZA DE FORMA SIN DEFORMAR automatixcamente, y se REVIERTE CON EL BOTON DE DEFORMADA
@@ -82,19 +81,22 @@ class PlotterOptions:        # ✅✅✅
         self.disp_nodes = True    ########## # Mostrar desplazamientos en nodos
         self.disp_nodes_color = 'black'  ########## # Color para desplazamientos en nodos
         self.disp_nodes_font_size = 8    ########## # Tamaño de fuente para desplazamientos en nodos
+        self.UI_reactions = False    ########## # Mostrar reacciones
+        self.reactions_color = 'black'  ########## # Color para reacciones
+        self.reactions_font_size = 8    ########## # Tamaño de fuente para reacciones
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
         self.fi_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
-        self.axial_force_color = 'blue'    # Color para diagrama de axial
+        self.UI_axial = False
         self.axial_scale = {}
-        self.shear_force_color = 'green'   # Color para diagrama de cortante
+        self.UI_shear = False
         self.shear_scale = {}
-        self.moment_color = 'red'  # Color para diagrama de momento
+        self.UI_moment = False
         self.moment_scale = {}
-        self.slope_color = "red"                 # Color para diagrama de giros
+        self.UI_slope = False
         self.slope_scale = {}
-        self.deflection_color = "blue"           # Color para diagrama de deflexiones
+        self.UI_deflection = False
         self.deflection_scale = {}
 
         # RELLENOS Y CONTORNOS
@@ -125,6 +127,7 @@ class PlotterOptions:        # ✅✅✅
         self.point_load_label_font_size = self.label_size
         self.distributed_load_label_font_size = self.label_size
         self.disp_nodes_font_size = self.relsult_label_size
+        self.reactions_font_size = self.relsult_label_size
         self.load_mean(pattern_name)
 
     def load_mean(self, pattern_name: str):
@@ -133,12 +136,12 @@ class PlotterOptions:        # ✅✅✅
         self.scale_dist_load[pattern_name] = 0.15 * val["length_mean"] / val["q_mean"]
         self.point_load_length_arrow = 0.15 * val["length_mean"]
         self.point_moment_length_arrow = 0.075 * val["length_mean"]
-        self.axial_scale[pattern_name] = 0.15 * val["length_mean"] / val["axial_mean"]
-        self.shear_scale[pattern_name] = 0.15 * val["length_mean"] / val["shear_mean"]
-        self.moment_scale[pattern_name] = 0.15 * val["length_mean"] / val["bending_mean"]
-        self.slope_scale[pattern_name] = 0.15 * val["length_mean"] / val["slope_mean"]
+        self.axial_scale[pattern_name] = 0.3 * val["length_mean"] / val["axial_mean"]
+        self.shear_scale[pattern_name] = 0.3 * val["length_mean"] / val["shear_mean"]
+        self.moment_scale[pattern_name] = 0.3 * val["length_mean"] / val["bending_mean"]
+        self.slope_scale[pattern_name] = 0.3 * val["length_mean"] / val["slope_mean"]
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
+        self.UI_deformation_scale[pattern_name] = 0.50 * val["length_mean"] / val["deflection_mean"]
 
     def load_max(self, pattern_name: str):
         val = self._calculate_max(pattern_name)
@@ -146,12 +149,12 @@ class PlotterOptions:        # ✅✅✅
         self.scale_dist_load[pattern_name] = 0.15 * val["length_max"] / val["q_max"]
         self.point_load_length_arrow = 0.15 * val["length_max"]
         self.point_moment_length_arrow = 0.075 * val["length_max"]
-        self.axial_scale[pattern_name] = 0.15 * val["length_max"] / val["axial_max"]
-        self.shear_scale[pattern_name] = 0.15 * val["length_max"] / val["shear_max"]
-        self.moment_scale[pattern_name] = 0.15 * val["length_max"] / val["bending_max"]
-        self.slope_scale[pattern_name] = 0.15 * val["length_max"] / val["slope_max"]
+        self.axial_scale[pattern_name] = 0.3 * val["length_max"] / val["axial_max"]
+        self.shear_scale[pattern_name] = 0.3 * val["length_max"] / val["shear_max"]
+        self.moment_scale[pattern_name] = 0.3 * val["length_max"] / val["bending_max"]
+        self.slope_scale[pattern_name] = 0.3 * val["length_max"] / val["slope_max"]
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"]
-        self.UI_deformation_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"]
+        self.UI_deformation_scale[pattern_name] = 0.50 * val["length_max"] / val["deflection_max"]
 
     def _calculate_max(self, pattern_name: str):
         length_max = 0
@@ -223,3 +226,7 @@ class PlotterOptions:        # ✅✅✅
             "shear_mean": shear_mean/n,
             "axial_mean": axial_mean/n
         }
+
+    def nro_arrows(self, member_id: int):
+        dx = self.support_size/0.10 * (0.10)
+        return int(self.model.members[member_id].length()/dx)

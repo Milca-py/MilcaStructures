@@ -2,20 +2,12 @@ from typing import Dict, Tuple, List, Optional, TYPE_CHECKING
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
+from milcapy.postprocess.internal_forces import deformed_shape
+from milcapy.utils import rotation_matrix
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
     from milcapy.core.results import Results
-
-class InternalForceType(Enum):
-    """Enumeración de tipos de Fuerzas Internas."""
-    AXIAL_FORCE = "axial_force"
-    SHEAR_FORCE = "shear_force"
-    BENDING_MOMENT = "bending_moment"
-    SLOPE = "slope"
-    DEFLECTION = "deflection"
-    DEFORMED = "deformed"
-    RIGID_DEFORMED = "rigid_deformed"
 
 class PlotterValues:
     """
@@ -104,7 +96,6 @@ class PlotterValues:
         for node_id, loads in self.load_pattern.point_loads.items():
             self.point_loads[node_id] = loads.to_dict()
 
-
     # Propiedades para acceder a datos estáticos
     @property
     def nodes(self) -> Dict[int, Tuple[float, float]]:
@@ -136,53 +127,18 @@ class PlotterValues:
         ])
         return x_val, y_val
 
+    def get_deformed_shape(self, member_id: int, escale: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
 
-    # def get_deformed_shape_global(self, element_id: int, factor: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
-    #     if element_id not in self.deformed_shapes:
-    #         raise ValueError(
-    #             f"Deformed shape for element with ID {element_id} not found")
+        member = self.model.members[member_id]
 
-    #     # Obtener la deformada en coordenadas globales
-    #     deformed_x, deformed_y = self.deformed_shapes[element_id]
+        # Obtener la deformada en coordenadas globales
+        x_val, y_val = deformed_shape(member, self.results.members[member_id], escale)
 
-    #     # Aplicar factor de escala
-    #     if factor != 1.0:
-    #         original_x, original_y = self.get_member_global_coordinates(
-    #             element_id)
-    #         deformed_x = original_x + (deformed_x - original_x) * factor
-    #         deformed_y = original_y + (deformed_y - original_y) * factor
+        # Rotar el vector de deflexiones
+        deformada_local = np.column_stack((x_val, y_val))
+        deformada_global = np.dot(deformada_local, rotation_matrix(member.angle_x()).T) + member.node_i.vertex.coordinates
 
-    #     return deformed_x, deformed_y
+        x_val = deformada_global[:, 0]
+        y_val = deformada_global[:, 1]
 
-
-"""
-VALORES EN PlotterValues
-
-*** ESTRUCTURA ***
-1. Nodos                    : {id_node: (x, y)}
-2. Miembros                 : {id_member: [(x1, y1), (x2, y2)]}
-3. Restricciones            : {id_node: (restricciones)}
-4. Cargas_distribuidas      : {id_member: {q_i, q_j, p_i, p_j, m_i, m_j}}
-5. Cargas_puntuales         : {id_node: {fx, fy, mz}}
-
-*** RESULTADOS DE ANALISIS MATRICIAL***
-1. Desplazamientos nodales  : {id_node: (ux, vy, wz)}
-2. Reacciones               : {id_node: (rx, ry, rz)}
-3. Fuerzas internas         : {id_member: {axial, shear, moment}}
-
-*** RESULTADOS DE POST-PROCESSING***
-1. Fuerzas Axiales          : {id_member: np.ndarray}
-2. Fuerzas Cortantes        : {id_member: np.ndarray}
-3. Momentos Flectores       : {id_member: np.ndarray}
-4. Giros                    : {id_member: np.ndarray}
-5. Deflexiones              : {id_member: np.ndarray}
-6. Deformada                : {id_member: np.ndarray}
-7. Deformada Rígida         : {id_member: np.ndarray}
-"""
-
-# ? IMPLEMTAR FLECHAS CON FI
-# ? CALCULAR LA DEFORMADA EN SISTEMA LOCAL
-# ? TRANSFORMAR A GLOBALES
-
-
-
+        return x_val, y_val
