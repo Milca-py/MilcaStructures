@@ -38,8 +38,8 @@ portico.add_distributed_load(2, "CARGA1", -5, -5)
 # portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA2")
-portico.add_distributed_load(2, "CARGA2", -5, -5)
-portico.add_distributed_load(3, "CARGA2", 5, 5)
+portico.add_distributed_load(2, "CARGA2", -7, -7)
+portico.add_distributed_load(3, "CARGA2", 7, 7)
 
 portico.add_load_pattern("CARGA3")
 portico.add_distributed_load(3, "CARGA3", 5, 5)
@@ -49,6 +49,7 @@ portico.add_distributed_load(4, "CARGA3", 5, 5)
 # 5. Resolución del modelo
 # --------------------------------------------------
 portico.postprocessing_options.n = 40
+portico.analysis_options.include_shear_deformations = False
 portico.solve()
 
 # --------------------------------------------------
@@ -57,3 +58,8 @@ portico.solve()
 portico._inicialize_plotter()
 portico.plotter.initialize_plot()
 main_window(portico)
+
+
+# import pprint
+# pprint.pprint(portico.results["CARGA1"].get_node_reactions(1))
+# pprint.pprint(portico.results["CARGA1"].get_node_reactions(5))

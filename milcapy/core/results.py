@@ -40,17 +40,17 @@ class Results:
     def set_model_reactions(self, reactions: np.ndarray) -> None:
         self.model["reactions"] = reactions 
 
-    def set_node_displacement(self, node_id: int, displacement: np.ndarray) -> None:
+    def set_node_displacements(self, node_id: int, displacement: np.ndarray) -> None:
         if node_id not in self.nodes:
             self.nodes[node_id] = {"displacements": np.zeros(3), "reactions": np.zeros(3)}
         self.nodes[node_id]["displacements"] = displacement
 
-    def set_node_reaction(self, node_id: int, reaction: np.ndarray) -> None:
+    def set_node_reactions(self, node_id: int, reaction: np.ndarray) -> None:
         if node_id not in self.nodes:
             self.nodes[node_id] = {"displacements": np.zeros(3), "reactions": np.zeros(3)}
         self.nodes[node_id]["reactions"] = reaction
 
-    def set_member_displacement(self, member_id: int, displacement: np.ndarray) -> None:
+    def set_member_displacements(self, member_id: int, displacement: np.ndarray) -> None:
         if member_id not in self.members:
             self.members[member_id] = {"displacements": np.zeros(6), "internal_forces": np.zeros(6)}
         self.members[member_id]["displacements"] = displacement
@@ -81,13 +81,13 @@ class Results:
     def get_model_reactions(self) -> np.ndarray:
         return self.model["reactions"]
 
-    def get_node_displacement(self, node_id: int) -> np.ndarray:
+    def get_node_displacements(self, node_id: int) -> np.ndarray:
         return self.nodes[node_id]["displacements"]
 
-    def get_node_reaction(self, node_id: int) -> np.ndarray:
+    def get_node_reactions(self, node_id: int) -> np.ndarray:
         return self.nodes[node_id]["reactions"]
 
-    def get_member_displacement(self, member_id: int) -> np.ndarray:
+    def get_member_displacements(self, member_id: int) -> np.ndarray:
         return self.members[member_id]["displacements"]
 
     def get_member_internal_forces(self, member_id: int) -> np.ndarray:

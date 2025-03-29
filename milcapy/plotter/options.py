@@ -65,6 +65,9 @@ class PlotterOptions:        # ✅✅✅
         self.distributed_load_label_color = '#511f74'   #######
         self.distributed_load_label_font_size = 8       #######
 
+        self.UI_reactions = False              #######
+        self.reactions_color = '#b62ded'           #######
+
         # DEFORMADA
         self.UI_deformation_scale = {} ########### # Factor de escala para deformaciones
         self.UI_deformed = False ########### # mostrar la deformada
@@ -81,9 +84,6 @@ class PlotterOptions:        # ✅✅✅
         self.disp_nodes = True    ########## # Mostrar desplazamientos en nodos
         self.disp_nodes_color = 'black'  ########## # Color para desplazamientos en nodos
         self.disp_nodes_font_size = 8    ########## # Tamaño de fuente para desplazamientos en nodos
-        self.UI_reactions = False    ########## # Mostrar reacciones
-        self.reactions_color = 'black'  ########## # Color para reacciones
-        self.reactions_font_size = 8    ########## # Tamaño de fuente para reacciones
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
@@ -117,6 +117,8 @@ class PlotterOptions:        # ✅✅✅
         # OTROS:
         self.label_size = 8               # Tamaño de fuente para etiquetas
         self.relsult_label_size = 8       # Tamaño de fuente para etiquetas de resultados
+
+
 
     def reset(self, pattern_name: str):
         """

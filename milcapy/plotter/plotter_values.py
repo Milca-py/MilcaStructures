@@ -1,13 +1,10 @@
-from typing import Dict, Tuple, List, Optional, TYPE_CHECKING
-from enum import Enum
-from dataclasses import dataclass
+from typing import Dict, Tuple, List, TYPE_CHECKING
 import numpy as np
 from milcapy.postprocess.internal_forces import deformed_shape
 from milcapy.utils import rotation_matrix
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
-    from milcapy.core.results import Results
 
 class PlotterValues:
     """

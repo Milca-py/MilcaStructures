@@ -1,18 +1,13 @@
 import sys
-from trace import Trace
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QShortcut, QIcon, QDoubleValidator
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
     QPushButton, QCheckBox, QComboBox, QLineEdit, QColorDialog, QWidget, QWidgetAction
 )
-from milcapy.plotter.options import PlotterOptions
 from milcapy.model.model import SystemMilcaModel
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-
-
-
+import copy
 # Clase para mostrar un gráfico de Matplotlib en un widget de Qt
 class MatplotlibCanvas(QWidget):
     def __init__(self, parent, model: 'SystemMilcaModel'):
@@ -107,8 +102,6 @@ class MatplotlibCanvas(QWidget):
             self.active_ax.set_xlim(x_min + dx, x_max + dx)
             self.active_ax.set_ylim(y_min + dy, y_max + dy)
             self.canvas.draw_idle()
-
-
 
 # Clase para la ventana de opciones de gráfico (ventas emergente)
 class GraphicOptionsDialog(QDialog):
@@ -256,11 +249,11 @@ class GraphicOptionsDialog(QDialog):
 
     def restore_defaults(self):
         """Restablece las opciones a los valores por defecto."""
-        self.show_nodes_checkbox.setChecked(False)
+        self.show_nodes_checkbox.setChecked(True)
         self.node_labels_checkbox.setChecked(False)
         self.show_members_checkbox.setChecked(True)
         self.member_labels_checkbox.setChecked(False)
-        self.show_loads_checkbox.setChecked(False)
+        self.show_loads_checkbox.setChecked(True)
         self.deformation_scale_input.setText("40")
         self.filling_type_combo.setCurrentText("Sólido")
         self.colormap_combo.setCurrentText("Jet")
@@ -268,7 +261,7 @@ class GraphicOptionsDialog(QDialog):
         self.__recover_values()
         self.options["UI_background_color"] = '#e5e5e5'  # ! RESTABLECE EL COLOR DE FONDO INICIAL
         self.__transfer_changes()
-        self.update_changer()
+        self.update_changer(reset=True)
         print("Restaurado a valores por defecto.")
 
     def accept_changes(self):
@@ -292,7 +285,7 @@ class GraphicOptionsDialog(QDialog):
         self.options["UI_member_labels"] = self.member_labels_checkbox.isChecked()
         self.options["UI_load"] = self.show_loads_checkbox.isChecked()
         deformation_scale_text = self.deformation_scale_input.text()
-        self.options["UI_deformation_scale"] = float(
+        self.options["UI_deformation_scale"][self.current_load_pattern] = float(
             deformation_scale_text) if deformation_scale_text else 40
         self.options["UI_filling_type"] = self.filling_type_combo.currentText()
         self.options["UI_colormap"] = self.colormap_combo.currentText()
@@ -307,7 +300,7 @@ class GraphicOptionsDialog(QDialog):
         op.UI_node_labels = self.options.get("UI_node_labels", False)
         op.UI_member_labels = self.options.get("UI_member_labels", False)
         op.UI_load = self.options.get("UI_load", True)
-        op.UI_deformation_scale = self.options.get("UI_deformation_scale", 40)
+        # op.UI_deformation_scale[self.current_load_pattern] = self.options.get("UI_deformation_scale")[self.current_load_pattern]
         if self.options.get("UI_filling_type", "Sólido") == "Sin Relleno":
             op.UI_fill_diagram = False
         else:
@@ -322,12 +315,12 @@ class GraphicOptionsDialog(QDialog):
         self.show_members_checkbox.setChecked(self.options.get("UI_show_members", True))
         self.member_labels_checkbox.setChecked(self.options.get("UI_member_labels", False))
         self.show_loads_checkbox.setChecked(self.options.get("UI_load", True))
-        self.deformation_scale_input.setText(str(self.options.get("UI_deformation_scale", 40)))
+        self.deformation_scale_input.setText(str(self.options.get("UI_deformation_scale", {}).get(self.current_load_pattern, 40)))
         self.filling_type_combo.setCurrentText(self.options.get("UI_filling_type", "Sólido"))
         self.colormap_combo.setCurrentText(self.options.get("UI_colormap", "Jet"))
         self.show_colorbar_checkbox.setChecked(self.options.get("UI_show_colorbar", True))
 
-    def update_changer(self):
+    def update_changer(self, reset: bool = False):
         """Actualiza los cambios al figura principal y su vista inmediata."""
         if self.options.get("UI_background_color", None) is not None:
             self.model.plotter.change_background_color()    # cambia el color de fondo
@@ -341,6 +334,17 @@ class GraphicOptionsDialog(QDialog):
         self.model.plotter.update_distributed_loads()
         self.model.plotter.update_distributed_load_labels()
         # !  IMPLEMNETAR PARA QUE PLOTEE DENUEVO PARA UNA ESCALA DIFERENTE
+        # verificar si cambio la escala de deformación
+        escala = self.options.get("UI_deformation_scale", {}).get(self.current_load_pattern, 40)
+        if escala != self.plotter_options.UI_deformation_scale.get(self.current_load_pattern, 40):
+            self.model.plotter.update_deformed(escala=escala)
+            self.model.plotter.update_rigid_deformed(escala=escala)
+
+        if reset:
+            escala = self.plotter_options.UI_deformation_scale.get(self.current_load_pattern, 40)
+            self.model.plotter.update_deformed(escala=escala)
+            self.model.plotter.update_rigid_deformed(escala=escala)
+
 
 
 # Clase para la ventana principal
@@ -438,7 +442,7 @@ class MainWindow(QMainWindow):
             "UI_show_members": True,
             "UI_member_labels": False,
             "UI_load": True,
-            "UI_deformation_scale": 40,
+            "UI_deformation_scale": copy.deepcopy(self.model.plotter_options.UI_deformation_scale),
             "UI_internal_forces_scale": 0.03,
             "UI_filling_type": "Sólido",
             "UI_colormap": "Jet",
@@ -462,6 +466,7 @@ class MainWindow(QMainWindow):
     def on_pattern_selected(self, value):
         # ! NOTIFICATION
         self.model.current_load_pattern = value
+        # self.model.plotter.get_plotter_values(self.model.current_load_pattern)
         print(f"Seleccionaste el patron: {value}")
         self.DFA.setChecked(self.model.plotter_options.UI_axial)
         self.DFC.setChecked(self.model.plotter_options.UI_shear)
@@ -492,6 +497,10 @@ class MainWindow(QMainWindow):
             self.mostrar_momentos(2)
         elif not self.model.plotter_options.UI_moment:
             self.mostrar_momentos(0)
+        if self.model.plotter_options.UI_reactions:
+            self.mostrar_reacciones(2)
+        elif not self.model.plotter_options.UI_reactions:
+            self.mostrar_reacciones(0)
 
     def mostrar_fuerzas_axiales(self, state):
         """Muestra las fuerzas axiales"""
@@ -531,9 +540,11 @@ class MainWindow(QMainWindow):
         if state == 2:
             print("Reacciones mostradas")
             self.model.plotter_options.UI_reactions = True
+            self.model.plotter.update_reactions(visibility=True)
         elif state == 0:
             print("Reacciones ocultadas")
             self.model.plotter_options.UI_reactions = False
+            self.model.plotter.update_reactions(visibility=False)
 
     def mostrar_deformada(self, state):
         """Muestra la deformada"""

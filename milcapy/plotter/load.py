@@ -13,6 +13,7 @@ def _correction_angle(angle: float) -> float:
     elif 90 < angle <= 270:
         return (angle - 180)
 
+
 def graphic_one_arrow(
     x: float,
     y: float,
@@ -63,29 +64,15 @@ def graphic_one_arrow(
 # y = 0.5
 # load = 400
 # length_arrow = 0.5
-# angle = np.pi/180 * 90
+# angle = np.pi/180 * 180
 # graphic_one_arrow(x, y, load, length_arrow, angle, ax)
 # plt.show()
 
 
-"""
-si: X -> (-)=0, (+)=180
-si: Y -> (-)=90, (+)=270
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# """
+# si: X -> (-)=0, (+)=180
+# si: Y -> (-)=90, (+)=270
+# """
 
 
 def graphic_n_arrow(
@@ -265,4 +252,103 @@ def moment_fancy_arrow(
 # moment = -400
 # radio = 0.1
 # arrow, text = moment_fancy_arrow(ax, x, y, moment, radio)
+# plt.show()
+
+
+
+
+
+
+
+def analyze_areas(points):
+    if not points:
+        return []
+    
+    def get_sign(y):
+        return 1 if y >= 0 else -1
+    
+    areas = []
+    current_area = [points[0]]
+    current_sign = get_sign(points[0][1])
+    
+    for i in range(1, len(points)):
+        current_point = points[i-1]
+        next_point = points[i]
+        next_sign = get_sign(next_point[1])
+        
+        if current_sign == next_sign:
+            current_area.append(next_point)
+        else:
+            # Calcular la intersección
+            x1, y1 = current_point
+            x2, y2 = next_point
+            delta_y = y2 - y1
+            t = (-y1) / delta_y
+            x_intercept = x1 + t * (x2 - x1)
+            intersection = [x_intercept, 0.0]
+            
+            current_area.append(intersection)
+            areas.append(current_area)
+            
+            # Iniciar nueva área
+            current_area = [intersection, next_point]
+            current_sign = next_sign
+    
+    # Añadir el área actual restante
+    areas.append(current_area)
+    
+    return areas
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+
+# # Función para rotar puntos 45°
+# def rotate_45(points):
+#     theta = np.radians(45)
+#     rotation_matrix = np.array([
+#         [np.cos(theta), -np.sin(theta)],
+#         [np.sin(theta), np.cos(theta)]
+#     ])
+#     rotated = []
+#     for point in points:
+#         rotated_point = rotation_matrix @ np.array(point)
+#         rotated.append(rotated_point)
+#     return np.array(rotated)
+
+
+# # Generar datos de ejemplo
+# x = np.linspace(0, 10, 100)
+# y = np.sin(x) * 2  # Función con cambios de signo
+# points = np.column_stack((x, y)).tolist()
+
+# # Analizar áreas
+# areas = analyze_areas(points)
+
+# # Configurar el plot
+# plt.figure(figsize=(12, 6))
+
+# # Plot original
+# plt.subplot(1, 2, 1)
+# plt.title("Original")
+# for i, area in enumerate(areas):
+#     area = np.array(area)
+#     color = 'blue' if area[0,1] >= 0 else 'red'
+#     plt.plot(area[:,0], area[:,1], color=color, marker='o', markersize=3)
+#     plt.fill_between(area[:,0], area[:,1], 0, color=color, alpha=0.2)
+# plt.axhline(0, color='black', linestyle='--')
+# plt.grid(True)
+
+# # Plot rotado 45°
+# plt.subplot(1, 2, 2)
+# plt.title("Rotado 45°")
+# for i, area in enumerate(areas):
+#     rotated_area = rotate_45(area)
+#     color = 'blue' if area[0][1] >= 0 else 'red'
+#     plt.plot(rotated_area[:,0], rotated_area[:,1], color=color, marker='o', markersize=3)
+#     plt.fill(rotated_area[:,0], rotated_area[:,1], color=color, alpha=0.2)
+# plt.axhline(0, color='black', linestyle='--')
+# plt.grid(True)
+
+# plt.tight_layout()
 # plt.show()

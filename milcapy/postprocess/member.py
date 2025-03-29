@@ -196,6 +196,7 @@ class BeamSeg():
 
         return (term1 + term2 + term3 + term4 + term5 + term6) / (EI)
 
+
     def process_builder(self, member: "Member", results: "Dict[str, np.ndarray]", pattern_name: str) -> None:
         self.xi =0
         self.xj = member.length()

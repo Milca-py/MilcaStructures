@@ -47,7 +47,7 @@ class PostProcessing:   # para un solo load pattern
         """Almacena las desplazamientos de los nodos en el objeto Results."""
         for id, node in self.model.nodes.items():
             array_displacements = self.displacements[node.dofs-1]
-            self.results.set_node_displacement(id, array_displacements)
+            self.results.set_node_displacements(id, array_displacements)
 
     def process_reactions_for_nodes(self) -> None:
         """Almacena las reacciones de los nodos en el objeto Results."""
@@ -56,19 +56,19 @@ class PostProcessing:   # para un solo load pattern
                 pass
             else:
                 array_reactions = self.reactions[node.dofs-1]
-                self.results.set_node_reaction(id, array_reactions)
+                self.results.set_node_reactions(id, array_reactions)
 
     def process_displacements_for_members(self) -> None:
         """Almacena las desplazamientos de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
             global_displacements = self.displacements[member.dofs-1]
             array_displacements = np.dot(member.transformation_matrix(), global_displacements)
-            self.results.set_member_displacement(id, array_displacements)
+            self.results.set_member_displacements(id, array_displacements)
 
     def process_internal_forces_for_members(self) -> None:
         """Almacena las fuerzas internas de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
-            local_displacements = self.results.get_member_displacement(id)
+            local_displacements = self.results.get_member_displacements(id)
             load_vector = member.local_load_vector()
             stiffness_matrix = member.local_stiffness_matrix()
             array_internal_forces = np.dot(stiffness_matrix, local_displacements) - load_vector

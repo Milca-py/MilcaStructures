@@ -113,6 +113,7 @@ class Plotter:
             self.plot_axial_force()
             self.plot_shear_force()
             self.plot_bending_moment()
+            self.plot_reactions()
 
         # actualizar pattern actual al primero
         self.current_load_pattern = list(self.model.results.keys())[0]
@@ -133,6 +134,7 @@ class Plotter:
                 self.update_axial_force(visibility=False)
                 self.update_shear_force(visibility=False)
                 self.update_bending_moment(visibility=False)
+                self.update_reactions(visibility=False)
             elif load_pattern_name == pt_cache:
                 if self.plotter_options.UI_load:
                     self.update_point_load(visibility=True)
@@ -149,7 +151,8 @@ class Plotter:
                     self.update_shear_force(visibility=True)
                 if self.plotter_options.UI_moment:
                     self.update_bending_moment(visibility=True)
-
+                if self.plotter_options.UI_reactions:
+                    self.update_reactions(visibility=True)
         self.figure.canvas.draw_idle()
         self.current_load_pattern = pt_cache
 
@@ -173,6 +176,9 @@ class Plotter:
 
         # Guardar en caché
         self.plotter_values[load_pattern_name] = plotter_values
+
+        # Actualizar valores
+        self.current_values = plotter_values
 
         return plotter_values
 
@@ -555,10 +561,18 @@ class Plotter:
             line.set_visible(self.plotter_options.UI_rigid_deformed)
         self.figure.canvas.draw_idle()
 
-    def update_rigid_deformed(self, visibility: Optional[bool] = None):
+    def update_rigid_deformed(self, visibility: Optional[bool] = None, escala: float | None = None) -> None:
         visibility = self.plotter_options.UI_rigid_deformed if visibility is None else visibility
         for line in self.rigid_deformed_shape[self.current_load_pattern].values():
             line.set_visible(visibility)
+
+        # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
+        if escala is not None:
+            for member in self.model.members.values():
+                self.current_values = self.get_plotter_values(self.current_load_pattern)
+                x, y = self.current_values.rigid_deformed(member.id, escala)
+                self.rigid_deformed_shape[self.current_load_pattern][member.id].set_data(x, y)
+
         self.figure.canvas.draw_idle()
 
     def plot_deformed(self, escala: float | None = None) -> None:
@@ -573,10 +587,18 @@ class Plotter:
             line.set_visible(self.plotter_options.UI_deformed)
         self.figure.canvas.draw_idle()
 
-    def update_deformed(self, visibility: Optional[bool] = None):
+    def update_deformed(self, visibility: Optional[bool] = None, escala: float | None = None):
         visibility = self.plotter_options.UI_deformed if visibility is None else visibility
         for line in self.deformed_shape[self.current_load_pattern].values():
             line.set_visible(visibility)
+
+        # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
+        if escala is not None:
+            for member in self.model.members.values():
+                self.current_values = self.get_plotter_values(self.current_load_pattern)
+                x, y = self.current_values.get_deformed_shape(member.id, escala)
+                self.deformed_shape[self.current_load_pattern][member.id].set_data(x, y)
+
         self.figure.canvas.draw_idle()
 
     def plot_internal_forces(self, type: InternalForceType, escala: float | None = None) -> None:
@@ -777,3 +799,37 @@ class Plotter:
     def update_bending_moment(self, visibility: Optional[bool] = None) -> None:
         self.update_internal_forces(
             InternalForceType.BENDING_MOMENT, visibility)
+
+    def plot_reactions(self) -> None:
+        self.reactions[self.current_load_pattern] = {}
+        for node in self.model.nodes.values():
+            reactions = self.model.results[self.current_load_pattern].get_node_reactions(node.id)
+            length_arrow = self.plotter_options.point_load_length_arrow
+            moment_length_arrow = 0.70 * self.plotter_options.point_moment_length_arrow
+            if reactions[0] != 0:
+                arrowRX, textRX = graphic_one_arrow(
+                    node.vertex.x, node.vertex.y, round(reactions[0], 2), length_arrow,
+                    0 if reactions[0] < 0 else np.pi, self.axes,
+                    self.plotter_options.reactions_color, True, "blue", 8)
+            if reactions[1] != 0:
+                arrowRY, textRY = graphic_one_arrow(
+                    node.vertex.x, node.vertex.y, round(reactions[1], 2), length_arrow,
+                    np.pi/2 if reactions[1] < 0 else 3*np.pi/2, self.axes,
+                    self.plotter_options.reactions_color, True, "blue", 8)
+            if reactions[2] != 0:
+                arrowMZ, textMZ = moment_fancy_arrow(
+                    self.axes, node.vertex.x, node.vertex.y, round(reactions[2], 2), moment_length_arrow,
+                    self.plotter_options.reactions_color, True, True, "blue", 8)
+                artists = [arrowRX, arrowRY, arrowMZ, textRX, textRY, textMZ]
+                for artist in artists:
+                    artist.set_visible(self.plotter_options.UI_reactions)
+            self.reactions[self.current_load_pattern][node.id] = artists
+
+        self.figure.canvas.draw_idle()
+
+    def update_reactions(self, visibility: Optional[bool] = None) -> None:
+        visibility = self.plotter_options.UI_reactions if visibility is None else visibility
+        for listArtist in self.reactions[self.current_load_pattern].values():
+            for artist in listArtist:
+                artist.set_visible(visibility)
+        self.figure.canvas.draw_idle()
