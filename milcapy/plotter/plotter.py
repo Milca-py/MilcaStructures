@@ -114,6 +114,7 @@ class Plotter:
             self.plot_shear_force()
             self.plot_bending_moment()
             self.plot_reactions()
+            self.plot_displaced_nodes()
 
         # actualizar pattern actual al primero
         self.current_load_pattern = list(self.model.results.keys())[0]
@@ -135,6 +136,7 @@ class Plotter:
                 self.update_shear_force(visibility=False)
                 self.update_bending_moment(visibility=False)
                 self.update_reactions(visibility=False)
+                self.update_displaced_nodes(visibility=False)
             elif load_pattern_name == pt_cache:
                 if self.plotter_options.UI_load:
                     self.update_point_load(visibility=True)
@@ -145,6 +147,8 @@ class Plotter:
                     self.update_rigid_deformed(visibility=True)
                 if self.plotter_options.UI_deformed:
                     self.update_deformed(visibility=True)
+                if self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed:
+                    self.update_displaced_nodes(visibility=True)
                 if self.plotter_options.UI_axial:
                     self.update_axial_force(visibility=True)
                 if self.plotter_options.UI_shear:
@@ -153,6 +157,8 @@ class Plotter:
                     self.update_bending_moment(visibility=True)
                 if self.plotter_options.UI_reactions:
                     self.update_reactions(visibility=True)
+                if self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed:
+                    self.update_displaced_nodes(visibility=True)
         self.figure.canvas.draw_idle()
         self.current_load_pattern = pt_cache
 
@@ -262,13 +268,13 @@ class Plotter:
         """
         # if not self.plotter_options.UI_show_nodes:
         #     return
-        for id, coord in self.current_values.nodes.items():
+        for node_id, coord in self.current_values.nodes.items():
             x = [coord[0]]
             y = [coord[1]]
 
             node = self.axes.scatter(
                 x, y, c=self.plotter_options.node_color, s=self.plotter_options.node_size, marker='o')
-            self.nodes[id] = node
+            self.nodes[node_id] = node
             node.set_visible(self.plotter_options.UI_show_nodes)
         self.figure.canvas.draw_idle()
 
@@ -833,3 +839,36 @@ class Plotter:
             for artist in listArtist:
                 artist.set_visible(visibility)
         self.figure.canvas.draw_idle()
+
+    def plot_displaced_nodes(self) -> None:
+        self.deformed_nodes[self.current_load_pattern] = {}
+        for node_id, coord in self.current_values.nodes.items():
+            ux = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
+            vy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
+            x = [coord[0] + ux]
+            y = [coord[1] + vy]
+
+            node = self.axes.scatter(
+                x, y, c=self.plotter_options.node_color, s=self.plotter_options.node_size, marker='o')
+            self.deformed_nodes[self.current_load_pattern][node_id] = node
+            visibility = self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed
+            node.set_visible(visibility)
+        self.figure.canvas.draw_idle()
+
+    def update_displaced_nodes(self, visibility: Optional[bool] = None, scale: Optional[float] = None) -> None:
+        vis = self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed
+        visibility = vis if visibility is None else visibility
+        for node in self.deformed_nodes[self.current_load_pattern].values():
+            node.set_visible(visibility)
+        self.figure.canvas.draw_idle()
+
+
+        # HACER UN SET_DATA(X, Y) A TODOS LOS NODOS DEL ACTUAL LOAD_PATTERN
+        if scale is not None:
+            for node_id, node in self.deformed_nodes[self.current_load_pattern].items():
+                ux = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*scale
+                vy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*scale
+                x = self.model.nodes[node_id].vertex.x + ux
+                y = self.model.nodes[node_id].vertex.y + vy
+                node.set_offsets([x, y])
+            self.figure.canvas.draw_idle()

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 from milcapy.model.model import SystemMilcaModel
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import copy
+import numpy as np
 # Clase para mostrar un gráfico de Matplotlib en un widget de Qt
 class MatplotlibCanvas(QWidget):
     def __init__(self, parent, model: 'SystemMilcaModel'):
@@ -35,8 +36,36 @@ class MatplotlibCanvas(QWidget):
         self.pan_active = False
         self.active_ax = None  # Eje activo
 
+
+        # ==================== NODO SELECCIONABLE ====================
+        # Datos de nodos (coordenadas X, Y)
+        self.ax = self.model.plotter.axes
+        # self.nodes = self.model.plotter.deformed_nodes[self.current_load_pattern] # {id: ax.scater(x, y)}
+        self.selected_node = None  # Nodo actualmente seleccionado
+
+        # Anotación para mostrar información del nodo seleccionado
+        self.annotation = self.ax.annotate(
+            "", 
+            xy=(0, 0), 
+            xytext=(10, 10), 
+            textcoords="offset points",
+            fontsize=8,               # Tamaño de letra
+            fontweight="normal",         # Negrita ("bold", "light", "normal")
+            color="blue",             # Color del texto
+            style="italic",            # Cursiva ("italic", "normal")
+            # bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="blue"), # Estilo del fondo
+            arrowprops=dict(arrowstyle="->", color="black") # Flecha
+        )
+
+        self.annotation.set_visible(False)
+        # ===============================================================
+
         # Conectar eventos de ratón
         self._connect_events()
+
+    @property
+    def nodes(self):
+        return self.model.plotter.deformed_nodes[self.current_load_pattern] # {id: ax.scater(x, y)}
 
     @property
     def current_load_pattern(self) -> str | None:
@@ -48,6 +77,52 @@ class MatplotlibCanvas(QWidget):
         self.canvas.mpl_connect('button_release_event',
                                 self._on_button_release)
         self.canvas.mpl_connect('motion_notify_event', self._on_mouse_move)
+        self.canvas.mpl_connect('button_press_event', self._on_click)
+
+    def _on_click(self, event):
+        """ Detecta el nodo más cercano en píxeles y activa el snap """
+        if event.inaxes is None and 1:  # Clic fuera del gráfico
+            return
+
+        # Convertir coordenadas de nodos a píxeles de pantalla
+        node_pixels = {node_id: self.ax.transData.transform(s.get_offsets()[0])
+                       for node_id, s in self.nodes.items()}  # {id: (px_x, px_y)}
+
+        # Coordenadas del clic en píxeles
+        click_pixel = np.array([event.x, event.y])
+
+        # Calcular distancia en píxeles entre el clic y cada nodo
+        distances = {node_id: np.linalg.norm(pos - click_pixel) for node_id, pos in node_pixels.items()}
+
+        # Definir umbral de snap (10 píxeles)
+        snap_threshold = 10
+        closest_node = min(distances, key=distances.get)  # Nodo más cercano
+        closest_distance = distances[closest_node]
+
+        if closest_distance <= snap_threshold and event.button == 1:
+            # Restaurar color del nodo previamente seleccionado
+            if self.selected_node is not None:
+                self.nodes[self.selected_node].set_color('blue')
+
+            # Seleccionar nuevo nodo
+            self.selected_node = closest_node
+            self.nodes[self.selected_node].set_color('red')  # Cambiar color
+
+            # Actualizar anotación
+            node_x, node_y = self.nodes[self.selected_node].get_offsets()[0]
+            displacements = self.model.results[self.current_load_pattern].get_node_displacements(self.selected_node)
+            self.annotation.set_text(f"Nodo {self.selected_node}\nux = {displacements[0]:.7f}\nuy = {displacements[1]:.7f}\nrz = {displacements[2]:.7f}")
+            self.annotation.xy = (node_x, node_y)
+            self.annotation.set_visible(True)
+        elif closest_distance > snap_threshold and event.button == 1:
+            # Si no hay nodos cercanos, ocultar anotación y restaurar color
+            if self.selected_node is not None:
+                self.nodes[self.selected_node].set_color('blue')
+            self.selected_node = None
+            self.annotation.set_visible(False)
+
+        # Actualizar ploteo
+        self.canvas.draw_idle()
 
     def _on_scroll(self, event):
         """Zoom con la rueda del ratón."""
@@ -339,11 +414,13 @@ class GraphicOptionsDialog(QDialog):
         if escala != self.plotter_options.UI_deformation_scale.get(self.current_load_pattern, 40):
             self.model.plotter.update_deformed(escala=escala)
             self.model.plotter.update_rigid_deformed(escala=escala)
+            self.model.plotter.update_displaced_nodes(scale=escala)
 
         if reset:
             escala = self.plotter_options.UI_deformation_scale.get(self.current_load_pattern, 40)
             self.model.plotter.update_deformed(escala=escala)
             self.model.plotter.update_rigid_deformed(escala=escala)
+            self.model.plotter.update_displaced_nodes(scale=escala)
 
 
 
@@ -474,6 +551,7 @@ class MainWindow(QMainWindow):
         self.REACIONES.setChecked(self.model.plotter_options.UI_reactions)
         self.DEFORMADA.setChecked(self.model.plotter_options.UI_deformed)
         self.DEFORMADA_RIGIDA.setChecked(self.model.plotter_options.UI_rigid_deformed)
+        # self.model.plotter.update_change()
 
         # ! ACTUALIZACIONES DE VISIBILIDAD AL CAMBIAR EL PATRON
         if self.model.plotter_options.UI_deformed:
@@ -552,10 +630,12 @@ class MainWindow(QMainWindow):
             print("Deformada mostrada")
             self.model.plotter_options.UI_deformed = True
             self.model.plotter.update_deformed()
+            self.model.plotter.update_displaced_nodes()
         elif state == 0:
             print("Deformada ocultada")
             self.model.plotter_options.UI_deformed = False
             self.model.plotter.update_deformed()
+            self.model.plotter.update_displaced_nodes()
 
     def mostrar_deformada_rigida(self, state):
         """Muestra la deformada rígida"""
@@ -563,10 +643,12 @@ class MainWindow(QMainWindow):
             print("Deformada rígida mostrada")
             self.model.plotter_options.UI_rigid_deformed = True
             self.model.plotter.update_rigid_deformed()
+            self.model.plotter.update_displaced_nodes()
         elif state == 0:
             print("Deformada rígida ocultada")
             self.model.plotter_options.UI_rigid_deformed = False
             self.model.plotter.update_rigid_deformed()
+            self.model.plotter.update_displaced_nodes()
 
 
 
