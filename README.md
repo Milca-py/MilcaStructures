@@ -1,6 +1,6 @@
 # **MILCApy**
 
-es un modulo de MilcaStrures, sirve para anlizar estructuras 2D con elementos tipo frame
+es un modulo de MilcaStrucres, sirve para anlizar estructuras 2D con elementos tipo frame
 
 ## Incluye
 - diagrama de fuerzas axiales
