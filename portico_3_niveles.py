@@ -43,7 +43,6 @@ nodes = {
     6: (7, 5),
     7: (7, 8.5),
     8: (7, 12),
-    # 9: (3.5, 15)  # Desactivado en este ejemplo
 }
 
 for key, value in nodes.items():
@@ -62,8 +61,6 @@ elements = {
     7: (2, 6, "seccion1"),
     8: (3, 7, "seccion1"),
     9: (4, 8, "seccion1"),
-    # 10: (4, 9, "seccion1"),
-    # 11: (8, 9, "seccion1")
 }
 
 for key, value in elements.items():

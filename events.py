@@ -8,7 +8,7 @@ class NodePlotter(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Snap en Píxeles")
+        self.setWindowTitle("Seleccionar Líneas y Nodos")
         self.setGeometry(100, 100, 600, 500)
 
         # Widget principal
@@ -27,69 +27,100 @@ class NodePlotter(QMainWindow):
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
 
-        # Datos de nodos en un diccionario {id: scatter}
-        self.nodes = {}  
+        # Diccionario de nodos {id: scatter}
+        self.nodes = {}
         node_data = {0: (1, 2), 1: (3, 4), 2: (5, 1), 3: (6, 3)}  # {id: (x, y)}
 
-        # Crear scatter plot por cada nodo y almacenarlo en el diccionario
+        # Crear scatter plot para cada nodo
         for node_id, (x, y) in node_data.items():
             self.nodes[node_id] = self.ax.scatter(x, y, color='blue', picker=True)  
 
-        self.selected_node = None  # Nodo actualmente seleccionado
+        # Diccionario de líneas {id: Line2D}
+        self.lines = {}
+        line_data = {0: ([1, 3], [2, 4]), 1: ([3, 5], [4, 1]), 2: ([5, 6], [1, 3])}  # {id: ([x1, x2], [y1, y2])}
 
-        # Anotación para mostrar información del nodo seleccionado
+        # Crear las líneas y almacenarlas en el diccionario
+        for line_id, (x_vals, y_vals) in line_data.items():
+            line, = self.ax.plot(x_vals, y_vals, color='gray', linewidth=2, picker=True)
+            self.lines[line_id] = line  # Guardar referencia a la línea
+
+        self.selected_node = None  # Nodo actualmente seleccionado
+        self.selected_line = None  # Línea actualmente seleccionada
+
+        # Anotación para mostrar información de selección
         self.annotation = self.ax.annotate(
             "", xy=(0, 0), xytext=(10, 10), textcoords="offset points",
-            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="yellow"),
+            fontsize=10, fontweight="bold", color="white", style="italic",
+            bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="blue"),
             arrowprops=dict(arrowstyle="->", color="black")
         )
         self.annotation.set_visible(False)
 
         # Conectar eventos
-        self.canvas.mpl_connect("button_press_event", self.on_click)
+        self.canvas.mpl_connect("pick_event", self.on_pick)
 
-    def on_click(self, event):
-        """ Detecta el nodo más cercano en píxeles y activa el snap """
-        if event.inaxes is None and 1:  # Clic fuera del gráfico
-            return
+    def on_pick(self, event):
+        """ Detecta si se selecciona un nodo o una línea """
+        artist = event.artist  # Objeto seleccionado
 
-        # Convertir coordenadas de nodos a píxeles de pantalla
-        node_pixels = {node_id: self.ax.transData.transform(s.get_offsets()[0])
-                       for node_id, s in self.nodes.items()}  # {id: (px_x, px_y)}
+        # Si se selecciona un nodo (scatter)
+        for node_id, scatter in self.nodes.items():
+            if artist == scatter:
+                self.select_node(node_id)
+                return
 
-        # Coordenadas del clic en píxeles
-        click_pixel = np.array([event.x, event.y])
+        # Si se selecciona una línea (Line2D)
+        for line_id, line in self.lines.items():
+            if artist == line:
+                self.select_line(line_id)
+                return
 
-        # Calcular distancia en píxeles entre el clic y cada nodo
-        distances = {node_id: np.linalg.norm(pos - click_pixel) for node_id, pos in node_pixels.items()}
+    def select_node(self, node_id):
+        """ Manejo de selección de nodos """
+        # Restaurar color del nodo previamente seleccionado
+        if self.selected_node is not None:
+            self.nodes[self.selected_node].set_color('blue')
 
-        # Definir umbral de snap (10 píxeles)
-        snap_threshold = 10
-        closest_node = min(distances, key=distances.get)  # Nodo más cercano
-        closest_distance = distances[closest_node]
+        # Seleccionar nuevo nodo
+        self.selected_node = node_id
+        self.nodes[self.selected_node].set_color('red')
 
-        if closest_distance <= snap_threshold and event.button == 1:
-            # Restaurar color del nodo previamente seleccionado
-            if self.selected_node is not None:
-                self.nodes[self.selected_node].set_color('blue')
+        # Mostrar anotación
+        node_x, node_y = self.nodes[self.selected_node].get_offsets()[0]
+        self.annotation.set_text(f"Nodo {self.selected_node}\n({node_x}, {node_y})")
+        self.annotation.xy = (node_x, node_y)
+        self.annotation.set_visible(True)
 
-            # Seleccionar nuevo nodo
-            self.selected_node = closest_node
-            self.nodes[self.selected_node].set_color('red')  # Cambiar color
+        # Asegurar que la línea no está seleccionada
+        if self.selected_line is not None:
+            self.lines[self.selected_line].set_color('gray')
+            self.selected_line = None
 
-            # Actualizar anotación
-            node_x, node_y = self.nodes[self.selected_node].get_offsets()[0]
-            self.annotation.set_text(f"Nodo {self.selected_node}\n({node_x}, {node_y})")
-            self.annotation.xy = (node_x, node_y)
-            self.annotation.set_visible(True)
-        elif closest_distance > snap_threshold and event.button == 1:
-            # Si no hay nodos cercanos, ocultar anotación y restaurar color
-            if self.selected_node is not None:
-                self.nodes[self.selected_node].set_color('blue')
+        self.canvas.draw_idle()
+
+    def select_line(self, line_id):
+        """ Manejo de selección de líneas """
+        # Restaurar color de la línea previamente seleccionada
+        if self.selected_line is not None:
+            self.lines[self.selected_line].set_color('gray')
+
+        # Seleccionar nueva línea
+        self.selected_line = line_id
+        self.lines[self.selected_line].set_color('orange')  # Cambia a naranja
+
+        # Mostrar anotación en el punto medio de la línea
+        x_data, y_data = self.lines[self.selected_line].get_xdata(), self.lines[self.selected_line].get_ydata()
+        mid_x, mid_y = (x_data[0] + x_data[1]) / 2, (y_data[0] + y_data[1]) / 2
+
+        self.annotation.set_text(f"Línea {self.selected_line}")
+        self.annotation.xy = (mid_x, mid_y)
+        self.annotation.set_visible(True)
+
+        # Asegurar que el nodo no está seleccionado
+        if self.selected_node is not None:
+            self.nodes[self.selected_node].set_color('blue')
             self.selected_node = None
-            self.annotation.set_visible(False)
 
-        # Actualizar ploteo
         self.canvas.draw_idle()
 
 if __name__ == "__main__":
@@ -97,6 +128,131 @@ if __name__ == "__main__":
     window = NodePlotter()
     window.show()
     sys.exit(app.exec())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# import sys
+# import numpy as np
+# from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT
+# import matplotlib.pyplot as plt
+
+# class NodePlotter(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+
+#         self.setWindowTitle("Snap en Píxeles")
+#         self.setGeometry(100, 100, 600, 500)
+
+#         # Widget principal
+#         self.central_widget = QWidget()
+#         self.setCentralWidget(self.central_widget)
+
+#         # Layout
+#         layout = QVBoxLayout(self.central_widget)
+
+#         # Matplotlib Figure y Canvas
+#         self.fig, self.ax = plt.subplots()
+#         self.canvas = FigureCanvas(self.fig)
+
+#         # 🔹 Agregar Toolbar de Matplotlib
+#         self.toolbar = NavigationToolbar2QT(self.canvas, self)
+#         layout.addWidget(self.toolbar)
+#         layout.addWidget(self.canvas)
+
+#         # Datos de nodos en un diccionario {id: scatter}
+#         self.nodes = {}  
+#         node_data = {0: (1, 2), 1: (3, 4), 2: (5, 1), 3: (6, 3)}  # {id: (x, y)}
+
+#         # Crear scatter plot por cada nodo y almacenarlo en el diccionario
+#         for node_id, (x, y) in node_data.items():
+#             self.nodes[node_id] = self.ax.scatter(x, y, color='blue', picker=True)  
+
+#         self.selected_node = None  # Nodo actualmente seleccionado
+
+#         # Anotación para mostrar información del nodo seleccionado
+#         self.annotation = self.ax.annotate(
+#             "", xy=(0, 0), xytext=(10, 10), textcoords="offset points",
+#             bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="yellow"),
+#             arrowprops=dict(arrowstyle="->", color="black")
+#         )
+#         self.annotation.set_visible(False)
+
+#         # Conectar eventos
+#         self.canvas.mpl_connect("button_press_event", self.on_click)
+
+#     def on_click(self, event):
+#         """ Detecta el nodo más cercano en píxeles y activa el snap """
+#         if event.inaxes is None and 1:  # Clic fuera del gráfico
+#             return
+
+#         # Convertir coordenadas de nodos a píxeles de pantalla
+#         node_pixels = {node_id: self.ax.transData.transform(s.get_offsets()[0])
+#                        for node_id, s in self.nodes.items()}  # {id: (px_x, px_y)}
+
+#         # Coordenadas del clic en píxeles
+#         click_pixel = np.array([event.x, event.y])
+
+#         # Calcular distancia en píxeles entre el clic y cada nodo
+#         distances = {node_id: np.linalg.norm(pos - click_pixel) for node_id, pos in node_pixels.items()}
+
+#         # Definir umbral de snap (10 píxeles)
+#         snap_threshold = 10
+#         closest_node = min(distances, key=distances.get)  # Nodo más cercano
+#         closest_distance = distances[closest_node]
+
+#         if closest_distance <= snap_threshold and event.button == 1:
+#             # Restaurar color del nodo previamente seleccionado
+#             if self.selected_node is not None:
+#                 self.nodes[self.selected_node].set_color('blue')
+
+#             # Seleccionar nuevo nodo
+#             self.selected_node = closest_node
+#             self.nodes[self.selected_node].set_color('red')  # Cambiar color
+
+#             # Actualizar anotación
+#             node_x, node_y = self.nodes[self.selected_node].get_offsets()[0]
+#             self.annotation.set_text(f"Nodo {self.selected_node}\n({node_x}, {node_y})")
+#             self.annotation.xy = (node_x, node_y)
+#             self.annotation.set_visible(True)
+#         elif closest_distance > snap_threshold and event.button == 1:
+#             # Si no hay nodos cercanos, ocultar anotación y restaurar color
+#             if self.selected_node is not None:
+#                 self.nodes[self.selected_node].set_color('blue')
+#             self.selected_node = None
+#             self.annotation.set_visible(False)
+
+#         # Actualizar ploteo
+#         self.canvas.draw_idle()
+
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     window = NodePlotter()
+#     window.show()
+#     sys.exit(app.exec())
 
 
 
