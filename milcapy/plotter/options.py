@@ -87,6 +87,7 @@ class PlotterOptions:        # ✅✅✅
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
+        self.fi_label = True
         self.fi_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
         self.UI_axial = False
         self.axial_scale = {}
@@ -100,7 +101,7 @@ class PlotterOptions:        # ✅✅✅
         self.deflection_scale = {}
 
         # RELLENOS Y CONTORNOS
-        self.UI_filling_type = 'Sin Relleno'      # 'solid', 'barcolor'
+        self.UI_filling_type = 'Barcolor'      # 'solid', 'barcolor'
         self.alpha_filling = 0.7         # Transparencia para relleno
         self.UI_colormap = 'jet'            # 'jet', 'viridis', 'coolwarm', etc.
         self.UI_show_colorbar = True        # Mostrar barra de colores

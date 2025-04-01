@@ -85,35 +85,6 @@ class Plotter:
 
         self.selected_member = 1
         self.model.current_load_pattern = list(self.model.results.keys())[0]
-        self.diagrams = {
-                'N(x)': DiagramConfig(
-                    name='Diagrama de Fuerza Normal',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"],
-                    precision=4,
-                ),
-                'V(x)': DiagramConfig(
-                    name='Diagrama de Fuerza Cortante',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"],
-                    precision=4,
-                ),
-                'M(x)': DiagramConfig(
-                    name='Diagrama de Momento Flector',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"],
-                    precision=4,
-                ),
-                'θ(x)': DiagramConfig(
-                    name='Diagrama de Rotación',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"],
-                    precision=6,
-                    single_line=True
-                ),
-                'y(x)': DiagramConfig(
-                    name='Diagrama de Deflexión',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"],
-                    precision=6,
-                    single_line=True
-                )
-            }
 
     @property
     def plotter_options(self) -> 'PlotterOptions':
@@ -130,6 +101,42 @@ class Plotter:
     @current_load_pattern.setter
     def current_load_pattern(self, value: Optional[str]):
         self.model.current_load_pattern = value
+
+    @property
+    def diagrams(self) -> Dict[str, DiagramConfig]:
+        single_line = True if self.plotter_options.UI_filling_type == 'Sin Relleno' else False
+        return {
+                'N(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Normal',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"],
+                    precision=4,
+                    single_line=single_line
+                ),
+                'V(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Cortante',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"],
+                    precision=4,
+                    single_line=single_line
+                ),
+                'M(x)': DiagramConfig(
+                    name='Diagrama de Momento Flector',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"],
+                    precision=4,
+                    single_line=single_line
+                ),
+                'θ(x)': DiagramConfig(
+                    name='Diagrama de Rotación',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"],
+                    precision=6,
+                    single_line=True
+                ),
+                'y(x)': DiagramConfig(
+                    name='Diagrama de Deflexión',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"],
+                    precision=6,
+                    single_line=True
+                )
+            }
 
     def update_fill_type(self):
         if self.plotter_options.UI_filling_type == "Sin Relleno":
@@ -769,6 +776,21 @@ class Plotter:
             L = member.length()
             x = x_val
             y = y_val
+            yo = y[0]
+            yf = y[-1]
+            yv = 0
+            iv = 0
+            if y[np.argmin(y)] < (yf and yo):
+                yv = y[np.argmin(y)]
+                iv = np.argmin(y)
+            elif y[np.argmax(y)] > (yf and yo):
+                yv = y[np.argmax(y)]
+                iv = np.argmax(y)
+            
+            # [[inicial], [maximo], [final], [medio]]
+            lab_coord = np.array([[0, yo], [iv/len(y)*L, yv], [L, yf], [L/2, yo]])
+            lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
+            lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
 
             # Separar y procesar áreas
             positive, negative = separate_areas(y, L)
@@ -795,6 +817,22 @@ class Plotter:
                 if len(area) > 2:
                     polygon, = self.axes.fill(*zip(*area), color='#ff897b', alpha=0.7)
                     artist.append(polygon)
+
+            # PLOTEO DE LAS ETIQUETAS: o, med, f
+            if self.plotter_options.fi_label:
+                if round(yo, 7) == round(yf, 7):    # constante
+                    text = self.axes.text(lab_coord[3][0], lab_coord[3][1], f'{yo/escala:.2f}', fontsize=8,)
+                    artist.append(text)
+                else:
+                    if round(yo, 7) != 0:
+                        text = self.axes.text(lab_coord[0][0], lab_coord[0][1], f'{yo/escala:.2f}', fontsize=8)
+                        artist.append(text)
+                    if round(yv, 7) != 0 and (abs(round(yv, 7)) > abs(round(yo, 7)) or abs(round(yv, 7)) > abs(round(yf, 7))):
+                        text = self.axes.text(lab_coord[1][0], lab_coord[1][1], f'{yv/escala:.2f}', fontsize=8)
+                        artist.append(text)
+                    if round(yf, 7) != 0:
+                        text = self.axes.text(lab_coord[2][0], lab_coord[2][1], f'{yf/escala:.2f}', fontsize=8)
+                        artist.append(text)
 
             val = rotate_xy(val, member.angle_x(), 0, 0)
             val = traslate_xy(val, *member.node_i.vertex.coordinates)

@@ -19,7 +19,7 @@ model.add_rectangular_section(
     height=0.5
 )
 model.add_rectangular_section(
-    name="seccion2", 
+    name="seccion2",
     material_name="concreto",
     base=0.5,
     height=0.5

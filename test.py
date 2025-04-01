@@ -38,8 +38,8 @@ portico.add_distributed_load(2, "CARGA1", -5, -5)
 # portico.add_distributed_load(3, "CARGA1", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA2")
-portico.add_distributed_load(2, "CARGA2", -7, -7)
-portico.add_distributed_load(3, "CARGA2", 7, 7)
+portico.add_distributed_load(2, "CARGA2", -5, -5)
+portico.add_distributed_load(3, "CARGA2", 7, 7, "GLOBAL", direction="GRAVITY")
 
 portico.add_load_pattern("CARGA3")
 portico.add_distributed_load(3, "CARGA3", 5, 5)
