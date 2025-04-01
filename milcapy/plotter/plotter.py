@@ -897,6 +897,7 @@ class Plotter:
 
     def plot_reactions(self) -> None:
         self.reactions[self.current_load_pattern] = {}
+        artists = []
         for node in self.model.nodes.values():
             reactions = self.model.results[self.current_load_pattern].get_node_reactions(node.id)
             length_arrow = self.plotter_options.point_load_length_arrow
@@ -906,18 +907,23 @@ class Plotter:
                     node.vertex.x, node.vertex.y, round(reactions[0], 2), length_arrow,
                     0 if reactions[0] < 0 else np.pi, self.axes,
                     self.plotter_options.reactions_color, True, "blue", 8)
+                artists.append(arrowRX)
+                artists.append(textRX)
             if reactions[1] != 0:
                 arrowRY, textRY = graphic_one_arrow(
                     node.vertex.x, node.vertex.y, round(reactions[1], 2), length_arrow,
                     np.pi/2 if reactions[1] < 0 else 3*np.pi/2, self.axes,
                     self.plotter_options.reactions_color, True, "blue", 8)
+                artists.append(arrowRY)
+                artists.append(textRY)
             if reactions[2] != 0:
                 arrowMZ, textMZ = moment_fancy_arrow(
                     self.axes, node.vertex.x, node.vertex.y, round(reactions[2], 2), moment_length_arrow,
                     self.plotter_options.reactions_color, True, True, "blue", 8)
-                artists = [arrowRX, arrowRY, arrowMZ, textRX, textRY, textMZ]
-                for artist in artists:
-                    artist.set_visible(self.plotter_options.UI_reactions)
+                artists.append(arrowMZ)
+                artists.append(textMZ)
+            for artist in artists:
+                artist.set_visible(self.plotter_options.UI_reactions)
             self.reactions[self.current_load_pattern][node.id] = artists
 
         self.figure.canvas.draw_idle()
