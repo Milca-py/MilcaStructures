@@ -58,9 +58,3 @@ portico.solve()
 portico._inicialize_plotter()
 portico.plotter.initialize_plot()
 main_window(portico)
-
-
-import pprint
-# pprint.pprint(portico.results["CARGA1"].get_node_reactions(1))
-# pprint.pprint(portico.results["CARGA1"].get_node_reactions(5))
-# pprint.pprint(portico.results["CARGA1"].get_node_displacements(1))

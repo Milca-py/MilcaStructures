@@ -1,5 +1,4 @@
-from ast import Dict
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Dict
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
@@ -20,6 +19,12 @@ if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
     from matplotlib.figure import Figure
     from matplotlib.axes import Axes
+
+
+from matplotlib.collections import PolyCollection
+
+from milcapy.plotter.widgets import DiagramConfig
+
 
 
 class Plotter:
@@ -78,6 +83,38 @@ class Plotter:
         self.shear_force = {}
         self.bending_moment = {}
 
+        self.selected_member = 1
+        self.model.current_load_pattern = list(self.model.results.keys())[0]
+        self.diagrams = {
+                'N(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Normal',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"],
+                    precision=4,
+                ),
+                'V(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Cortante',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"],
+                    precision=4,
+                ),
+                'M(x)': DiagramConfig(
+                    name='Diagrama de Momento Flector',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"],
+                    precision=4,
+                ),
+                'θ(x)': DiagramConfig(
+                    name='Diagrama de Rotación',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"],
+                    precision=6,
+                    single_line=True
+                ),
+                'y(x)': DiagramConfig(
+                    name='Diagrama de Deflexión',
+                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"],
+                    precision=6,
+                    single_line=True
+                )
+            }
+
     @property
     def plotter_options(self) -> 'PlotterOptions':
         return self.model.plotter_options
@@ -93,6 +130,19 @@ class Plotter:
     @current_load_pattern.setter
     def current_load_pattern(self, value: Optional[str]):
         self.model.current_load_pattern = value
+
+    def update_fill_type(self):
+        if self.plotter_options.UI_filling_type == "Sin Relleno":
+            for DConfig in self.diagrams.values():
+                DConfig.single_line = True
+        else:
+            for DConfig in self.diagrams.values():
+                if DConfig.name == 'Diagrama de Deflexión':
+                    DConfig.single_line = True
+                elif DConfig.name == 'Diagrama de Rotación':
+                    DConfig.single_line = True
+                else:
+                    DConfig.single_line = False
 
     def initialize_plot(self):
         """Plotea por primera y unica vez (crea los objetos artist)"""
@@ -769,7 +819,7 @@ class Plotter:
             artist.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    def update_internal_forces(self, type: InternalForceType, visibility: Optional[bool] = None) -> None:
+    def update_internal_forces(self, type: InternalForceType, visibility: bool | None = None) -> None:
         if type == InternalForceType.AXIAL_FORCE:
             visibility = self.plotter_options.UI_axial if visibility is None else visibility
             for listArtist in self.axial_force[self.current_load_pattern].values():
@@ -786,6 +836,7 @@ class Plotter:
                 for artist in listArtist:
                     artist.set_visible(visibility)
         self.figure.canvas.draw_idle()
+
 
     def plot_axial_force(self, escala: float | None = None) -> None:
         self.plot_internal_forces(InternalForceType.AXIAL_FORCE, escala)

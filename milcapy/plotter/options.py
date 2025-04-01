@@ -100,8 +100,7 @@ class PlotterOptions:        # ✅✅✅
         self.deflection_scale = {}
 
         # RELLENOS Y CONTORNOS
-        self.UI_fill_diagram = True         # Rellenar diagramas
-        self.UI_filling_type = 'solid'      # 'solid', 'barcolor'
+        self.UI_filling_type = 'Sin Relleno'      # 'solid', 'barcolor'
         self.alpha_filling = 0.7         # Transparencia para relleno
         self.UI_colormap = 'jet'            # 'jet', 'viridis', 'coolwarm', etc.
         self.UI_show_colorbar = True        # Mostrar barra de colores

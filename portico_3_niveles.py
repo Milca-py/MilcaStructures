@@ -19,7 +19,7 @@ model.add_rectangular_section(
     height=0.5
 )
 model.add_rectangular_section(
-    name="seccion2",
+    name="seccion2", 
     material_name="concreto",
     base=0.5,
     height=0.5
@@ -93,7 +93,3 @@ model.solve()
 model._inicialize_plotter()
 model.plotter.initialize_plot()
 main_window(model)
-
-# member = model.members[1]
-# import pprint
-# pprint.pprint(model.results["Live Load"].get_results_member(member.id))
