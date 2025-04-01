@@ -1,5 +1,4 @@
 from milcapy import SystemMilcaModel
-from milcapy.plotter.UIdisplay import main_window
 # --------------------------------------------------
 # 1. Definición del modelo y secciones
 # --------------------------------------------------
@@ -90,6 +89,4 @@ model.solve()
 # --------------------------------------------------
 # 6. Mostrar la ventana con la figura
 # --------------------------------------------------
-model._inicialize_plotter()
-model.plotter.initialize_plot()
-main_window(model)
+model.show()

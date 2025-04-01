@@ -403,3 +403,9 @@ class SystemMilcaModel:
         self.analysis.analyze(load_pattern_name)
 
         return self.results
+
+    def show(self):
+        from milcapy.plotter.UIdisplay import main_window
+        self._inicialize_plotter()
+        self.plotter.initialize_plot()
+        main_window(self)

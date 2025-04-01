@@ -10,11 +10,11 @@ portico.add_rectangular_section("sec2", "concreto", 30000, 30000)
 nodes = {
     1: (0, 0),
     2: (0, 4),
-    3: (0.4, 4),
-    4: (3.6, 4),
+    3: (0.2, 4),
+    4: (3.8, 4),
     5: (4, 4),
     6: (4, 0)
-}
+}   
 
 for node, coord in nodes.items():
     portico.add_node(node, *coord)

@@ -231,4 +231,5 @@ class PlotterOptions:        # ✅✅✅
 
     def nro_arrows(self, member_id: int):
         dx = self.support_size/0.10 * (0.10)
-        return int(self.model.members[member_id].length()/dx)
+        dxx = int(self.model.members[member_id].length()/dx) 
+        return dxx if dxx > 0 else 1
