@@ -608,7 +608,6 @@ class MainWindow(QMainWindow):
         # ! NOTIFICATION
         self.model.current_load_pattern = value
         # self.model.plotter.get_plotter_values(self.model.current_load_pattern)
-        print(f"Seleccionaste el patron: {value}")
         self.DFA.setChecked(self.model.plotter_options.UI_axial)
         self.DFC.setChecked(self.model.plotter_options.UI_shear)
         self.DMF.setChecked(self.model.plotter_options.UI_moment)
@@ -650,22 +649,18 @@ class MainWindow(QMainWindow):
         if state == 2:
             self.model.plotter_options.UI_axial = True
             self.model.plotter.update_axial_force(visibility=True)
-            print("Fuerzas axiales mostradas")
         elif state == 0:
             self.model.plotter_options.UI_axial = False
             self.model.plotter.update_axial_force(visibility=False)
-            print("Fuerzas axiales ocultadas")
         self.diagrams_and_deformed("F")
     def mostrar_fuerzas_cortantes(self, state):
         """Muestra las fuerzas cortantes"""
         if state == 2:
             self.model.plotter_options.UI_shear = True
             self.model.plotter.update_shear_force(visibility=True)
-            print("Fuerzas cortantes mostradas")
         elif state == 0:
             self.model.plotter_options.UI_shear = False
             self.model.plotter.update_shear_force(visibility=False)
-            print("Fuerzas cortantes ocultadas")
         self.diagrams_and_deformed("F")
     
     def mostrar_momentos(self, state):
@@ -673,33 +668,27 @@ class MainWindow(QMainWindow):
         if state == 2:
             self.model.plotter_options.UI_moment = True
             self.model.plotter.update_bending_moment(visibility=True)
-            print("Fuerzas momentos mostradas")
         elif state == 0:
             self.model.plotter_options.UI_moment = False
             self.model.plotter.update_bending_moment(visibility=False)
-            print("Fuerzas momentos ocultadas")
         self.diagrams_and_deformed("F")
 
     def mostrar_reacciones(self, state):
         """Muestra las reacciones"""
         if state == 2:
-            print("Reacciones mostradas")
             self.model.plotter_options.UI_reactions = True
             self.model.plotter.update_reactions(visibility=True)
         elif state == 0:
-            print("Reacciones ocultadas")
             self.model.plotter_options.UI_reactions = False
             self.model.plotter.update_reactions(visibility=False)
 
     def mostrar_deformada(self, state):
         """Muestra la deformada"""
         if state == 2:
-            print("Deformada mostrada")
             self.model.plotter_options.UI_deformed = True
             self.model.plotter.update_deformed()
             self.model.plotter.update_displaced_nodes()
         elif state == 0:
-            print("Deformada ocultada")
             self.model.plotter_options.UI_deformed = False
             self.model.plotter.update_deformed()
             self.model.plotter.update_displaced_nodes()
@@ -708,12 +697,10 @@ class MainWindow(QMainWindow):
     def mostrar_deformada_rigida(self, state):
         """Muestra la deformada rígida"""
         if state == 2:
-            print("Deformada rígida mostrada")
             self.model.plotter_options.UI_rigid_deformed = True
             self.model.plotter.update_rigid_deformed()
             self.model.plotter.update_displaced_nodes()
         elif state == 0:
-            print("Deformada rígida ocultada")
             self.model.plotter_options.UI_rigid_deformed = False
             self.model.plotter.update_rigid_deformed()
             self.model.plotter.update_displaced_nodes()

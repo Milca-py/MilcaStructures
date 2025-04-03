@@ -400,17 +400,17 @@ class Plotter:
 
     def plot_node_labels(self):
         for id, coord in self.current_values.nodes.items():
-            bbox = {
-                "boxstyle": "circle",
-                "facecolor": "lightblue",     # Color de fondo
-                "edgecolor": "black",         # Color del borde
-                "linewidth": 0.5,               # Grosor del borde
-                "linestyle": "-",            # Estilo del borde
-                "alpha": 0.8                  # Transparencia
-            }
+            # bbox = {
+            #     "boxstyle": "circle",
+            #     "facecolor": "lightblue",     # Color de fondo
+            #     "edgecolor": "black",         # Color del borde
+            #     "linewidth": 0.5,               # Grosor del borde
+            #     "linestyle": "-",            # Estilo del borde
+            #     "alpha": 0.8                  # Transparencia
+            # }
             text = self.axes.text(coord[0], coord[1], str(id),
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", bbox=bbox,
+                                  ha='left', va='bottom', color="blue", #bbox=bbox,
                                   clip_on=True)
             self.node_labels[id] = text
             text.set_visible(self.plotter_options.UI_node_labels)
@@ -426,17 +426,17 @@ class Plotter:
             x_val = (coords[0][0] + coords[1][0]) / 2
             y_val = (coords[0][1] + coords[1][1]) / 2
 
-            bbox = {
-                "boxstyle": "round,pad=0.2",  # Estilo y padding del cuadro
-                "facecolor": "lightblue",     # Color de fondo
-                "edgecolor": "black",         # Color del borde
-                "linewidth": 0.5,               # Grosor del borde
-                "linestyle": "-",            # Estilo del borde
-                "alpha": 0.8                  # Transparencia
-            }
+            # bbox = {
+            #     "boxstyle": "round,pad=0.2",  # Estilo y padding del cuadro
+            #     "facecolor": "lightblue",     # Color de fondo
+            #     "edgecolor": "black",         # Color del borde
+            #     "linewidth": 0.5,               # Grosor del borde
+            #     "linestyle": "-",            # Estilo del borde
+            #     "alpha": 0.8                  # Transparencia
+            # }
             text = self.axes.text(x_val, y_val, str(element_id),
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='center', va='center', color="blue", bbox=bbox,
+                                  ha='left', va='bottom', color="blue", #bbox=bbox,
                                   clip_on=True)
             self.member_labels[element_id] = text
             text.set_visible(self.plotter_options.UI_member_labels)
