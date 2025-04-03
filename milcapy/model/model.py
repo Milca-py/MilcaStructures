@@ -57,8 +57,6 @@ class SystemMilcaModel:
         self.plotter_options: "PlotterOptions" = PlotterOptions(self)
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=17)
 
-    def _inicialize_plotter(self) -> None:
-        self.plotter = Plotter(self)
 
     def add_material(
         self,
@@ -406,6 +404,6 @@ class SystemMilcaModel:
 
     def show(self):
         from milcapy.plotter.UIdisplay import main_window
-        self._inicialize_plotter()
+        self.plotter = Plotter(self)
         self.plotter.initialize_plot()
         main_window(self)

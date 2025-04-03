@@ -355,11 +355,13 @@ class Plotter:
             line.set_visible(self.plotter_options.UI_show_members)
         self.figure.canvas.draw_idle()
 
-    def update_members(self):
+    def update_members(self, color=None):
         for member in self.members.values():
             member.set_visible(self.plotter_options.UI_show_members)
+        if color:
+            for member in self.members.values():
+                member.set_color(color)
         self.figure.canvas.draw_idle()
-
     def plot_supports(self):
         """
         Dibuja los apoyos de la estructura.
@@ -548,16 +550,16 @@ class Plotter:
             angle_rotation = element.angle_x()
 
             # Cargas verticales
-            if load["q_i"] != 0 or load["q_j"] != 0:
+            if round(load["q_i"], 2) != 0 or round(load["q_j"], 2) != 0:
                 arrows, texts = graphic_n_arrow(
                     x=coords[0][0],
                     y=coords[0][1],
-                    load_i=-load["q_i"],
-                    load_j=-load["q_j"],
+                    load_i=-round(load["q_i"], 2),
+                    load_j=-round(load["q_j"], 2),
                     angle=np.pi/2,
                     length=length,
                     ax=self.axes,
-                    ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
+                    ratio_scale=self.plotter_options.scale_dist_qload[self.current_load_pattern],
                     nrof_arrows=self.plotter_options.nro_arrows(id_element),
                     color=self.plotter_options.distributed_load_color,
                     angle_rotation=angle_rotation,
@@ -569,16 +571,16 @@ class Plotter:
                 textslist = textslist + texts
 
             # Cargas axiales
-            if load["p_i"] != 0 or load["p_j"] != 0:
+            if round(load["p_i"], 2) != 0 or round(load["p_j"], 2) != 0:
                 arrows, texts = graphic_n_arrow(
                     x=coords[0][0],
                     y=coords[0][1],
-                    load_i=-load["p_i"],
-                    load_j=-load["p_j"],
+                    load_i=-round(load["p_i"], 2),
+                    load_j=-round(load["p_j"], 2),
                     angle=0,
                     length=length,
                     ax=self.axes,
-                    ratio_scale=self.plotter_options.scale_dist_load[self.current_load_pattern],
+                    ratio_scale=self.plotter_options.scale_dist_pload[self.current_load_pattern],
                     nrof_arrows=self.plotter_options.nro_arrows(id_element),
                     color=self.plotter_options.distributed_load_color,
                     angle_rotation=angle_rotation,
@@ -952,7 +954,7 @@ class Plotter:
 
     def update_displaced_nodes(self, visibility: Optional[bool] = None, scale: Optional[float] = None) -> None:
         vis = self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed
-        visibility = vis if visibility is None else visibility
+        visibility = False # vis if visibility is None else visibility
         for node in self.deformed_nodes[self.current_load_pattern].values():
             node.set_visible(visibility)
         self.figure.canvas.draw_idle()

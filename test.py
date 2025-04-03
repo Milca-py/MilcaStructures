@@ -55,6 +55,4 @@ portico.solve()
 # --------------------------------------------------
 # 6. Resultados
 # --------------------------------------------------
-portico._inicialize_plotter()
-portico.plotter.initialize_plot()
-main_window(portico)
+portico.show()

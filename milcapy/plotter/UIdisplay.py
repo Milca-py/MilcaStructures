@@ -371,7 +371,7 @@ class GraphicOptionsDialog(QDialog):
 
     def restore_defaults(self):
         """Restablece las opciones a los valores por defecto."""
-        self.show_nodes_checkbox.setChecked(True)
+        self.show_nodes_checkbox.setChecked(False)
         self.node_labels_checkbox.setChecked(False)
         self.show_members_checkbox.setChecked(True)
         self.member_labels_checkbox.setChecked(False)
@@ -419,7 +419,7 @@ class GraphicOptionsDialog(QDialog):
         """Transfiere las opciones seleccionadas al objeto PlotterOptions."""
         op = self.plotter_options
         op.UI_background_color = self.options.get("UI_background_color", None)
-        op.UI_show_nodes = self.options.get("UI_show_nodes", True)
+        op.UI_show_nodes = self.options.get("UI_show_nodes", False)
         op.UI_show_members = self.options.get("UI_show_members", True)
         op.UI_node_labels = self.options.get("UI_node_labels", False)
         op.UI_member_labels = self.options.get("UI_member_labels", False)
@@ -434,7 +434,7 @@ class GraphicOptionsDialog(QDialog):
     def _keep_data(self):
         """asigna los valores de las opciones anteriores (mantiene) a los widgets."""
         self.show_nodes_checkbox.setChecked(
-            self.options.get("UI_show_nodes", True))
+            self.options.get("UI_show_nodes", False))
         self.node_labels_checkbox.setChecked(
             self.options.get("UI_node_labels", False))
         self.show_members_checkbox.setChecked(
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
         #####################################################
         self.options_values = {
             "UI_background_color": None,
-            "UI_show_nodes": True,
+            "UI_show_nodes": False,
             "UI_node_labels": False,
             "UI_show_members": True,
             "UI_member_labels": False,
@@ -655,7 +655,7 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_axial = False
             self.model.plotter.update_axial_force(visibility=False)
             print("Fuerzas axiales ocultadas")
-
+        self.diagrams_and_deformed("F")
     def mostrar_fuerzas_cortantes(self, state):
         """Muestra las fuerzas cortantes"""
         if state == 2:
@@ -666,7 +666,8 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_shear = False
             self.model.plotter.update_shear_force(visibility=False)
             print("Fuerzas cortantes ocultadas")
-
+        self.diagrams_and_deformed("F")
+    
     def mostrar_momentos(self, state):
         """Muestra las fuerzas momentos"""
         if state == 2:
@@ -677,6 +678,7 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_moment = False
             self.model.plotter.update_bending_moment(visibility=False)
             print("Fuerzas momentos ocultadas")
+        self.diagrams_and_deformed("F")
 
     def mostrar_reacciones(self, state):
         """Muestra las reacciones"""
@@ -701,6 +703,7 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_deformed = False
             self.model.plotter.update_deformed()
             self.model.plotter.update_displaced_nodes()
+        self.diagrams_and_deformed("D")
 
     def mostrar_deformada_rigida(self, state):
         """Muestra la deformada rígida"""
@@ -714,6 +717,34 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_rigid_deformed = False
             self.model.plotter.update_rigid_deformed()
             self.model.plotter.update_displaced_nodes()
+        self.diagrams_and_deformed("D")
+
+    def diagrams_and_deformed(self, type):
+        """Actualiza la apariencia de los miembros en función de la deformada o deformada rígida"""
+        val = (self.model.plotter_options.UI_rigid_deformed == True or self.model.plotter_options.UI_deformed == True) if type == "D" else (self.model.plotter_options.UI_axial or self.model.plotter_options.UI_shear or self.model.plotter_options.UI_moment)
+        if val:
+            self.model.plotter_options.UI_load = False
+            if type == "D":
+                if self.model.plotter_options.show_undeformed:
+                    self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color)
+                else:
+                    self.model.plotter_options.UI_show_members = False
+                    self.options_values["UI_show_members"] = False
+                    self.model.plotter.update_members()
+                    self.model.plotter_options.UI_show_members = True
+                    self.options_values["UI_show_members"] = True
+        else:
+            self.model.plotter_options.UI_load = True
+            if type == "D":
+                self.model.plotter.update_members(color=self.model.plotter_options.element_color)
+                self.options_values["UI_show_members"] = True
+
+        if self.options_values["UI_load"] == True:
+            self.model.plotter.update_distributed_loads()
+            self.model.plotter.update_point_load()
+            self.model.plotter.update_distributed_load_labels()
+            self.model.plotter.update_point_load_labels()
+
 
 
 def main_window(model: 'SystemMilcaModel'):
