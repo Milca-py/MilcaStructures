@@ -16,7 +16,7 @@ def integration_coefficients(member: "Member") -> np.ndarray:
     Returns:
         Array con los coeficientes de integración (C1, C2, C3, C4)
     """
-    L = member.length                               # Longitud del elemento
+    L = member.length()                             # Longitud del elemento
     q_i = member.distributed_load.q_i               # Intensidad de la carga distribuida en el nodo i
     q_j = member.distributed_load.q_j               # Intensidad de la carga distribuida en el nodo j
     E = member.section.E()                          # Módulo de elasticidad

@@ -153,7 +153,7 @@ axs[0].set_ylabel("Momento (kNm)")
 axs[1].set_ylabel("Momento (kNm)")
 axs[1].set_xlabel("Longitud (m)")
 
-# plt.show()
+plt.show()
 
 # --------------------------------------------------
 # 6. Mostrar la ventana con la figura
