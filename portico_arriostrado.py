@@ -89,6 +89,4 @@ model.solve()
 
 
 # Mostrar la ventana con la figura
-model._inicialize_plotter()
-model.plotter.initialize_plot()
-main_window(model)
+model.show()

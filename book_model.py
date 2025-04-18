@@ -106,20 +106,33 @@ for i in pisos:
     desp.append(float(model.results["Live Load"].get_node_displacements(i)[0]))
 derivas = [(abs(desp[i+1] - desp[i]))/h for i in range(len(desp)-1)]
 derivas.insert(0, 0)
-print(desp)
+
 import matplotlib.pyplot as plt
 # plotear derivas
-fig, ax = plt.subplots(figsize=(4.5, 7))
-ax.plot(derivas, range(0, 15), 'r.-')
-ax.vlines(0.007, 0, 14, colors='b', linestyles='dashed')
-ax.text(0.0069, 1, "Δmax = 0.007", fontsize=10, fontweight='bold', color='b', rotation=90, ha='right', va='bottom')
-ax.set_xlabel("Deriva (m/m)")
-ax.set_ylabel("Pisos")
-ax.set_title("Derivas del portico", fontsize=12, fontweight='bold')
+fig, ax = plt.subplots(figsize=(5.5, 9), dpi=90)
+ax.plot(derivas, range(0, 15), color='b', linestyle='-', linewidth=2, marker='o', markersize=5)
+ax.vlines(0.007, 0, 14, colors='r', linestyles='dashed', alpha=1, linewidth=2)
+ax.text(0.0075, 12, r"$\delta_{\mathrm{max}} = 0.007$", fontsize=10, fontweight='bold', color='b', rotation=90, ha='right', va='bottom')
+ax.set_xlabel("Derivas (m/m)", fontweight='bold')
+niveles = ['base'] + [f'Nivel {i}' for i in range(1, 15)]
+ax.set_yticks(range(len(niveles)))
+ax.set_yticklabels(niveles, fontstyle='italic', fontsize=10)
+ax.grid(True, which='both', linestyle='--', color='gray', linewidth=0.5, alpha=0.7)
+
+ax.spines['bottom'].set_color('r')   # eje X
+ax.spines['left'].set_color('r')   # eje Y
+ax.spines['top'].set_visible(False)        # ocultar si deseas
+ax.spines['right'].set_visible(False)
+
+ax.spines['bottom'].set_linewidth(1)
+ax.spines['left'].set_linestyle('dashed')  # estilo del borde
+ax.set_xlim(0, 0.008) # limites del eje X
+ax.set_ylim(0, 15) # limites del eje Y
+ax.set_title("Derivas del portico", fontsize=12, fontweight='bold',fontstyle='italic')
 plt.tight_layout()
-# plt.show()
-
-
+fig.patch.set_facecolor('#d3d3d3')
+fig.savefig("derivas.png", dpi=300, bbox_inches='tight')
+plt.show()
 
 model.show()
 

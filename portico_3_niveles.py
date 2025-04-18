@@ -152,10 +152,11 @@ axs[1].fill_between(x, envelop2[1], envelop2[0], color='#f59292', alpha=0.5)
 axs[0].set_ylabel("Momento (kNm)")
 axs[1].set_ylabel("Momento (kNm)")
 axs[1].set_xlabel("Longitud (m)")
-
+fig.savefig("envelopes.png", dpi=300, bbox_inches='tight')
 plt.show()
 
 # --------------------------------------------------
 # 6. Mostrar la ventana con la figura
 # --------------------------------------------------
 model.show()
+
