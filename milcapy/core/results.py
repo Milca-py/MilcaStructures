@@ -38,7 +38,7 @@ class Results:
         self.model["displacements"] = displacements
 
     def set_model_reactions(self, reactions: np.ndarray) -> None:
-        self.model["reactions"] = reactions 
+        self.model["reactions"] = reactions
 
     def set_node_displacements(self, node_id: int, displacement: np.ndarray) -> None:
         if node_id not in self.nodes:
@@ -116,6 +116,3 @@ class Results:
 
     def get_results_model(self) -> Dict[str, np.ndarray]:
         return self.model
-
-    def get_results(self) -> Dict[str, Dict[str, np.ndarray]]:
-        return self.results

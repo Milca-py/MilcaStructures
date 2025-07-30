@@ -2,6 +2,9 @@ from milcapy.postprocess.member import BeamSeg
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 import numpy as np
+from milcapy.utils.element import q_phi
+
+
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
@@ -62,15 +65,38 @@ class PostProcessing:   # para un solo load pattern
         """Almacena las desplazamientos de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
             global_displacements = self.displacements[member.dofs-1]
-            array_displacements = np.dot(member.transformation_matrix(), global_displacements)
-            self.results.set_member_displacements(id, array_displacements)
+            local_disp = np.dot(member.transformation_matrix(), global_displacements)
+            local_disp_flex = member.H() @ local_disp
+            self.results.set_member_displacements(id, local_disp_flex)
 
     def process_internal_forces_for_members(self) -> None:
         """Almacena las fuerzas internas de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
             local_displacements = self.results.get_member_displacements(id)
-            load_vector = member.local_load_vector()
-            stiffness_matrix = member.local_stiffness_matrix()
+            load = member.get_distributed_load(self.load_pattern_name)
+            L = member.length()
+            la, lb = member.la or 0, member.lb or 0
+            qi, qj, pi, pj = load.q_i, load.q_j, load.p_i, load.p_j
+
+
+            a = (qj - qi) / L
+            b = qi
+
+            c = (pj - pi) / L
+            d = pi
+
+            qa = a*la + b
+            qb = a*(L -lb) + b
+
+            pa = c*la + d
+            pb = c*(L -lb) + d
+
+
+            load_vector = q_phi(member.le(), member.phi(), qa, qb, pa, pb)
+            H = member.H()
+            H_inv = np.linalg.pinv(H)
+            HT_pinv = np.linalg.pinv(H.T)
+            stiffness_matrix = HT_pinv @ member.local_stiffness_matrix() @ H_inv
             array_internal_forces = np.dot(stiffness_matrix, local_displacements) - load_vector
             self.results.set_member_internal_forces(id, array_internal_forces)
 
@@ -84,7 +110,7 @@ class PostProcessing:   # para un solo load pattern
             calculator.process_builder(member, result, self.load_pattern_name)
             calculator.coefficients()
 
-            x_val = np.linspace(0, member.length(), n)
+            x_val = np.linspace(0, member.le(), n)
 
             array_axial_force = np.zeros(n)
             array_shear_force = np.zeros(n)

@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Tuple, TYPE_CHECKING
-from milcapy.utils import rotation_matrix
 
 if TYPE_CHECKING:
     from milcapy.elements.member import Member
@@ -209,11 +208,14 @@ def deflection(member: "Member", factor: float, n: int) -> Tuple[np.ndarray, np.
 
 def deformed_shape(member: "Member", results: dict, escale: float) -> Tuple[np.ndarray, np.ndarray]:
     """Calcula las coordenada de la deformada en sistema local"""
-    Lo = member.length()
+    L = member.length()
+    le = member.le()
+    la = member.la or 0
+    lb = member.lb or 0
 
     vtx_local = np.array([
-        [0, 0],
-        [Lo, 0]
+        [la, 0],
+        [le + la, 0]
     ])
 
     disp_local = np.array([
@@ -222,10 +224,22 @@ def deformed_shape(member: "Member", results: dict, escale: float) -> Tuple[np.n
     ]) * escale + vtx_local
 
     flecha = results["deflections"] * escale
-    x = np.linspace(0, Lo, len(flecha))
+    x = np.linspace(0, le, len(flecha))
 
     # Corrección de la deformada por deformación axial
     Lf = disp_local[1, 0] - disp_local[0, 0]
-    x_val = x * Lf / Lo + disp_local[0, 0]
+    x_val = x * Lf / le + disp_local[0, 0]
 
+    #? AJUSTE Y OBTENSION DE LOS PUNTOS DE LOS EXTREMOS
+    H = member.H()
+    Hinv = np.linalg.pinv(H)
+    u = results["displacements"]
+    urig = Hinv @ u * escale
+    extremos =  np.array([
+        [urig[0], urig[1]],
+        [urig[3] + L, urig[4]]
+    ])
+
+    flecha = np.concatenate(([extremos[0][1]], flecha, [extremos[1][1]]))
+    x_val = np.concatenate(([extremos[0][0]], x_val, [extremos[1][0]]))
     return x_val, flecha

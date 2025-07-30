@@ -59,7 +59,7 @@ class AnalysisManager:
             load_pattern.assign_loads_to_members()
 
             # resolver el modelo
-            analysis = LinearStaticAnalysis(self.model, self.model.analysis_options)
+            analysis = LinearStaticAnalysis(self.model)
             displacements, reactions = analysis.solve()
 
             # Crear un objeto de resultados para almacenar los resultados del análisis

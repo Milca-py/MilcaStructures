@@ -1,5 +1,4 @@
 from milcapy import SystemMilcaModel
-
 # --------------------------------------------------
 # 1. Definición del modelo y secciones
 # --------------------------------------------------
@@ -18,18 +17,6 @@ model.add_rectangular_section(
     base=0.3,
     height=0.5
 )
-model.add_rectangular_section(
-    name="seccion2",
-    material_name="concreto",
-    base=0.5,
-    height=0.5
-)
-model.add_rectangular_section(
-    name="seccion3",
-    material_name="concreto",
-    base=0.6,
-    height=0.6
-)
 
 # --------------------------------------------------
 # 2. Definición de nodos
@@ -43,7 +30,6 @@ nodes = {
     6: (7, 5),
     7: (7, 8.5),
     8: (7, 12),
-    # 9: (3.5, 15)  # Desactivado en este ejemplo
 }
 
 for key, value in nodes.items():
@@ -53,21 +39,20 @@ for key, value in nodes.items():
 # 3. Definición de elementos
 # --------------------------------------------------
 elements = {
-    1: (1, 2, "seccion3"),
-    2: (2, 3, "seccion3"),
-    3: (3, 4, "seccion3"),
-    4: (5, 6, "seccion2"),
-    5: (6, 7, "seccion2"),
-    6: (7, 8, "seccion2"),
+    1: (1, 2, "seccion1"),
+    2: (2, 3, "seccion1"),
+    3: (3, 4, "seccion1"),
+    4: (5, 6, "seccion1"),
+    5: (6, 7, "seccion1"),
+    6: (7, 8, "seccion1"),
     7: (2, 6, "seccion1"),
     8: (3, 7, "seccion1"),
     9: (4, 8, "seccion1"),
-    # 10: (4, 9, "seccion1"),
-    # 11: (8, 9, "seccion1")
 }
 
 for key, value in elements.items():
     model.add_member(key, *value)
+
 
 # --------------------------------------------------
 # 4. Restricciones y cargas
@@ -80,19 +65,13 @@ model.add_point_load(2, "Live Load", 5, 0, 0, "GLOBAL")
 model.add_point_load(3, "Live Load", 10, 0, 0, "GLOBAL")
 model.add_point_load(4, "Live Load", 20, 0, 0, "GLOBAL")
 
-# model.add_distributed_load(7, "Live Load", "GLOBAL", 5, 5, direction="GRAVITY_PROJ")
-# model.add_distributed_load(5, "Live Load", "LOCAL", 5, 5)
-model.add_distributed_load(7, "Live Load", -5, -5, "LOCAL")
-model.add_distributed_load(8, "Live Load", -2, -6, "LOCAL")
-model.add_distributed_load(9, "Live Load", -4, -3, "LOCAL")
+# model.add_distributed_load(7, "Live Load", -5, -5) ###
+# model.add_distributed_load(8, "Live Load", -2, -6) ###
+# model.add_distributed_load(9, "Live Load", -4, -3) ###
 
 # --------------------------------------------------
 # 5. Resolución del modelo
 # --------------------------------------------------
-model.postprocessing_options.n = 40
 model.solve()
 
-# --------------------------------------------------
-# 6. Mostrar la estructura (opcional)
-# --------------------------------------------------
 model.show()

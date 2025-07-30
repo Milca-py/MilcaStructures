@@ -455,6 +455,7 @@ class GraphicOptionsDialog(QDialog):
             self.model.plotter.change_background_color()    # cambia el color de fondo
         self.model.plotter.update_nodes()               # actualiza los nodos
         self.model.plotter.update_members()             # actualiza los miembros
+        self.model.plotter.update_length_offset()
         # actualiza los labels de los nodos
         self.model.plotter.update_node_labels()
         # actualiza los labels de los miembros
@@ -714,16 +715,19 @@ class MainWindow(QMainWindow):
             if type == "D":
                 if self.model.plotter_options.show_undeformed:
                     self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color)
+                    self.model.plotter.update_length_offset(color=self.model.plotter_options.undeformed_color)
                 else:
                     self.model.plotter_options.UI_show_members = False
                     self.options_values["UI_show_members"] = False
                     self.model.plotter.update_members()
+                    self.model.plotter.update_length_offset()
                     self.model.plotter_options.UI_show_members = True
                     self.options_values["UI_show_members"] = True
         else:
             self.model.plotter_options.UI_load = True
             if type == "D":
                 self.model.plotter.update_members(color=self.model.plotter_options.element_color)
+                self.model.plotter.update_length_offset(color="#23262e")
                 self.options_values["UI_show_members"] = True
 
         if self.options_values["UI_load"] == True:

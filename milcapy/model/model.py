@@ -6,8 +6,6 @@ from milcapy.core.node import Node
 from milcapy.core.results import Results
 from milcapy.elements.member import Member
 from milcapy.plotter.plotter import Plotter, PlotterOptions
-# from milcapy.plotter.plotter_values import PlotterValuesFactory
-from milcapy.analysis.options import AnalysisOptions
 from milcapy.analysis.manager import AnalysisManager
 from milcapy.postprocess.post_processing import PostProcessingOptions
 from milcapy.loads import LoadPattern, PointLoad
@@ -53,7 +51,6 @@ class SystemMilcaModel:
         self.plotter: Optional[Plotter] = None
 
         # Opciones del modelo [UNIQUE]
-        self.analysis_options: "AnalysisOptions" = AnalysisOptions() # IMPLEMENTAR PARA CADA TIPO DE ANALISIS
         self.plotter_options: "PlotterOptions" = PlotterOptions(self)
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=17)
 
@@ -115,14 +112,12 @@ class SystemMilcaModel:
         if material_name not in self.materials:
             raise ValueError(f"No existe un material con el nombre '{material_name}'")
 
-        # Definir método para calcular el coeficiente de corte
-        shear_method: ShearCoefficientMethodType = to_enum(self.analysis_options.shear_coefficient_method, ShearCoefficientMethodType)
         section = RectangularSection(
             name=name,
             material=self.materials[material_name],
             base=base,
             height=height,
-            shear_method=shear_method
+            shear_method=ShearCoefficientMethodType.TIMOSHENKO
         )
         self.sections[name] = section
         return section
@@ -194,19 +189,13 @@ class SystemMilcaModel:
         if isinstance(member_type, str):
             member_type = to_enum(member_type, MemberType)
 
-        # teoria de vigas para el miembro
-        if self.analysis_options.include_shear_deformations:
-            beam_theory = BeamTheoriesType.TIMOSHENKO
-        else:
-            beam_theory = BeamTheoriesType.EULER_BERNOULLI
-
         element = Member(
             id=id,
             node_i=self.nodes[node_i_id],
             node_j=self.nodes[node_j_id],
             section=self.sections[section_name],
             member_type=member_type,
-            beam_theory=beam_theory,
+            beam_theory=BeamTheoriesType.TIMOSHENKO,
         )
         self.members[id] = element
         return element
@@ -378,6 +367,22 @@ class SystemMilcaModel:
             load_type=load_type_enum,
             replace=replace,
         )
+
+    def add_end_length(self, member_id: int, la: float, lb: float, qla: bool = True, qlb: bool = True) -> None:
+        if member_id not in self.members:
+            raise ValueError(f"No existe un miembro con el ID {member_id}")
+        self.members[member_id].la = la
+        self.members[member_id].lb = lb
+        self.members[member_id].qla = qla
+        self.members[member_id].qlb = qlb
+        # member = self.members[member_id]
+        # node_A = member.node_i
+        # node_B = member.node_j
+        # rigid_link = RigidLink(
+
+
+
+
 
     def solve(self, load_pattern_name: list[str] | None = None) -> Dict[str, Results]:
         """

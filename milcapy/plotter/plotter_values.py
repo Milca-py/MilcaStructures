@@ -112,7 +112,11 @@ class PlotterValues:
     def rigid_deformed(self, member_id: int, escale: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
         member = self.model.members[member_id]
         MT = member.transformation_matrix()
-        arraydisp = self.results.members[member_id]['displacements']
+        H = member.H()
+        H_inv = np.linalg.pinv(H)
+
+        arraydis = self.results.members[member_id]['displacements']
+        arraydisp = H_inv @ arraydis
         arraydisp = np.dot(MT.T, arraydisp)
         x_val = np.array([
             member.node_i.vertex.x + arraydisp[0] * escale,

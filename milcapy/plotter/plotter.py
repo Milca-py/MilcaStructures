@@ -86,6 +86,9 @@ class Plotter:
         self.selected_member = 1
         self.model.current_load_pattern = list(self.model.results.keys())[0]
 
+        #TOPICOS:
+        self.length_offset = {}
+
     @property
     def plotter_options(self) -> 'PlotterOptions':
         return self.model.plotter_options
@@ -159,6 +162,7 @@ class Plotter:
         self.plot_supports()
         self.plot_node_labels()
         self.plot_member_labels()
+        self.plot_length_offset()
         for load_pattern_name in self.model.results.keys():
             self.plotter_options.load_max(load_pattern_name)
             self.current_load_pattern = load_pattern_name
@@ -362,6 +366,7 @@ class Plotter:
             for member in self.members.values():
                 member.set_color(color)
         self.figure.canvas.draw_idle()
+
     def plot_supports(self):
         """
         Dibuja los apoyos de la estructura.
@@ -969,3 +974,45 @@ class Plotter:
                 y = self.model.nodes[node_id].vertex.y + vy
                 node.set_offsets([x, y])
             self.figure.canvas.draw_idle()
+
+
+    def plot_length_offset(self):
+        for member in self.model.members.values():
+            if member.la is not None or member.lb is not None:
+                la = member.la
+                lb = member.lb
+                coord = self.current_values.members[member.id]
+                tt = member.angle_x()
+                x_coords_a = [coord[0][0], coord[0][0] + la*np.cos(tt)]
+                y_coords_a = [coord[0][1], coord[0][1] + la*np.sin(tt)]
+
+                x_coords_b = [coord[1][0], coord[1][0] - lb*np.cos(tt)]
+                y_coords_b = [coord[1][1], coord[1][1] - lb*np.sin(tt)]
+                line_a, = self.axes.plot(x_coords_a, y_coords_a, color="#23262e",
+                                    linewidth=2*self.plotter_options.element_line_width)
+                line_b, = self.axes.plot(x_coords_b, y_coords_b, color="#23262e",
+                                    linewidth=2*self.plotter_options.element_line_width)
+                line_a.set_visible(self.plotter_options.UI_show_members)
+                line_b.set_visible(self.plotter_options.UI_show_members)
+                self.length_offset[member.id] = [line_a, line_b]
+        self.figure.canvas.draw_idle()
+
+    def update_length_offset(self, color = None) -> None:
+        visibility = self.plotter_options.UI_show_members
+        for listArtist in self.length_offset.values():
+            for artist in listArtist:
+                artist.set_visible(visibility)
+                if color is not None:
+                    artist.set_color(color)
+        self.figure.canvas.draw_idle()
+
+
+
+
+
+
+
+
+
+
+

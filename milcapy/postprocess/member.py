@@ -199,7 +199,7 @@ class BeamSeg():
 
     def process_builder(self, member: "Member", results: "Dict[str, np.ndarray]", pattern_name: str) -> None:
         self.xi =0
-        self.xj = member.length()
+        self.xj = member.le()
         self.qi = member.get_distributed_load(pattern_name).q_i
         self.qj = member.get_distributed_load(pattern_name).q_j
         self.pi = member.get_distributed_load(pattern_name).p_i

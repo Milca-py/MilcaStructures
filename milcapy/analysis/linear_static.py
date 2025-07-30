@@ -4,7 +4,6 @@ import time
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
-    from milcapy.analysis.options import LinearStaticOptions
 
 
 
@@ -18,17 +17,14 @@ class LinearStaticAnalysis:
     def __init__(
         self,
         model: "SystemMilcaModel",
-        analysis_options: "LinearStaticOptions",
         ) -> None:
         """
         Inicializa el solucionador con el modelo y el método de solución.
 
         Args:
             model: Modelo estructural que contiene K_global y F_global.
-            analysis_options: Opciones de análisis.
         """
         self.model = model
-        self.analysis_options = analysis_options
 
         # Rendimiento y diagnóstico
         self.solution_time = 0.0
@@ -64,7 +60,7 @@ class LinearStaticAnalysis:
 
         # Asignar fuerzas nodales almacenadas en los nodos
         for node in self.model.nodes.values():
-            f = node.load_vector()
+            f = node.get_load_vector()
             dofs = node.dofs
             F[dofs - 1] += f
 

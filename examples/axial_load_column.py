@@ -9,12 +9,7 @@ model.add_material(
     poisson_ratio=0.2
 )
 
-model.add_rectangular_section(
-    name="seccion",
-    material_name="concreto",
-    base=0.3,
-    height=0.5
-)
+model.add_rectangular_section(name="seccion", material_name="concreto", base=0.3, height=0.5)
 
 nodes = {
     1: (0, 0),
@@ -36,9 +31,7 @@ model.add_restraint(1, (True, True, True))
 model.add_load_pattern(name="Live Load")
 model.add_point_load(2, "Live Load", 100, -10000, 0, "GLOBAL")
 
-model.add_distributed_load(member_id=1, load_pattern_name="Live Load",
-                        CSys="LOCAL", load_start= -100, load_end=-50,
-                        replace=False, direction="LOCAL_1", load_type="FORCE")
+model.add_distributed_load(member_id=1, load_pattern_name="Live Load", CSys="LOCAL", load_start=-100, load_end=-50, replace=False, direction="LOCAL_1", load_type="FORCE")
 
 model.solve()
 model.show()
