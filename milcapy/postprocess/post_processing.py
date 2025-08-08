@@ -1,10 +1,7 @@
-from milcapy.postprocess.member import BeamSeg
+from milcapy.postprocess.segment_member import BeamSeg
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 import numpy as np
-from milcapy.utils.element import q_phi
-
-
 
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
@@ -65,62 +62,57 @@ class PostProcessing:   # para un solo load pattern
         """Almacena las desplazamientos de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
             global_displacements = self.displacements[member.dofs-1]
-            local_disp = np.dot(member.transformation_matrix(), global_displacements)
-            local_disp_flex = member.H() @ local_disp
-            self.results.set_member_displacements(id, local_disp_flex)
+            array_displacements = np.dot(member.transformation_matrix(), global_displacements)
+            self.results.set_member_displacements(id, array_displacements)
 
     def process_internal_forces_for_members(self) -> None:
         """Almacena las fuerzas internas de los miembros en sistema local en el objeto Results."""
         for id, member in self.model.members.items():
             local_displacements = self.results.get_member_displacements(id)
-            load = member.get_distributed_load(self.load_pattern_name)
-            L = member.length()
-            la, lb = member.la or 0, member.lb or 0
-            qi, qj, pi, pj = load.q_i, load.q_j, load.p_i, load.p_j
-
-
-            a = (qj - qi) / L
-            b = qi
-
-            c = (pj - pi) / L
-            d = pi
-
-            qa = a*la + b
-            qb = a*(L -lb) + b
-
-            pa = c*la + d
-            pb = c*(L -lb) + d
-
-
-            load_vector = q_phi(member.le(), member.phi(), qa, qb, pa, pb)
-            H = member.H()
-            H_inv = np.linalg.pinv(H)
-            HT_pinv = np.linalg.pinv(H.T)
-            stiffness_matrix = HT_pinv @ member.local_stiffness_matrix() @ H_inv
+            load_vector = member.local_load_vector()
+            stiffness_matrix = member.local_stiffness_matrix()
             array_internal_forces = np.dot(stiffness_matrix, local_displacements) - load_vector
             self.results.set_member_internal_forces(id, array_internal_forces)
 
     def post_process_for_members(self) -> None:
-        """Almacena todos los resultados para cada miembro en el objeto Results."""
+        """Almacena todos los resultados para cada miembro en el objeto Results (solo parte flexible)."""
+
         n = self.options.n
         calculator = BeamSeg()
 
         for id, member in self.model.members.items():
+
             result = self.results.get_results_member(id)
             calculator.process_builder(member, result, self.load_pattern_name)
             calculator.coefficients()
 
-            x_val = np.linspace(0, member.le(), n)
+            if member.la or member.lb:
+                # si hay end length offsets
+                la = member.la or 0
+                lb = member.lb or 0
+                L = member.length()
+                x_val = np.linspace(la, L-lb, n - 4)
+                dx = L/100000
+                x_val = np.hstack(([0, la-dx], x_val, [L-lb + dx, L]))
+                self.results.set_x_val(id, x_val)
+            else:
+                x_val = np.linspace(0, member.length(), n)
+                self.results.set_x_val(id, x_val)
 
             array_axial_force = np.zeros(n)
+            array_axial_displacement = np.zeros(n)
             array_shear_force = np.zeros(n)
             array_bending_moment = np.zeros(n)
             array_slope = np.zeros(n)
             array_deflection = np.zeros(n)
 
             for i, x in enumerate(x_val):
+
                 # Calcular fuerzas axiales
                 array_axial_force[i] = calculator.axial(x)
+
+                # Calcular los dezplazamientos axiales
+                array_axial_displacement[i] = calculator.axial_displacement(x)
 
                 # Calcular fuerzas cortantes
                 array_shear_force[i] = calculator.shear(x)
@@ -135,6 +127,7 @@ class PostProcessing:   # para un solo load pattern
                 array_deflection[i] = calculator.deflection(x)
 
             self.results.set_member_axial_force(id, array_axial_force)
+            self.results.set_member_axial_displacement(id, array_axial_displacement)
             self.results.set_member_shear_force(id, array_shear_force)
             self.results.set_member_bending_moment(id, array_bending_moment)
             self.results.set_member_slope(id, array_slope)

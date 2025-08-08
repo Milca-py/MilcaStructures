@@ -21,11 +21,9 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
 
-from matplotlib.collections import PolyCollection
 
 from milcapy.plotter.widgets import DiagramConfig
-
-
+from milcapy.plotter.utils import separate_areas, process_segments
 
 class Plotter:
     def __init__(
@@ -86,8 +84,8 @@ class Plotter:
         self.selected_member = 1
         self.model.current_load_pattern = list(self.model.results.keys())[0]
 
-        #TOPICOS:
-        self.length_offset = {}
+        # end length offset {id_element: [line1, line2]}
+        self.end_length_offset = {} # ✅🐍 visibilidad, color
 
     @property
     def plotter_options(self) -> 'PlotterOptions':
@@ -107,52 +105,33 @@ class Plotter:
 
     @property
     def diagrams(self) -> Dict[str, DiagramConfig]:
-        single_line = True if self.plotter_options.UI_filling_type == 'Sin Relleno' else False
         return {
                 'N(x)': DiagramConfig(
                     name='Diagrama de Fuerza Normal',
                     values=self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"],
                     precision=4,
-                    single_line=single_line
                 ),
                 'V(x)': DiagramConfig(
                     name='Diagrama de Fuerza Cortante',
                     values=self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"],
                     precision=4,
-                    single_line=single_line
                 ),
                 'M(x)': DiagramConfig(
                     name='Diagrama de Momento Flector',
                     values=self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"],
                     precision=4,
-                    single_line=single_line
                 ),
                 'θ(x)': DiagramConfig(
                     name='Diagrama de Rotación',
                     values=self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"],
                     precision=6,
-                    single_line=True
                 ),
                 'y(x)': DiagramConfig(
                     name='Diagrama de Deflexión',
                     values=self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"],
                     precision=6,
-                    single_line=True
                 )
             }
-
-    def update_fill_type(self):
-        if self.plotter_options.UI_filling_type == "Sin Relleno":
-            for DConfig in self.diagrams.values():
-                DConfig.single_line = True
-        else:
-            for DConfig in self.diagrams.values():
-                if DConfig.name == 'Diagrama de Deflexión':
-                    DConfig.single_line = True
-                elif DConfig.name == 'Diagrama de Rotación':
-                    DConfig.single_line = True
-                else:
-                    DConfig.single_line = False
 
     def initialize_plot(self):
         """Plotea por primera y unica vez (crea los objetos artist)"""
@@ -162,7 +141,7 @@ class Plotter:
         self.plot_supports()
         self.plot_node_labels()
         self.plot_member_labels()
-        self.plot_length_offset()
+        self.plot_end_length_offset()
         for load_pattern_name in self.model.results.keys():
             self.plotter_options.load_max(load_pattern_name)
             self.current_load_pattern = load_pattern_name
@@ -359,6 +338,46 @@ class Plotter:
             line.set_visible(self.plotter_options.UI_show_members)
         self.figure.canvas.draw_idle()
 
+    def plot_end_length_offset(self):
+        """Plotea los brazos en los elemntos si es que hubiere"""
+        
+        for ele_id, coord in self.current_values.members.items():
+            brazos = []
+            la = self.model.members[ele_id].la or 0
+            lb = self.model.members[ele_id].lb or 0
+            length = self.model.members[ele_id].length()
+            length = length - la - lb
+            ((xi, yi), (xj, yj)) = self.current_values.members[ele_id]
+            angle_rotation = self.model.members[ele_id].angle_x()
+            coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)), (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
+            ((xa, ya), (xb, yb))=coords
+            coords_a = [[xi, xa], [yi, ya]]
+            coords_b = [[xb, xj], [yb, yj]]
+
+            if self.model.members[ele_id].la:
+                line, = self.axes.plot(coords_a[0], coords_a[1], color=self.plotter_options.end_length_offset_color,
+                                    linewidth=self.plotter_options.end_length_offset_line_width)
+                brazos.append(line)
+                line.set_visible(self.plotter_options.UI_show_members)
+            if self.model.members[ele_id].lb:
+                line, = self.axes.plot(coords_b[0], coords_b[1], color=self.plotter_options.end_length_offset_color,
+                                    linewidth=self.plotter_options.end_length_offset_line_width)
+                brazos.append(line)
+                line.set_visible(self.plotter_options.UI_show_members)
+            self.end_length_offset[ele_id] = brazos
+        self.figure.canvas.draw_idle()
+
+    def update_end_length_offset(self, color=None):
+        for brazos in self.end_length_offset.values():
+            for brazo in brazos:
+                brazo.set_visible(self.plotter_options.UI_show_members)
+        if color:
+            for brazos in self.end_length_offset.values():
+                for brazo in brazos:
+                    brazo.set_color(color)
+        self.figure.canvas.draw_idle()
+
+
     def update_members(self, color=None):
         for member in self.members.values():
             member.set_visible(self.plotter_options.UI_show_members)
@@ -366,7 +385,6 @@ class Plotter:
             for member in self.members.values():
                 member.set_color(color)
         self.figure.canvas.draw_idle()
-
     def plot_supports(self):
         """
         Dibuja los apoyos de la estructura.
@@ -547,14 +565,22 @@ class Plotter:
             arrowslist = []
             textslist = []
 
-            coords = self.current_values.members[id_element]
 
             # Calcular longitud y ángulo de rotación del elemento
             element = self.model.members[id_element]
             length = element.length()
             angle_rotation = element.angle_x()
 
-            # Cargas verticales
+            if not (element.qla or element.qlb):
+                la = element.la or 0
+                lb = element.lb or 0
+                length = length - la - lb
+                ((xi, yi), (xj, yj)) = self.current_values.members[id_element]
+                coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)), (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
+            else:
+                coords = self.current_values.members[id_element]
+
+            # Cargas transversales
             if round(load["q_i"], 2) != 0 or round(load["q_j"], 2) != 0:
                 arrows, texts = graphic_n_arrow(
                     x=coords[0][0],
@@ -672,89 +698,16 @@ class Plotter:
         self.figure.canvas.draw_idle()
 
     def plot_internal_forces(self, type: InternalForceType, escala: float | None = None) -> None:
+        """Plots internal force diagrams for members based on the specified type and scale.
 
-        def calculate_x_intersection(x1, y1, x2, y2):
-            """Calcula la intersección con el eje X entre dos puntos"""
-            if y1 == y2:
-                return x1
-            return x1 - y1 * (x2 - x1) / (y2 - y1)
+        Args:
+            type (InternalForceType): The type of internal force to plot (axial force, shear force, or bending moment).
+            escala (float | None, optional): The scale factor for the internal force values. Uses default scale if None.
 
-        def separate_areas(array, L):
-            """Separa las áreas positivas y negativas con puntos de intersección"""
-            x_val = np.linspace(0, L, len(array))
-            positive_areas = []
-            negative_areas = []
-            current_pos = []
-            current_neg = []
-            prev_sign = None
-
-            for i, (x, y) in enumerate(zip(x_val, array)):
-                current_sign = 'pos' if y >= 0 else 'neg'
-
-                if i == 0:
-                    if current_sign == 'pos':
-                        current_pos.append([x, y])
-                    else:
-                        current_neg.append([x, y])
-                    prev_sign = current_sign
-                    continue
-
-                if current_sign != prev_sign:
-                    # Calcular punto de intersección
-                    x_prev = x_val[i-1]
-                    y_prev = array[i-1]
-                    x_intersect = calculate_x_intersection(
-                        x_prev, y_prev, x, y)
-
-                    # Cerrar el área anterior
-                    if prev_sign == 'pos':
-                        current_pos.append([x_intersect, 0])
-                        positive_areas.append(current_pos)
-                        current_pos = []
-                    else:
-                        current_neg.append([x_intersect, 0])
-                        negative_areas.append(current_neg)
-                        current_neg = []
-
-                    # Iniciar nueva área
-                    if current_sign == 'pos':
-                        current_pos = [[x_intersect, 0], [x, y]]
-                    else:
-                        current_neg = [[x_intersect, 0], [x, y]]
-                    prev_sign = current_sign
-                else:
-                    if current_sign == 'pos':
-                        current_pos.append([x, y])
-                    else:
-                        current_neg.append([x, y])
-                    prev_sign = current_sign
-
-            # Añadir áreas restantes
-            if current_pos:
-                positive_areas.append(current_pos)
-            if current_neg:
-                negative_areas.append(current_neg)
-
-            return positive_areas, negative_areas
-
-        def process_segments(segments, L):
-            """Añade puntos en el eje X para segmentos en los bordes del dominio"""
-            processed = []
-            for seg in segments:
-                new_seg = []
-                # Verificar inicio
-                if seg and seg[0][0] == 0 and seg[0][1] != 0:
-                    new_seg.append([0.0, 0.0])
-
-                new_seg.extend(seg)
-
-                # Verificar final
-                if seg and seg[-1][0] == L and seg[-1][1] != 0:
-                    new_seg.append([L, 0.0])
-
-                processed.append(new_seg)
-            return processed
-
+        This function iterates over each member, calculates the internal force values, and plots the corresponding 
+        diagrams. It also labels the diagrams with initial, maximum, and final values if specified in plotter options.
+        The visibility of the plotted diagrams is controlled by plotter options.
+        """
         # ESCALAS:
         if type == InternalForceType.AXIAL_FORCE:
             escala = self.plotter_options.axial_scale[self.current_load_pattern] if escala is None else escala
@@ -776,7 +729,8 @@ class Plotter:
                 y_val = self.model.results[self.current_load_pattern].members[member_id]["shear_forces"] * escala
             elif type == InternalForceType.BENDING_MOMENT:
                 y_val = self.model.results[self.current_load_pattern].members[member_id]["bending_moments"] * escala
-            x_val = np.linspace(0, member.length(), len(y_val))
+            # x_val = np.linspace(0, member.length(), len(y_val))
+            x_val = self.model.results[self.current_load_pattern].members[member_id]["x_val"]
 
 
             # Configuración inicial
@@ -785,6 +739,8 @@ class Plotter:
             y = y_val
             yo = y[0]
             yf = y[-1]
+            y3 = y[2]
+            yneg3 = y[-3]
             yv = 0
             iv = 0
             if y[np.argmin(y)] < (yf and yo):
@@ -793,14 +749,21 @@ class Plotter:
             elif y[np.argmax(y)] > (yf and yo):
                 yv = y[np.argmax(y)]
                 iv = np.argmax(y)
-            
+
             # [[inicial], [maximo], [final], [medio]]
-            lab_coord = np.array([[0, yo], [iv/len(y)*L, yv], [L, yf], [L/2, yo]])
-            lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
-            lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
+            if member.la or member.lb:
+                la = member.la or 0
+                lb = member.lb or 0
+                lab_coord = np.array([[la, y3], [iv/len(y)*L, yv], [L-lb, yneg3], [L/2, yo]])
+                lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
+                lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
+            else:
+                lab_coord = np.array([[0, yo], [iv/len(y)*L, yv], [L, yf], [L/2, yo]])
+                lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
+                lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
 
             # Separar y procesar áreas
-            positive, negative = separate_areas(y, L)
+            positive, negative = separate_areas(y, L, x_val)
             positive_processed = process_segments(positive, L)
             negative_processed = process_segments(negative, L)
 
@@ -827,19 +790,28 @@ class Plotter:
 
             # PLOTEO DE LAS ETIQUETAS: o, med, f
             if self.plotter_options.fi_label:
-                if round(yo, 7) == round(yf, 7):    # constante
-                    text = self.axes.text(lab_coord[3][0], lab_coord[3][1], f'{yo/escala:.2f}', fontsize=8,)
+                if (round(yo, 7) == round(yf, 7)) and (round(y3, 7) == round(yneg3, 7)):    # constante
+                    text = self.axes.text(lab_coord[3][0], lab_coord[3][1], f'{y3/escala:.2f}', fontsize=8,)
                     artist.append(text)
-                else:
+                elif (round(yo, 7) == round(yf, 7) == 0) and (round(y3, 7) != round(yneg3, 7)):    # con brazos y polinomio no constante
+                    if round(y3, 7) != 0:
+                        text = self.axes.text(lab_coord[0][0], lab_coord[0][1], f'{y3/escala:.2f}', fontsize=8,)
+                        artist.append(text)
+                    if round(yneg3, 7) != 0:
+                        text = self.axes.text(lab_coord[2][0], lab_coord[2][1], f'{yneg3/escala:.2f}', fontsize=8,)
+                        artist.append(text)
+
+                elif (round(yo, 7) != 0) and (round(yv, 7) != 0) and (round(yf, 7) != 0):
                     if round(yo, 7) != 0:
                         text = self.axes.text(lab_coord[0][0], lab_coord[0][1], f'{yo/escala:.2f}', fontsize=8)
                         artist.append(text)
-                    if round(yv, 7) != 0 and (abs(round(yv, 7)) > abs(round(yo, 7)) or abs(round(yv, 7)) > abs(round(yf, 7))):
+                    if round(yv, 7) != 0 and (abs(round(yv, 7)) > abs(round(yo, 7)) and abs(round(yv, 7)) > abs(round(yf, 7))):
                         text = self.axes.text(lab_coord[1][0], lab_coord[1][1], f'{yv/escala:.2f}', fontsize=8)
                         artist.append(text)
                     if round(yf, 7) != 0:
                         text = self.axes.text(lab_coord[2][0], lab_coord[2][1], f'{yf/escala:.2f}', fontsize=8)
                         artist.append(text)
+
 
             val = rotate_xy(val, member.angle_x(), 0, 0)
             val = traslate_xy(val, *member.node_i.vertex.coordinates)
@@ -974,45 +946,3 @@ class Plotter:
                 y = self.model.nodes[node_id].vertex.y + vy
                 node.set_offsets([x, y])
             self.figure.canvas.draw_idle()
-
-
-    def plot_length_offset(self):
-        for member in self.model.members.values():
-            if member.la is not None or member.lb is not None:
-                la = member.la
-                lb = member.lb
-                coord = self.current_values.members[member.id]
-                tt = member.angle_x()
-                x_coords_a = [coord[0][0], coord[0][0] + la*np.cos(tt)]
-                y_coords_a = [coord[0][1], coord[0][1] + la*np.sin(tt)]
-
-                x_coords_b = [coord[1][0], coord[1][0] - lb*np.cos(tt)]
-                y_coords_b = [coord[1][1], coord[1][1] - lb*np.sin(tt)]
-                line_a, = self.axes.plot(x_coords_a, y_coords_a, color="#23262e",
-                                    linewidth=2*self.plotter_options.element_line_width)
-                line_b, = self.axes.plot(x_coords_b, y_coords_b, color="#23262e",
-                                    linewidth=2*self.plotter_options.element_line_width)
-                line_a.set_visible(self.plotter_options.UI_show_members)
-                line_b.set_visible(self.plotter_options.UI_show_members)
-                self.length_offset[member.id] = [line_a, line_b]
-        self.figure.canvas.draw_idle()
-
-    def update_length_offset(self, color = None) -> None:
-        visibility = self.plotter_options.UI_show_members
-        for listArtist in self.length_offset.values():
-            for artist in listArtist:
-                artist.set_visible(visibility)
-                if color is not None:
-                    artist.set_color(color)
-        self.figure.canvas.draw_idle()
-
-
-
-
-
-
-
-
-
-
-

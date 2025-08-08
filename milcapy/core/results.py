@@ -19,10 +19,12 @@ class Results:
     }
 
     members: {
+        "x_val": np.ndarray,
         member_id: {
             "displacements": np.ndarray,
             "internal_forces": np.ndarray,
             "axial_forces": np.ndarray,
+            "axial_displacements": np.ndarray,
             "shear_forces": np.ndarray,
             "bending_moments": np.ndarray,
             "slopes": np.ndarray,
@@ -60,6 +62,9 @@ class Results:
             self.members[member_id] = {"displacements": np.zeros(6), "internal_forces": np.zeros(6)}
         self.members[member_id]["internal_forces"] = internal_forces
 
+    def set_x_val(self, member_id: int, x_val: np.ndarray) -> None:
+        self.members[member_id]["x_val"] = x_val
+
     def set_member_axial_force(self, member_id: int, axial_force: np.ndarray) -> None:
         self.members[member_id]["axial_forces"] = axial_force
 
@@ -74,6 +79,9 @@ class Results:
 
     def set_member_slope(self, member_id: int, slope: np.ndarray) -> None:
         self.members[member_id]["slopes"] = slope
+
+    def set_member_axial_displacement(self, member_id: int, axial_displacement: np.ndarray) -> None:
+        self.members[member_id]["axial_displacements"] = axial_displacement
 
     def get_model_displacements(self) -> np.ndarray:
         return self.model["displacements"]
@@ -93,6 +101,9 @@ class Results:
     def get_member_internal_forces(self, member_id: int) -> np.ndarray:
         return self.members[member_id]["internal_forces"]
 
+    def get_member_x_val(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["x_val"]
+
     def get_member_axial_force(self, member_id: int) -> np.ndarray:
         return self.members[member_id]["axial_forces"]
 
@@ -108,6 +119,9 @@ class Results:
     def get_member_slope(self, member_id: int) -> np.ndarray:
         return self.members[member_id]["slopes"]
 
+    def get_member_axial_displacement(self, member_id: int) -> np.ndarray:
+        return self.members[member_id]["axial_displacements"]
+
     def get_results_node(self, node_id: int) -> Dict[str, np.ndarray]:
         return self.nodes[node_id]
 
@@ -116,3 +130,6 @@ class Results:
 
     def get_results_model(self) -> Dict[str, np.ndarray]:
         return self.model
+
+    def get_results(self) -> Dict[str, Dict[str, np.ndarray]]:
+        return self.results

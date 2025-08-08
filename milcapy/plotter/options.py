@@ -1,4 +1,6 @@
 from typing import TYPE_CHECKING
+
+from numpy import True_
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
 class PlotterOptions:        # ✅✅✅
@@ -18,7 +20,7 @@ class PlotterOptions:        # ✅✅✅
         self.UI_background_color = 'white' ### ✅✅✅
         self.grid = False                ##
         # 'default', 'dark_background', 'ggplot', etc.
-        self.plot_style = 'ggplot'     ##
+        self.plot_style = 'default'     ##
 
         # Opciones para visualización de estructura
         # NODOS:
@@ -27,12 +29,12 @@ class PlotterOptions:        # ✅✅✅
         self.node_color = 'blue'            #####
         # ELEMENTOS:
         self.UI_show_members = True        #####
-        self.element_line_width = 1.0   #####
+        self.element_line_width = 2.0   #####
         self.element_color = 'blue'    #####
         # APOYOS:
         self.show_supports = True
         self.support_size = 0.5        #####
-        self.support_color = 'green'    #####
+        self.support_color = '#00ff00'    #####
         # OPCIONES DE SELECCIÓN:
         self.highlight_selected = True
         self.selected_color = 'red'
@@ -74,11 +76,11 @@ class PlotterOptions:        # ✅✅✅
         self.UI_deformed = False ########### # mostrar la deformada
         self.UI_rigid_deformed = False ########### # Color para deformaciones
         self.rigid_deformed_color = '#e81f64' ########### # Color para deformaciones
-        self.deformation_line_width = 1.0 ######### # Ancho de línea para deformaciones
-        self.deformation_color = '#007acc' ########### # Color para deformaciones
+        self.deformation_line_width = 2.0 ######### # Ancho de línea para deformaciones
+        self.deformation_color = 'blue' # #007acc' ########### # Color para deformaciones
         # CON ESTOS DATOS DE ACTUALIZA DE FORMA SIN DEFORMAR automatixcamente, y se REVIERTE CON EL BOTON DE DEFORMADA
-        self.show_undeformed = True    ########## # Mostrar estructura sin deformar
-        self.undeformed_color = '#aeacad'   ######### Color para estructura sin deformar
+        self.show_undeformed = False    ########## # Mostrar estructura sin deformar
+        self.undeformed_color = 'white'   ######### Color para estructura sin deformar
 
         # ANOTACIONES DE LOS DEZPLAZAMIENTOS EN NODOS
         self.disp_nodes = True    ########## # Mostrar desplazamientos en nodos
@@ -87,7 +89,7 @@ class PlotterOptions:        # ✅✅✅
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
-        self.fi_label = False
+        self.fi_label = True
         self.fi_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
         self.UI_axial = False
         self.axial_scale = {}
@@ -119,6 +121,11 @@ class PlotterOptions:        # ✅✅✅
         self.relsult_label_size = 8       # Tamaño de fuente para etiquetas de resultados
 
 
+
+        # TOPICOS:
+        # self.end_length_offset = True    # Mostrar brazos en los elementos
+        self.end_length_offset_color = 'black'  # Color para brazos en los elementos
+        self.end_length_offset_line_width = 3.0  # Ancho de línea para brazos en los elementos
 
     def reset(self, pattern_name: str):
         """

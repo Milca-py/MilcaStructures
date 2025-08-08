@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, List, TYPE_CHECKING
 import numpy as np
-from milcapy.postprocess.internal_forces import deformed_shape
+from milcapy.postprocess.segment_member import deformed_shape
 from milcapy.utils import rotation_matrix
 
 if TYPE_CHECKING:
@@ -112,11 +112,7 @@ class PlotterValues:
     def rigid_deformed(self, member_id: int, escale: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
         member = self.model.members[member_id]
         MT = member.transformation_matrix()
-        H = member.H()
-        H_inv = np.linalg.pinv(H)
-
-        arraydis = self.results.members[member_id]['displacements']
-        arraydisp = H_inv @ arraydis
+        arraydisp = self.results.members[member_id]['displacements']
         arraydisp = np.dot(MT.T, arraydisp)
         x_val = np.array([
             member.node_i.vertex.x + arraydisp[0] * escale,
@@ -132,7 +128,7 @@ class PlotterValues:
 
         member = self.model.members[member_id]
 
-        # Obtener la deformada en coordenadas globales
+        # Obtener la deformada en coordenadas LOCAL
         x_val, y_val = deformed_shape(member, self.results.members[member_id], escale)
 
         # Rotar el vector de deflexiones

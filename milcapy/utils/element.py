@@ -7,6 +7,8 @@ CACHE_COPIES = None
 # ===================================   MATRICES DE RIGIDEZ   ==============================================
 # ==========================================================================================================
 
+
+
 @lru_cache(maxsize=CACHE_COPIES)
 def local_stiffness_matrix(
     E: float,  # Módulo de Young
@@ -47,6 +49,7 @@ def local_stiffness_matrix(
 # ===================================   MATRICES DE TRANFORMACION   ========================================
 # ==========================================================================================================
 
+
 @lru_cache(maxsize=CACHE_COPIES)
 def transformation_matrix(
     angle: float
@@ -67,7 +70,7 @@ def transformation_matrix(
         [ 0,  0, 0,  c, s, 0 ],
         [ 0,  0, 0, -s, c, 0 ],
         [ 0,  0, 0,  0, 0, 1 ]
-    ], dtype=np.float64)
+    ])
 
 @lru_cache(maxsize=CACHE_COPIES)
 def length_offset_transformation_matrix(la: float, lb: float) -> np.ndarray:
@@ -97,6 +100,8 @@ def length_offset_transformation_matrix(la: float, lb: float) -> np.ndarray:
         [0, 0, 0,  0, 1, -lb],
         [0, 0, 0,  0, 0,   1]
     ], dtype=np.float64)
+
+
 
 
 # ==========================================================================================================
@@ -131,6 +136,7 @@ def q_phi(L, phi, qi, qj, pi, pj):
     M2 = -(b * L**2 / 12 + a * L**3 / 120 * ((5 * phi + 6) / (phi + 1)))
     return np.array([N1, V1, M1, N2, V2, M2])
 
+@lru_cache(maxsize=CACHE_COPIES)
 def length_offset_q(L, phi, qi, qj, pi, pj, la, lb, qla, qlb):
     """
     Calcula el vector de cargas considerando brazos rigidos.
@@ -150,6 +156,7 @@ def length_offset_q(L, phi, qi, qj, pi, pj, la, lb, qla, qlb):
     Returns:
         np.ndarray: Vector de carga.
     """
+
     a = (qj - qi) / L
     b = qi
 
@@ -162,13 +169,24 @@ def length_offset_q(L, phi, qi, qj, pi, pj, la, lb, qla, qlb):
     pa = c*la + d
     pb = c*(L -lb) + d
 
+    ####### CORRECIION ADICIONAL: el usuario al darle qla, qlb == False
+    # indica que los valores qi, qj, pi, pj ingresados son en la cara del brazo rigido
+    # por lo que se debria de crar un nuevo omdelo de carga PartialLoad pero en esta ocacion solo modificaremos el vector de cargas
+    if qla == False:
+        qa = qi
+        pa = pi
+    if qlb == False:
+        qb = qj
+        pb = pj
+    ####################
+
     q = q_phi(L - la - lb, phi, qa, qb, pa, pb)   # Con deformaciones por corte (parte flexible)
     if qla:
-        qla = q_phi(la, 0, qi, qa, pa, pb)            # Sin deformaciones por corte (parte rígida inicial)
+        qla = q_phi(la, 0, qi, qa, pi, pa)            # Sin deformaciones por corte (parte rígida inicial)
     else:
         qla = np.zeros(6)
     if qlb:
-        qlb = q_phi(lb, 0, qb, qj, pa, pb)            # Sin deformaciones por corte (parte rígida final)
+        qlb = q_phi(lb, 0, qb, qj, pb, pj)            # Sin deformaciones por corte (parte rígida final)
     else:
         qlb = np.zeros(6)
 
@@ -177,5 +195,70 @@ def length_offset_q(L, phi, qi, qj, pi, pj, la, lb, qla, qlb):
 
     H = length_offset_transformation_matrix(la, lb)
     Q = np.dot(H.T, q + q_contacto) + q_extremos
-
     return Q
+
+
+@lru_cache(maxsize=CACHE_COPIES)
+def local_load_vector(
+    L: float,  # Longitud del elemento
+    phi: float,  # Aporte de cortante
+    q_i: float,  # intensidad de carga transversal en el nodo i
+    q_j: float,  # intensidad de carga transversal en el nodo j
+    p_i: float,  # intensidad de carga axial en el nodo i
+    p_j: float,  # intensidad de carga axial en el nodo j
+) -> np.ndarray:
+    """
+    Calcula el vector de carga local para un elemento de longitud L
+    con un coeficiente de Timoshenko phi y cargas distribuidas q_i y q_j.
+    
+    Args:
+        L (float): Longitud del elemento.
+        phi (float): Aporte de cortante.
+        q_i (float): Carga distribuida en el nodo inicial.
+        q_j (float): Carga distribuida en el nodo final.
+        p_i (float): Carga axial en el nodo inicial.
+        p_j (float): Carga axial en el nodo final.
+    
+    Returns:
+        np.ndarray: Vector de carga local.
+    """
+    A = (q_j - q_i) / L
+    B = q_i
+
+    M = np.array([
+        [L**2/2, L],
+        [L**3 * (2 - phi) / 12, L**2 / 2]
+    ])
+
+    N = np.array([
+        A * L**4 / 24 + B * L**3 / 6,
+        A * L**5 * (0.6 - phi) / 72 + B * L**4 * (1 - phi) / 24
+    ])
+
+    C = np.linalg.solve(M, N)  # Más eficiente que inv(M) @ N
+
+    Q = np.array([
+        (2 * p_i + p_j) * L / 6,
+        C[0],
+        -C[1],
+        (p_i + 2 * p_j) * L / 6,
+        -(-A * L**2 / 2 - B * L + C[0]),
+        (-A * L**3 / 6 - B * L**2 / 2 + C[0] * L + C[1]),
+    ])
+    
+    return Q
+
+
+# otra alternativa
+def load_vector(L, q_i, q_j):
+    import numpy as np
+    f = np.array([
+        0,
+        L/20 * (7*q_i + 3*q_j),
+        L**2 * (q_i/20 + q_j/30),
+        0,
+        L/20 * (3*q_i + 7*q_j),
+        -L**2 * (q_i/30 + q_j/20),
+    ])
+    return f
+

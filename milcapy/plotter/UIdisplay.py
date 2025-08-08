@@ -1,3 +1,4 @@
+from nt import close
 import matplotlib.pyplot as plt
 import sys
 from PySide6.QtCore import Qt
@@ -53,9 +54,9 @@ class MatplotlibCanvas(QWidget):
             xytext=(10, 10),
             textcoords="offset points",
             fontsize=8,               # Tamaño de letra
-            fontweight="normal",         # Negrita ("bold", "light", "normal")
+            fontweight="normal",      # Negrita ("bold", "light", "normal")
             color="blue",             # Color del texto
-            style="italic",            # Cursiva ("italic", "normal")
+            style="italic",           # Cursiva ("italic", "normal")
             # bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="blue"), # Estilo del fondo
             arrowprops=dict(arrowstyle="->", color="black")  # Flecha
         )
@@ -82,8 +83,7 @@ class MatplotlibCanvas(QWidget):
     def _connect_events(self):
         self.canvas.mpl_connect('scroll_event', self._on_scroll)
         self.canvas.mpl_connect('button_press_event', self._on_button_press)
-        self.canvas.mpl_connect('button_release_event',
-                                self._on_button_release)
+        self.canvas.mpl_connect('button_release_event', self._on_button_release)
         self.canvas.mpl_connect('motion_notify_event', self._on_mouse_move)
         self.canvas.mpl_connect('button_press_event', self._on_click)
         self.canvas.mpl_connect('button_press_event', self._on_right_click)
@@ -191,6 +191,7 @@ class MatplotlibCanvas(QWidget):
             self.canvas.draw_idle()
 
     def _on_right_click(self, event):
+
         if event.inaxes is None:  # Clic fuera del gráfico
             return
         global_contains = False
@@ -202,24 +203,17 @@ class MatplotlibCanvas(QWidget):
                     global_contains = True
                     self.model.plotter.selected_member = member_id
                     # Guardar el color original y cambiar a rojo
-                    original_color = self.model.plotter.members[member_id].get_color(
-                    )
+                    original_color = self.model.plotter.members[member_id].get_color()
                     original_linewidth = self.model.plotter.members[member_id].get_linewidth()
                     self.model.plotter.members[member_id].set_color("red")
                     self.model.plotter.members[member_id].set_linewidth(2)
                     self.model.plotter.figure.canvas.draw_idle()
-
-                    # Obtener datos del miembro
-                    x = np.linspace(0, self.model.members[member_id].length(
-                    ), self.model.postprocessing_options.n)
-                    section = f'({self.model.members[member_id].section.base:.2f}x{self.model.members[member_id].section.height:.2f})'
-                    c_map = self.main_window.options_values['UI_filling_type'] == 'Colormap'
-                    cmap = self.main_window.options_values['UI_colormap']
+                    x = self.model.results[self.current_load_pattern].get_member_x_val(member_id)
 
                     # Crear ventana emergente de Tkinter y esperar a que se cierre
-                    wid = InternalForceDiagramWidget(
-                        member_id, x, self.model.plotter.diagrams, section, c_map, cmap)
+                    InternalForceDiagramWidget(self.model.members[member_id], self.model.plotter.diagrams, x)
                     break
+
             if global_contains:
                 # Restaurar el color original
                 plt.close("all")
@@ -247,7 +241,6 @@ class GraphicOptionsDialog(QDialog):
         main_layout.addWidget(self.create_member_options())
         main_layout.addWidget(self.create_load_options())
         main_layout.addWidget(self.create_deformed_shape_options())
-        main_layout.addWidget(self.create_internal_forces_options())
 
         # Botones Aceptar / Restaurar / Aplicar / Cancelar
         button_layout = QHBoxLayout()
@@ -341,27 +334,6 @@ class GraphicOptionsDialog(QDialog):
         group.setLayout(layout)
         return group
 
-    def create_internal_forces_options(self):
-        """Opciones para fuerzas internas y colormap."""
-        group = QGroupBox("Fuerzas Internas")
-        layout = QVBoxLayout()
-
-        # Tipo de relleno
-        self.filling_type_combo = QComboBox()
-        self.filling_type_combo.addItems(["Sólido", "Sin Relleno", "Colormap"])
-
-        # Colormap
-        self.colormap_combo = QComboBox()
-        self.colormap_combo.addItems(
-            ["jet", "viridis", "coolwarm", "plasma", "rainbow", "turbo", "inferno", "magma", "cividis"])
-
-        layout.addWidget(QLabel("Tipo de Relleno"))
-        layout.addWidget(self.filling_type_combo)
-        layout.addWidget(QLabel("Colormap"))
-        layout.addWidget(self.colormap_combo)
-
-        group.setLayout(layout)
-        return group
 
     def _select_background_color(self):
         """Abre el selector de color para el fondo."""
@@ -377,14 +349,11 @@ class GraphicOptionsDialog(QDialog):
         self.member_labels_checkbox.setChecked(False)
         self.show_loads_checkbox.setChecked(True)
         self.deformation_scale_input.setText("40")
-        self.filling_type_combo.setCurrentText("Colormap")
-        self.colormap_combo.setCurrentText("rainbow")
         self.__recover_values()
         # ! RESTABLECE EL COLOR DE FONDO INICIAL
         self.options["UI_background_color"] = '#e5e5e5'
         self.__transfer_changes()
         self.update_changer(reset=True)
-        self.__update_fill_type()
         print("Restaurado a valores por defecto.")
 
     def accept_changes(self):
@@ -392,7 +361,6 @@ class GraphicOptionsDialog(QDialog):
         self.__recover_values()
         self.__transfer_changes()
         self.update_changer()
-        self.__update_fill_type()
         self.accept()
 
     def apply_changes(self):
@@ -400,7 +368,6 @@ class GraphicOptionsDialog(QDialog):
         self.__recover_values()
         self.__transfer_changes()
         self.update_changer()
-        self.__update_fill_type()
 
     def __recover_values(self):
         """Recupera los valores de los widgets."""
@@ -412,8 +379,6 @@ class GraphicOptionsDialog(QDialog):
         deformation_scale_text = self.deformation_scale_input.text()
         self.options["UI_deformation_scale"][self.current_load_pattern] = float(
             deformation_scale_text) if deformation_scale_text else 40
-        self.options["UI_filling_type"] = self.filling_type_combo.currentText()
-        self.options["UI_colormap"] = self.colormap_combo.currentText()
 
     def __transfer_changes(self):
         """Transfiere las opciones seleccionadas al objeto PlotterOptions."""
@@ -424,12 +389,6 @@ class GraphicOptionsDialog(QDialog):
         op.UI_node_labels = self.options.get("UI_node_labels", False)
         op.UI_member_labels = self.options.get("UI_member_labels", False)
         op.UI_load = self.options.get("UI_load", True)
-        # op.UI_deformation_scale[self.current_load_pattern] = self.options.get("UI_deformation_scale")[self.current_load_pattern]
-        if self.options.get("UI_filling_type", "Sólido") == "Sin Relleno":
-            op.UI_filling_type = "Sin Relleno"
-        else:
-            op.UI_filling_type = self.options.get("UI_filling_type", "Sólido")
-        op.UI_colormap = self.options.get("UI_colormap", "jet")
 
     def _keep_data(self):
         """asigna los valores de las opciones anteriores (mantiene) a los widgets."""
@@ -444,27 +403,21 @@ class GraphicOptionsDialog(QDialog):
         self.show_loads_checkbox.setChecked(self.options.get("UI_load", True))
         self.deformation_scale_input.setText(str(self.options.get(
             "UI_deformation_scale", {}).get(self.current_load_pattern, 40)))
-        self.filling_type_combo.setCurrentText(
-            self.options.get("UI_filling_type", "Sólido"))
-        self.colormap_combo.setCurrentText(
-            self.options.get("UI_colormap", "jet"))
 
     def update_changer(self, reset: bool = False):
-        """Actualiza los cambios al figura principal y su vista inmediata."""
+        """Actualiza los cambios a la figura principal y su vista inmediata."""
         if self.options.get("UI_background_color", None) is not None:
             self.model.plotter.change_background_color()    # cambia el color de fondo
-        self.model.plotter.update_nodes()               # actualiza los nodos
-        self.model.plotter.update_members()             # actualiza los miembros
-        self.model.plotter.update_length_offset()
-        # actualiza los labels de los nodos
-        self.model.plotter.update_node_labels()
-        # actualiza los labels de los miembros
-        self.model.plotter.update_member_labels()
-        self.model.plotter.update_supports()            # actualiza los soportes
-        self.model.plotter.update_point_load()
-        self.model.plotter.update_point_load_labels()
-        self.model.plotter.update_distributed_loads()
-        self.model.plotter.update_distributed_load_labels()
+        self.model.plotter.update_nodes()                   # actualiza los nodos
+        self.model.plotter.update_members()                 # actualiza los miembros
+        self.model.plotter.update_node_labels()             # actualiza los labels de los nodos
+        self.model.plotter.update_member_labels()           # actualiza los labels de los miembros
+        self.model.plotter.update_end_length_offset()       # actualiza los labels de los miembros
+        # self.model.plotter.update_supports()                # actualiza los soportes
+        self.model.plotter.update_point_load()              # actualiza las cargas
+        self.model.plotter.update_point_load_labels()       # actualiza los labels de las cargas
+        self.model.plotter.update_distributed_loads()       # actualiza las cargas distribuidas
+        self.model.plotter.update_distributed_load_labels() # actualiza los labels de las cargas distribuidas
         # !  IMPLEMNETAR PARA QUE PLOTEE DENUEVO PARA UNA ESCALA DIFERENTE
         # verificar si cambio la escala de deformación
         escala = self.options.get("UI_deformation_scale", {}).get(
@@ -481,14 +434,8 @@ class GraphicOptionsDialog(QDialog):
             self.model.plotter.update_rigid_deformed(escala=escala)
             self.model.plotter.update_displaced_nodes(scale=escala)
 
-    def __update_fill_type(self):
-        self.model.plotter.update_fill_type()
-
-
 
 # Clase para la ventana principal
-
-
 class MainWindow(QMainWindow):
     def __init__(self, model: 'SystemMilcaModel'):
         super().__init__()
@@ -608,7 +555,6 @@ class MainWindow(QMainWindow):
     def on_pattern_selected(self, value):
         # ! NOTIFICATION
         self.model.current_load_pattern = value
-        # self.model.plotter.get_plotter_values(self.model.current_load_pattern)
         self.DFA.setChecked(self.model.plotter_options.UI_axial)
         self.DFC.setChecked(self.model.plotter_options.UI_shear)
         self.DMF.setChecked(self.model.plotter_options.UI_moment)
@@ -616,7 +562,6 @@ class MainWindow(QMainWindow):
         self.DEFORMADA.setChecked(self.model.plotter_options.UI_deformed)
         self.DEFORMADA_RIGIDA.setChecked(
             self.model.plotter_options.UI_rigid_deformed)
-        # self.model.plotter.update_change()
 
         # ! ACTUALIZACIONES DE VISIBILIDAD AL CAMBIAR EL PATRON
         if self.model.plotter_options.UI_deformed:
@@ -714,20 +659,20 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_load = False
             if type == "D":
                 if self.model.plotter_options.show_undeformed:
-                    self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color)
-                    self.model.plotter.update_length_offset(color=self.model.plotter_options.undeformed_color)
+                    self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color) # COLOR DE LA NO DEFORMADA CUANDO LA DEFORMADA SE MUESTRA
+                    self.model.plotter.update_end_length_offset(color=self.model.plotter_options.undeformed_color)
                 else:
                     self.model.plotter_options.UI_show_members = False
                     self.options_values["UI_show_members"] = False
                     self.model.plotter.update_members()
-                    self.model.plotter.update_length_offset()
+                    self.model.plotter.update_end_length_offset()
                     self.model.plotter_options.UI_show_members = True
                     self.options_values["UI_show_members"] = True
         else:
             self.model.plotter_options.UI_load = True
             if type == "D":
                 self.model.plotter.update_members(color=self.model.plotter_options.element_color)
-                self.model.plotter.update_length_offset(color="#23262e")
+                self.model.plotter.update_end_length_offset(color=self.model.plotter_options.end_length_offset_color)
                 self.options_values["UI_show_members"] = True
 
         if self.options_values["UI_load"] == True:
@@ -740,7 +685,7 @@ class MainWindow(QMainWindow):
 
 def main_window(model: 'SystemMilcaModel'):
     app = QApplication.instance()
-    if app is None:  # Si no existe una instancia, créala
+    if app is None:  # Si no existe una instancia, se crea
         app = QApplication(sys.argv)
     window = MainWindow(model)
     window.show()

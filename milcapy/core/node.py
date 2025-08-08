@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from milcapy.utils.types import Restraints
     from milcapy.utils.geometry import Vertex
 
+
 class Node:
     """Representa un nodo en el modelo estructural."""
 
@@ -35,8 +36,8 @@ class Node:
         # Patrón de carga actual
         self.current_load_pattern: Optional[str] = None
 
-    def get_load_vector(self) -> np.ndarray:
-        """Obtener el vector de cargas aplicadas al nodo para el patrón de carga actual en sistema global."""
+    def load_vector(self) -> np.ndarray:
+        """Vector de cargas aplicadas al nodo para el patrón de carga actual en sistema global."""
         load = self.loads.get(self.current_load_pattern, PointLoad())
 
         return load.components

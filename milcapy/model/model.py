@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union, Sequence
 
 from milcapy.material.material import Material, GenericMaterial
 from milcapy.section.section import Section, RectangularSection
@@ -200,6 +200,7 @@ class SystemMilcaModel:
         self.members[id] = element
         return element
 
+
     def add_restraint(
         self,
         node_id: int,
@@ -368,18 +369,15 @@ class SystemMilcaModel:
             replace=replace,
         )
 
-    def add_end_length(self, member_id: int, la: float, lb: float, qla: bool = True, qlb: bool = True) -> None:
+    def add_end_length_offset(self, member_id: int, la: float, lb: float, qla: bool = True, qlb: bool = True, fla: float = 1, flb: float = 1) -> None:
         if member_id not in self.members:
             raise ValueError(f"No existe un miembro con el ID {member_id}")
         self.members[member_id].la = la
         self.members[member_id].lb = lb
         self.members[member_id].qla = qla
         self.members[member_id].qlb = qlb
-        # member = self.members[member_id]
-        # node_A = member.node_i
-        # node_B = member.node_j
-        # rigid_link = RigidLink(
-
+        self.members[member_id].fla = fla
+        self.members[member_id].flb = flb
 
 
 

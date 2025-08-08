@@ -10,4 +10,3 @@ class SystemModel(SystemMilcaModel):
 
     def __init__(self):
         super().__init__()
-        # self.model = SystemMilcaModel()

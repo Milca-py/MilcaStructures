@@ -60,7 +60,7 @@ class LinearStaticAnalysis:
 
         # Asignar fuerzas nodales almacenadas en los nodos
         for node in self.model.nodes.values():
-            f = node.get_load_vector()
+            f = node.load_vector()
             dofs = node.dofs
             F[dofs - 1] += f
 
@@ -165,7 +165,7 @@ class LinearStaticAnalysis:
         # U = |  | = displacements
         #     |Uc|
 
-        U_d = np.linalg.solve(K_d, F_d)
+        U_d = np.linalg.solve(K_d, F_d) # respuesta solo para los maestros
 
         # Colocar los desplazamientos en los grados de libertad libres
         nn = len(self.model.nodes)
