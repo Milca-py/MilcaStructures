@@ -1,7 +1,11 @@
 from milcapy.elements.member import Member
 from typing import Dict, Tuple
 import numpy as np
+<<<<<<< HEAD
 from milcapy.utils.element import q_phi, length_offset_transformation_matrix
+=======
+from milcapy.utils.element import q_phi
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 
 class BeamSeg():
     """
@@ -249,14 +253,18 @@ class BeamSeg():
         self.lb = member.lb
         self.qla = member.qla
         self.qlb = member.qlb
+<<<<<<< HEAD
         self.fla = member.fla
         self.flb = member.flb
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 
         self.xi =0
         self.xj = member.length()
 
         if self.la or self.lb:
             local_disp = results["displacements"]
+<<<<<<< HEAD
             LO_T = member.length_offset_transformation_matrix()
             # LO_T = length_offset_transformation_matrix(member.la or 0, member.lb or 0)
             local_displacements_flex = LO_T @ local_disp
@@ -270,6 +278,14 @@ class BeamSeg():
             #     la, lb = member.la_lb_efect()
             # ####################
             le = L - la - lb
+=======
+            local_displacements_flex = member.length_offset_transformation_matrix() @ local_disp
+
+            load = member.get_distributed_load(pattern_name)
+            L = member.length()
+            le = L - (self.la or 0) - (self.lb or 0)
+            la, lb = self.la or 0, self.lb or 0
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
             qi, qj, pi, pj = load.q_i, load.q_j, load.p_i, load.p_j
 
 
@@ -285,6 +301,7 @@ class BeamSeg():
             pa = c*la + d
             pb = c*(L -lb) + d
 
+<<<<<<< HEAD
             ####### CORRECIION ADICIONAL: el usuario al darle qla, qlb == False
             # indica que los valores qi, qj, pi, pj ingresados son en la cara del brazo rigido
             # por lo que se debria de crar un nuevo omdelo de carga PartialLoad pero en esta ocacion solo modificaremos el vector de cargas
@@ -298,6 +315,8 @@ class BeamSeg():
 
 
 
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
             load_vector = q_phi(le, member.phi(), qa, qb, pa, pb)
             stiffness_matrix = member.flexible_stiffness_matrix()
             internal_forces_flex = stiffness_matrix @ local_displacements_flex - load_vector

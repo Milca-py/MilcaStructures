@@ -52,8 +52,11 @@ class Member:
         self.lb: Optional[float] = None    # Longitud del brazo rigido final
         self.qla: Optional[bool] = None    # Indica si hay cargas en el brazo rigido inicial
         self.qlb: Optional[bool] = None    # Indica si hay cargas en el brazo rigido final
+<<<<<<< HEAD
         self.fla: Optional[float] = None   # Factor de longitud del brazo rigido inicial
         self.flb: Optional[float] = None   # Factor de longitud del brazo rigido final
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 
     def length(self) -> float:
         """Longitud del miembro."""
@@ -79,13 +82,18 @@ class Member:
             laef, lbef = self.la_lb_efect()
             E = self.section.E()
             I = self.section.I()
+<<<<<<< HEAD
             L = self.length() - laef - lbef
+=======
+            L = self.length() - (self.la or 0) - (self.lb or 0)
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
             A = self.section.A()
             k = self.section.k()
             G = self.section.G()
 
             return (12 * E * I) / (L**2 * A * k * G)
 
+<<<<<<< HEAD
     def la_lb_efect(self):
         la = self.la or 0
         fla = self.fla or 1
@@ -97,6 +105,8 @@ class Member:
 
         return laef, lbef
 
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
     def set_current_load_pattern(self, load_pattern_name: str) -> None:
         """Establece el patrón de carga actual del miembro."""
         self.current_load_pattern = load_pattern_name
@@ -157,27 +167,41 @@ class Member:
             )
             return k
         else:
+<<<<<<< HEAD
             laef, lbef = self.la_lb_efect()
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
             H = self.length_offset_transformation_matrix()
             k = local_stiffness_matrix(
                 E=self.section.E(),
                 I=self.section.I(),
                 A=self.section.A(),
                 L=self.length(),
+<<<<<<< HEAD
                 le=self.length() - laef - lbef,
+=======
+                le=self.length() - (self.la or 0) - (self.lb or 0),
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
                 phi=self.phi(),
             )
             return H.T @ k @ H
 
     def flexible_stiffness_matrix(self) -> np.ndarray:
         """Calcula la matriz de rigidez de la parte flexible del miembro."""
+<<<<<<< HEAD
         laef, lbef = self.la_lb_efect()
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
         k = local_stiffness_matrix(
             E=self.section.E(),
             I=self.section.I(),
             A=self.section.A(),
             L=self.length(),
+<<<<<<< HEAD
             le=self.length() - laef - lbef,
+=======
+            le=self.length() - (self.la or 0) - (self.lb or 0),
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
             phi=self.phi(),
         )
         return k

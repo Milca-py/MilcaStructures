@@ -412,7 +412,10 @@ class GraphicOptionsDialog(QDialog):
         self.model.plotter.update_members()                 # actualiza los miembros
         self.model.plotter.update_node_labels()             # actualiza los labels de los nodos
         self.model.plotter.update_member_labels()           # actualiza los labels de los miembros
+<<<<<<< HEAD
         self.model.plotter.update_end_length_offset()       # actualiza los labels de los miembros
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
         # self.model.plotter.update_supports()                # actualiza los soportes
         self.model.plotter.update_point_load()              # actualiza las cargas
         self.model.plotter.update_point_load_labels()       # actualiza los labels de las cargas
@@ -660,19 +663,28 @@ class MainWindow(QMainWindow):
             if type == "D":
                 if self.model.plotter_options.show_undeformed:
                     self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color) # COLOR DE LA NO DEFORMADA CUANDO LA DEFORMADA SE MUESTRA
+<<<<<<< HEAD
                     self.model.plotter.update_end_length_offset(color=self.model.plotter_options.undeformed_color)
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
                 else:
                     self.model.plotter_options.UI_show_members = False
                     self.options_values["UI_show_members"] = False
                     self.model.plotter.update_members()
+<<<<<<< HEAD
                     self.model.plotter.update_end_length_offset()
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
                     self.model.plotter_options.UI_show_members = True
                     self.options_values["UI_show_members"] = True
         else:
             self.model.plotter_options.UI_load = True
             if type == "D":
                 self.model.plotter.update_members(color=self.model.plotter_options.element_color)
+<<<<<<< HEAD
                 self.model.plotter.update_end_length_offset(color=self.model.plotter_options.end_length_offset_color)
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
                 self.options_values["UI_show_members"] = True
 
         if self.options_values["UI_load"] == True:

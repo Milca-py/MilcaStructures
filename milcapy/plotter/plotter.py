@@ -84,9 +84,12 @@ class Plotter:
         self.selected_member = 1
         self.model.current_load_pattern = list(self.model.results.keys())[0]
 
+<<<<<<< HEAD
         # end length offset {id_element: [line1, line2]}
         self.end_length_offset = {} # ✅🐍 visibilidad, color
 
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
     @property
     def plotter_options(self) -> 'PlotterOptions':
         return self.model.plotter_options
@@ -141,7 +144,10 @@ class Plotter:
         self.plot_supports()
         self.plot_node_labels()
         self.plot_member_labels()
+<<<<<<< HEAD
         self.plot_end_length_offset()
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
         for load_pattern_name in self.model.results.keys():
             self.plotter_options.load_max(load_pattern_name)
             self.current_load_pattern = load_pattern_name

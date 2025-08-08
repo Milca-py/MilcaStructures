@@ -126,6 +126,15 @@ class PostProcessing:   # para un solo load pattern
                 # Calcular deflexiones
                 array_deflection[i] = calculator.deflection(x)
 
+            # if member.la or member.lb:
+            #     array_axial_force = np.hstack(([0, 0], array_axial_force, [0, 0]))
+            #     array_axial_displacement = np.hstack(([0, 0], array_axial_displacement, [0, 0]))
+            #     array_shear_force = np.hstack(([0, 0], array_shear_force, [0, 0]))
+            #     array_bending_moment = np.hstack(([0, 0], array_bending_moment, [0, 0]))
+            #     array_slope = np.hstack(([0, 0], array_slope, [0, 0]))
+            #     array_deflection = np.hstack(([0, 0], array_deflection, [0, 0]))
+            #     self.results.set_x_val(id, )
+
             self.results.set_member_axial_force(id, array_axial_force)
             self.results.set_member_axial_displacement(id, array_axial_displacement)
             self.results.set_member_shear_force(id, array_shear_force)

@@ -372,12 +372,15 @@ class SystemMilcaModel:
     def add_end_length_offset(self, member_id: int, la: float, lb: float, qla: bool = True, qlb: bool = True, fla: float = 1, flb: float = 1) -> None:
         if member_id not in self.members:
             raise ValueError(f"No existe un miembro con el ID {member_id}")
-        self.members[member_id].la = la
-        self.members[member_id].lb = lb
+        self.members[member_id].la = la*fla
+        self.members[member_id].lb = lb*flb
         self.members[member_id].qla = qla
         self.members[member_id].qlb = qlb
+<<<<<<< HEAD
         self.members[member_id].fla = fla
         self.members[member_id].flb = flb
+=======
+>>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 
 
 
