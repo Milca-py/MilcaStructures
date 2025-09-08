@@ -1,0 +1,27 @@
+from milcapy import SystemModel
+
+
+model = SystemModel()
+model.add_material("concreto", 2e6, 0.2)
+model.add_rectangular_section("sec1", "concreto", 0.5, 0.5)
+model.add_node(1, 0, 0)
+model.add_node(2, 0, 3)
+model.add_node(3, 6, 3)
+model.add_node(4, 6, 0)
+model.add_member(1, 1, 2, "sec1")
+model.add_member(2, 2, 3, "sec1")
+model.add_member(3, 3, 4, "sec1")
+model.add_restraint(1, (True, True, True))
+model.add_restraint(4, (True, True, True))
+model.add_load_pattern("dead")
+# model.add_load_pattern("wind")
+model.add_prescribed_dof(4, "dead", uy=-0.1) # , rz=3.1415*1/180)
+# model.add_point_load(2, "dead", 0, 0, 10)
+# model.add_distributed_load(2, "dead", -5, -5)
+# model.add_end_length_offset(2, 0.5, 0.5, False, False)
+# model.add_prescribed_dof(3, "wind", ux=0.5, rz=3.1415*5/180)
+# model.add_point_load(2, "wind", 0, -10, 0)
+# model.add_distributed_load(2, "wind", -5, 8)
+
+model.solve()
+model.show()
