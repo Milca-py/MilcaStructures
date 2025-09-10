@@ -8,7 +8,7 @@ class ElementType(Enum):
     MQ6IMod = auto()
 
 
-element_type = ElementType.MQ6IMod
+element_type = ElementType.MQ6
 h = 0.6
 l = 3.0
 t = 0.25

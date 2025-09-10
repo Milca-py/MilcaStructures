@@ -298,7 +298,7 @@ class SystemMilcaModel:
         node_j_id: int,
         section_name: str,
         beam_theory: Union[str, BeamTheoriesType] = BeamTheoriesType.TIMOSHENKO,
-        member_type: Union[str, MemberType] = MemberType.FRAME
+        # member_type: Union[str, MemberType] = MemberType.FRAME
     ) -> Member:
         """
         Agrega un miembro estructural al modelo, por defecto usa la teoría de Timoshenko para vigas.
@@ -309,7 +309,6 @@ class SystemMilcaModel:
             node_j_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
             beam_theory (str, opcional): Teoría de la viga. Por defecto es Timoshenko.
-            member_type (str, opcional): Tipo de miembro. Por defecto es FRAME.
 
         Returns:
             Member: El miembro creado.
@@ -322,9 +321,10 @@ class SystemMilcaModel:
         if section_name not in self.sections:
             raise ValueError(f"No existe una sección con el nombre '{section_name}'")
 
-        # Convertir a enum si es string
-        if isinstance(member_type, str):
-            member_type = to_enum(member_type, MemberType)
+        # # Convertir a enum si es string
+        # if isinstance(member_type, str):
+        #     member_type = to_enum(member_type, MemberType)
+        member_type = MemberType.FRAME
 
         if isinstance(beam_theory, str):
             beam_theory = to_enum(beam_theory, BeamTheoriesType)
@@ -505,7 +505,7 @@ class SystemMilcaModel:
         section_name: str
         ) -> MembraneQuad6:
         """
-        Agrega un cuadrilátero de membrana de 6 nodos al modelo.
+        Agrega un cuadrilátero de membrana de 6 nodos al modelo con rigidez a la perforación (3dof/nodo).
 
         Args:
             id (int): Identificador del cuadrilátero.
@@ -694,6 +694,10 @@ class SystemMilcaModel:
         """
         if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
+        if len(restraints) != 3:
+            raise ValueError("La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
+        if not all(isinstance(x, bool) for x in restraints):
+            raise ValueError("La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
 
         self.nodes[node_id].set_restraints(restraints)
 
@@ -1018,8 +1022,8 @@ class SystemMilcaModel:
     def add_end_length_offset(
         self,
         member_id: int,
-        la: float,
-        lb: float,
+        la: float = 0,
+        lb: float = 0,
         qla: bool = True,
         qlb: bool = True,
         fla: float = 1,
@@ -1032,10 +1036,10 @@ class SystemMilcaModel:
             member_id (int): ID del miembro.
             la (float): Desplazamiento de longitud final en el nodo inicial.
             lb (float): Desplazamiento de longitud final en el nodo final.
-            qla (bool, opcional): Si se aplica el desplazamiento de longitud final en el nodo inicial. Default es True.
-            qlb (bool, opcional): Si se aplica el desplazamiento de longitud final en el nodo final. Default es True.
-            fla (float, opcional): Factor de escala para el desplazamiento de longitud final en el nodo inicial. Default es 1.
-            flb (float, opcional): Factor de escala para el desplazamiento de longitud final en el nodo final. Default es 1.
+            qla (bool, opcional): Si se aplica el carga en el brazo inicial. Default es True.
+            qlb (bool, opcional): Si se aplica el carga en el brazo final. Default es True.
+            fla (float, opcional): Factor de zona rigida del brazo inicial. Default es 1.
+            flb (float, opcional): Factor de zona rigida del brazo final. Default es 1.
 
         Raises:
             ValueError: Si no existe el miembro.
@@ -1081,7 +1085,8 @@ class SystemMilcaModel:
         load_pattern_name: str,
         ux: Optional[float] = None,
         uy: Optional[float] = None,
-        rz: Optional[float] = None
+        rz: Optional[float] = None,
+        CSys: Union[str, CoordinateSystemType] = "GLOBAL"
     ) -> None:
         """
         Asigna un desplazamiento prescrito a un nodo dentro de un patrón de carga.
@@ -1092,7 +1097,7 @@ class SystemMilcaModel:
             ux (float, opcional): Desplazamiento en X. Default es None.
             uy (float, opcional): Desplazamiento en Y. Default es None.
             rz (float, opcional): Desplazamiento en Z. Default es None.
-
+            CSys (str, opcional): Sistema de coordenadas. Default es "GLOBAL".
         Raises:
             ValueError: Si no existe el nodo o el patrón de carga.
         """
@@ -1100,6 +1105,21 @@ class SystemMilcaModel:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
         if load_pattern_name not in self.load_patterns:
             raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+        if isinstance(CSys, str):
+            CSys = to_enum(CSys, CoordinateSystemType)
+        if CSys not in [CoordinateSystemType.LOCAL, CoordinateSystemType.GLOBAL]:
+            raise ValueError(f"CSys debe ser 'LOCAL' o 'GLOBAL'")
+        if CSys == CoordinateSystemType.GLOBAL and self.nodes[node_id].local_axis is not None:
+            angle = self.nodes[node_id].local_axis.angle
+            T = np.array([
+                [np.cos(angle), np.sin(angle), 0],
+                [-np.sin(angle), np.cos(angle), 0],
+                [0, 0, 1]
+            ]).T
+            ux, uy, rz = np.dot(T, np.array([ux or 0, uy or 0, rz or 0]))
+            ux = ux if ux!=0 else None
+            uy = uy if uy!=0 else None
+            rz = rz if rz!=0 else None
         self.load_patterns[load_pattern_name].add_prescribed_dof(node_id, PrescribedDOF(ux=ux, uy=uy, rz=rz))
 
     def add_elastic_support(
@@ -1108,7 +1128,7 @@ class SystemMilcaModel:
         kx: Optional[float] = None,
         ky: Optional[float] = None,
         krz: Optional[float] = None,
-        CSys: Union[str, CoordinateSystemType] = "LOCAL"
+        CSys: Union[str, CoordinateSystemType] = "GLOBAL"
     ) -> None:
         """
         Asigna un apoyo elástico a un nodo.
@@ -1118,7 +1138,7 @@ class SystemMilcaModel:
             kx (float, opcional): Constante de rigidez en X. Default es None.
             ky (float, opcional): Constante de rigidez en Y. Default es None.
             krz (float, opcional): Constante de rigidez en Z. Default es None.
-
+            CSys (str, opcional): Sistema de coordenadas. Default es "GLOBAL".
         Raises:
             ValueError: Si no existe el nodo.
         """
@@ -1135,7 +1155,10 @@ class SystemMilcaModel:
                 [-np.sin(angle), np.cos(angle), 0],
                 [0, 0, 1]
             ])
-            kx, ky, krz = np.dot(T, np.array([kx, ky, krz]))
+            kx, ky, krz = np.dot(T, np.array([kx or 0, ky or 0, krz or 0]))
+            kx = kx if kx!=0 else None
+            ky = ky if ky!=0 else None
+            krz = krz if krz!=0 else None
         self.nodes[node_id].set_elastic_support(ElasticSupport(kx=kx, ky=ky, krz=krz))
 
     def add_local_axis_for_node(

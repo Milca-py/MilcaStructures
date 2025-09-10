@@ -11,7 +11,7 @@ from milcapy.plotter.suports import (
     support_kt, support_kr
 )
 from milcapy.plotter.load import (
-    graphic_one_arrow, moment_fancy_arrow, graphic_n_arrow
+    graphic_one_arrow, graphic_one_arrow_dof, moment_fancy_arrow, graphic_n_arrow
 )
 from milcapy.plotter.plotter_values import PlotterValues
 from milcapy.plotter.options import PlotterOptions
@@ -669,7 +669,7 @@ class Plotter:
             length = element.length()
             angle_rotation = element.angle_x()
 
-            if not (element.qla or element.qlb):
+            if not (element.qla and element.qlb): # Si no hay cargas en el brazo rigido
                 la = element.la or 0
                 lb = element.lb or 0
                 length = length - la - lb
@@ -856,13 +856,13 @@ class Plotter:
                 area = rotate_xy(area, member.angle_x(), 0, 0)
                 area = traslate_xy(area, *member.node_i.vertex.coordinates)
                 if len(area) > 2:
-                    polygon, = self.axes.fill(*zip(*area), color='#807fff', alpha=0.7)
+                    polygon, = self.axes.fill(*zip(*area), color=self.plotter_options.positive_fill_color, alpha=self.plotter_options.positive_fill_alpha)
                     artist.append(polygon)
             for area in negative_processed:
                 area = rotate_xy(area, member.angle_x(), 0, 0)
                 area = traslate_xy(area, *member.node_i.vertex.coordinates)
                 if len(area) > 2:
-                    polygon, = self.axes.fill(*zip(*area), color='#ff897b', alpha=0.7)
+                    polygon, = self.axes.fill(*zip(*area), color=self.plotter_options.negative_fill_color, alpha=self.plotter_options.negative_fill_alpha)
                     artist.append(polygon)
 
             # PLOTEO DE LAS ETIQUETAS: o, med, f
@@ -1075,12 +1075,19 @@ class Plotter:
             arrowstyle = "-|>"
             # dezplamientos en dirección X
             if PDOF.ux != 0 and PDOF.ux  is not None:
-                arrow, text = graphic_one_arrow(
+                if self.model.nodes[id_node].local_axis is not None:
+                    if PDOF.ux > 0:
+                        angle = self.model.nodes[id_node].local_axis.angle
+                    else:
+                        angle = self.model.nodes[id_node].local_axis.angle + np.pi
+                else:
+                    angle = np.pi if PDOF.ux < 0 else 0
+                arrow, text = graphic_one_arrow_dof(
                     x=coords[0],
                     y=coords[1],
                     load=PDOF.ux,
                     length_arrow= self.plotter_options.disp_pre_length_arrow,
-                    angle=0 if PDOF.ux < 0 else np.pi,
+                    angle=angle,
                     ax=self.axes,
                     color=self.plotter_options.disp_pre_color,
                     label=self.plotter_options.point_load_label,
@@ -1094,12 +1101,19 @@ class Plotter:
 
             # Fuerza en dirección Y
             if PDOF.uy != 0 and PDOF.uy  is not None:
-                arrow, text = graphic_one_arrow(
+                if self.model.nodes[id_node].local_axis is not None:
+                    if PDOF.uy > 0:
+                        angle = np.pi/2 + self.model.nodes[id_node].local_axis.angle
+                    else:
+                        angle = 3*np.pi/2 + self.model.nodes[id_node].local_axis.angle
+                else:
+                    angle = np.pi/2 if PDOF.uy > 0 else 3*np.pi/2
+                arrow, text = graphic_one_arrow_dof(
                     x=coords[0],
                     y=coords[1],
                     load=PDOF.uy,
                     length_arrow=self.plotter_options.disp_pre_length_arrow,
-                    angle=np.pi/2 if PDOF.uy < 0 else 3*np.pi/2,
+                    angle=angle, #np.pi/2 if PDOF.uy < 0 else 3*np.pi/2,
                     ax=self.axes,
                     color=self.plotter_options.disp_pre_color,
                     label=self.plotter_options.point_load_label,
@@ -1164,7 +1178,11 @@ class Plotter:
         for node_id, elastic_support in self.current_values.elastic_supports.items():
             node_coords = self.current_values.nodes[node_id]
             kx, ky, krz = elastic_support.get_elastic_supports()
-            T = self.model.nodes[node_id].local_axis.get_transformation_matrix()
+            LA = self.model.nodes[node_id].local_axis
+            if LA is not None:
+                T = LA.get_transformation_matrix()
+            else:
+                T = np.eye(3)
             kx, ky, krz = T @ np.array([kx or 0, ky or 0, krz or 0])
             artist = []
             data_artist = {}

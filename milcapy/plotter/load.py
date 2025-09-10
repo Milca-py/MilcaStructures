@@ -64,6 +64,53 @@ def graphic_one_arrow(
         )
     return arrow, text
 
+def graphic_one_arrow_dof(
+    x: float,
+    y: float,
+    load: float,
+    length_arrow: float,
+    angle: float,
+    ax: "Axes",
+    color: str = "blue",
+    label: bool = True,
+    color_label: str = "black",
+    label_font_size: int = 8,
+    lw: float = 1,
+    arrowstyle: str = "->"
+) -> None:
+    """
+    Dibuja una flecha en un punto.
+    """
+    a = np.array([x, y])
+    b = np.array([x - length_arrow * np.cos(angle), y - length_arrow * np.sin(angle)])
+
+    # coordenadas al 15% de la punta de la flecha
+    coord15p = np.array([x - 0.85 * length_arrow * np.cos(angle), y - 0.85 * length_arrow * np.sin(angle)])
+    arrow = FancyArrowPatch(
+        b, a,
+        transform=ax.transData,
+        color=color,
+        linewidth=lw,
+        arrowstyle=arrowstyle,
+        mutation_scale=10,
+        zorder=80
+    )
+    ax.add_patch(arrow)
+
+
+    if label:
+        text =ax.text(
+            coord15p[0], coord15p[1],
+            f"{redondear_si_mas_de_3_decimales(abs(load))}",
+            fontsize=label_font_size,
+            ha="right",
+            va="bottom",
+            color=color_label,
+            rotation= _correction_angle(angle*180/np.pi),
+            zorder=80
+        )
+    return arrow, text
+
 
 
 # import matplotlib.pyplot as plt
@@ -209,18 +256,26 @@ si: X -> (-)=0, (+)=180
 si: Y -> (-)=90, (+)=270
 """
 
+
 def redondear_si_mas_de_3_decimales(num):
     """
-    Redondea un número si tiene más de 3 decimales
+    Redondea un número a 3 decimales solo si:
+      - Es float, y
+      - Tiene más de 3 decimales.
+    Si es entero, lo devuelve tal cual.
     """
-    # Convertir a string para evitar problemas con flotantes binarios
-    num_str = str(num)
+    # Si es entero (int o float sin decimales)
+    if float(num).is_integer():
+        return int(num)
 
+    # Contar decimales con formato seguro
+    num_str = f"{num:.16f}".rstrip("0").rstrip(".")
     if '.' in num_str:
         decimales = len(num_str.split('.')[1])
         if decimales > 3:
-            return round(num, 3)  # Redondear a 3 decimales
-    return num  # No hacer nada si tiene 3 o menos
+            return round(num, 3)
+
+    return num
 
 
 

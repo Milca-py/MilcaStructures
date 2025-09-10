@@ -37,5 +37,6 @@ portico.add_distributed_load(2, "Live Load", q, q, "GLOBAL", "GRAVITY")
 portico.add_end_length_offset(2, lbri, lbrf)
 portico.add_point_load(2, "Live Load", F1, 0, 0, "GLOBAL")
 portico.add_point_load(3, "Live Load", Peq, 0, Meq, "GLOBAL")
+portico.postprocessing_options.n = 100
 portico.solve()
 portico.show()

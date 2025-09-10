@@ -103,33 +103,40 @@ class PlotterOptions:        # ✅✅✅
         self.UI_deflection = False
         self.deflection_scale = {}
 
+        colorOption = 2 # 2 = color, 1 = blanco
+        self.fi_ratio_scale = 0.2
+        self.positive_fill_color = '#7f7fff' if colorOption == 2 else 'white'
+        self.positive_fill_alpha = 1
+        self.negative_fill_color = '#ff7f7f' if colorOption == 2 else 'white'
+        self.negative_fill_alpha = 1
+
         # RELLENOS Y CONTORNOS
         self.UI_filling_type = 'Barcolor'      # 'solid', 'barcolor'
-        self.alpha_filling = 0.7         # Transparencia para relleno
-        self.UI_colormap = 'jet'            # 'jet', 'viridis', 'coolwarm', etc.
-        self.UI_show_colorbar = True        # Mostrar barra de colores
-        self.border_contour = True          # Mostrar contornos
-        self.edge_color = 'black'        # Color de bordes en contornos
-        self.alpha = 0.7                 # Transparencia para contornos
-        self.num_contours = 20           # Número de niveles en contornos
+        self.alpha_filling = 0.7               # Transparencia para relleno
+        self.UI_colormap = 'jet'               # 'jet', 'viridis', 'coolwarm', etc.
+        self.UI_show_colorbar = True           # Mostrar barra de colores
+        self.border_contour = True             # Mostrar contornos
+        self.edge_color = 'black'              # Color de bordes en contornos
+        self.alpha = 0.7                       # Transparencia para contornos
+        self.num_contours = 20                 # Número de niveles en contornos
 
         # OPCIONES DE GUARDADO
-        self.save_dpi = 300               # DPI para guardar imágenes
-        self.tight_layout = True          # Ajuste automático de layout
+        self.save_dpi = 300                    # DPI para guardar imágenes
+        self.tight_layout = True               # Ajuste automático de layout
 
         # OTROS:
-        self.label_size = 8               # Tamaño de fuente para etiquetas
-        self.relsult_label_size = 8       # Tamaño de fuente para etiquetas de resultados
+        self.label_size = 8                    # Tamaño de fuente para etiquetas
+        self.relsult_label_size = 8            # Tamaño de fuente para etiquetas de resultados
 
 
 
         # TOPICOS:
-        # self.end_length_offset = True    # Mostrar brazos en los elementos
-        self.end_length_offset_color = 'black'  # Color para brazos en los elementos
+        self.end_length_offset = True          # Mostrar brazos en los elementos
+        self.end_length_offset_color = 'black'   # Color para brazos en los elementos
         self.end_length_offset_line_width = 3.0  # Ancho de línea para brazos en los elementos
 
         # DESPLAMIENTOS PRESCRITOS:
-        self.disp_pre_length_arrow = 0.3
+        self.disp_pre_length_arrow = 1
         self.disp_pre_color = 'red'
         self.disp_pre_label_color = 'black'
         self.disp_pre_label_font_size = 8
@@ -207,12 +214,12 @@ class PlotterOptions:        # ✅✅✅
         self.scale_dist_pload[pattern_name] = 0.05 * val["length_mean"] / val["p_mean"] if val["p_mean"] not in [0, None, nan] else 0
         self.point_load_length_arrow = 0.15 * val["length_mean"]
         self.point_moment_length_arrow = 0.075 * val["length_mean"]
-        self.axial_scale[pattern_name] = 0.3 * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan] else 0
-        self.shear_scale[pattern_name] = 0.3 * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan] else 0
-        self.moment_scale[pattern_name] = 0.3 * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan] else 0
-        self.slope_scale[pattern_name] = 0.3 * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan] else 100
+        self.axial_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan] else 0
+        self.shear_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan] else 0
+        self.moment_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan] else 0
+        self.slope_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan] else 100
+        self.UI_deformation_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan] else 100
 
     def load_max(self, pattern_name: str):
         """
@@ -225,12 +232,12 @@ class PlotterOptions:        # ✅✅✅
         self.scale_dist_pload[pattern_name] = 0.05 * val["length_max"] / val["p_max"] if val["p_max"] not in [0, None, nan] else 0
         self.point_load_length_arrow = 0.15 * val["length_max"]
         self.point_moment_length_arrow = 0.075 * val["length_max"]
-        self.axial_scale[pattern_name] = 0.3 * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan] else 0
-        self.shear_scale[pattern_name] = 0.3 * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan] else 0
-        self.moment_scale[pattern_name] = 0.3 * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan] else 0
-        self.slope_scale[pattern_name] = 0.3 * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan] else 100
+        self.axial_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan] else 0
+        self.shear_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan] else 0
+        self.moment_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan] else 0
+        self.slope_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
-        self.UI_deformation_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan] else 100
+        self.UI_deformation_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan] else 100
 
     def _calculate_max(self, pattern_name: str):
         """

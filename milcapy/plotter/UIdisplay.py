@@ -658,17 +658,8 @@ class MainWindow(QMainWindow):
         """Activa/Desactiva la barra de herramientas"""
         self.toolbar.setVisible(not self.toolbar.isVisible())
 
-    # def on_save_figure(self):
-    #     self.model.plotter.figure.savefig(
-    #         "figure.png", dpi=self.model.plotter_options.save_fig_dpi, bbox_inches="tight")
 
     def on_save_figure(self):
-        """
-        Guarda la figura de matplotlib con nombre único.
-        - Abre un cuadro de diálogo para elegir la ruta.
-        - Respeta el DPI configurado en self.model.plotter_options.save_fig_dpi.
-        - Si existe el archivo, agrega (1), (2), etc. al nombre.
-        """
         # Inicializar tkinter en modo oculto
         root = tk.Tk()
         root.withdraw()
@@ -684,27 +675,14 @@ class MainWindow(QMainWindow):
         if not path:
             return
 
-        # Separar en directorio, nombre y extensión
-        directory, filename = os.path.split(path)
-        name, ext = os.path.splitext(filename)
-
-        counter = 1
-        new_path = path
-
-        # Si ya existe, generar figure(1).png, figure(2).png, ...
-        while os.path.exists(new_path):
-            new_filename = f"{name}({counter}){ext}"
-            new_path = os.path.join(directory, new_filename)
-            counter += 1
-
-        # Guardar figura con matplotlib
+        # Guardar figura con matplotlib (sobrescribe si ya existe)
         self.model.plotter.figure.savefig(
-            new_path,
+            path,
             dpi=self.model.plotter_options.save_fig_dpi,
             bbox_inches="tight"
         )
 
-        print(f"Figura guardada en: {new_path}")
+        print(f"Figura guardada en: {path}")
 
 
     def abrir_opciones_grafico(self):

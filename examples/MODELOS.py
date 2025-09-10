@@ -113,15 +113,12 @@ model.add_distributed_load(26, "Live Load", -5, -5) ###
 model.add_distributed_load(27, "Live Load", -2, -6) ###
 model.add_distributed_load(28, "Live Load", -4, -3) ###
 
-<<<<<<< HEAD
 model.add_end_length_offset(26, 0.3, 0.25, fla=0.3, flb=0.3)
 model.add_end_length_offset(27, 0.3, 0.25, fla=0.3, flb=0.3)
 model.add_end_length_offset(28, 0.3, 0.25, fla=0.3, flb=0.3)
-=======
 model.add_end_length_offset(26, 0.3, 0.25, fla=0.5, flb=0.5)
 model.add_end_length_offset(27, 0.3, 0.25, fla=0.5, flb=0.5)
 model.add_end_length_offset(28, 0.3, 0.25, fla=0.5, flb=0.5)
->>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 
 #####################################################
 ################# PORTICO 1 X 1 #####################
@@ -223,7 +220,6 @@ model.add_distributed_load(52, "Live Load", -2, -6) ###
 model.add_distributed_load(53, "Live Load", -4, -3) ###
 model.add_distributed_load(53, "Live Load", -4, -3, "LOCAL","LOCAL_1") ###
 
-<<<<<<< HEAD
 #####################################################
 ## MODEL WITH END LENGTH OFFSET F=1 qla, qlb=False ##
 #####################################################
@@ -261,13 +257,10 @@ model.add_end_length_offset(60, 0.3, 0.25, False, False)
 model.add_end_length_offset(61, 0.3, 0.25, False, False)
 model.add_end_length_offset(62, 0.3, 0.25, False, False)
 
-=======
->>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 ######################################################
 #################### SOLVE AND SHOW ##################
 ######################################################
 model.solve()
-<<<<<<< HEAD
 
 
 import numpy as np
@@ -283,17 +276,14 @@ print(f"MATRIZ DE TRANSFORMACION DE BRAZO RIGIDO: \n {mtt}")
 print(f"FUERZAS INTERNAS EN LOS EXTREMOS DEL ELEMENTO FLEXIBLE: \n {fi_flex}")
 
 
-=======
 print(model.results["Live Load"].get_member_displacements(45))
 # print(model.results["Live Load"].get_member_internal_forces(44))
 # print(model.results["Live Load"].get_member_internal_forces(53))
->>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 model.show()
 
 
 
 
-<<<<<<< HEAD
 #######################################################
             # NOTAS PARA EL DESARROLLO
 #######################################################
@@ -301,7 +291,6 @@ model.show()
 # CALIBRAR POARA qla y qlb == False                     OK ingreso de dato qi, qj, pi, pj son ahora qa, qb, pa, pb
 # QUE LAS ASIGNACIONES SE MUESTREN EN EL MODELO         OK
 # SI NO HAY CARGAS EN LOS BRAZOS RIGIDOS NO SE MUESTRAN OK
-=======
 
 
 
@@ -317,5 +306,4 @@ model.show()
 # CALIBRAR PARA PONER EL FACTOR DE BRAZO RIGIDO
 # QUE LAS ASIGNACIONES SE MUESTREN EN EL MODELO
 # SI NO HAY CARGAS EN LOS BRAZOS RIGIDOS NO SE MUESTRAN
->>>>>>> 9c67dbc73432445ef2d420de327a391bf0823760
 #######################################################

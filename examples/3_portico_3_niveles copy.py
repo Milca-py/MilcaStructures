@@ -27,8 +27,8 @@ model.add_member(7, 2, 6, "seccion1")
 model.add_member(8, 3, 7, "seccion1")
 model.add_member(9, 4, 8, "seccion1")
 
-model.add_cst(1, 1, 6, 2, "memb")
-model.add_cst(2, 1, 5, 6, "memb")
+# model.add_cst(10, 1, 6, 2, "memb")
+# model.add_cst(11, 1, 5, 6, "memb")
 
 model.add_restraint(1, (True, True, True))
 model.add_restraint(5, (True, True, True))

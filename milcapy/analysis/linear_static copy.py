@@ -41,18 +41,15 @@ class LinearStaticAnalysis:
         prescribed_dofs = {} # {dof: value}
 
         for node in self.model.nodes.values():
-            preDOF: PrescribedDOF = node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF())
-
-            restraints[node.dofs[0] - 1] = node.restraints[0] #or preDOF.ux is not None
-            restraints[node.dofs[1] - 1] = node.restraints[1] #or preDOF.uy is not None
-            restraints[node.dofs[2] - 1] = node.restraints[2] #or preDOF.rz is not None
-
-            if preDOF.ux is not None:
-                prescribed_dofs[node.dofs[0] - 1] = preDOF.ux
-            if preDOF.uy is not None:
-                prescribed_dofs[node.dofs[1] - 1] = preDOF.uy
-            if preDOF.rz is not None:
-                prescribed_dofs[node.dofs[2] - 1] = preDOF.rz
+            restraints[node.dofs[0] - 1] = node.restraints[0] or node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).ux is not None
+            restraints[node.dofs[1] - 1] = node.restraints[1] or node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).uy is not None
+            restraints[node.dofs[2] - 1] = node.restraints[2] or node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).rz is not None
+            if node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).ux is not None:
+                prescribed_dofs[node.dofs[0] - 1] = node.prescribed_dofs.get(self.model.current_load_pattern).ux
+            if node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).uy is not None:
+                prescribed_dofs[node.dofs[1] - 1] = node.prescribed_dofs.get(self.model.current_load_pattern).uy
+            if node.prescribed_dofs.get(self.model.current_load_pattern, PrescribedDOF()).rz is not None:
+                prescribed_dofs[node.dofs[2] - 1] = node.prescribed_dofs.get(self.model.current_load_pattern).rz
 
         free_dofs = np.where(~restraints)[0]
         restrained_dofs = np.where(restraints)[0]
@@ -334,8 +331,7 @@ class LinearStaticAnalysis:
         displacements = np.zeros(nn * 3)
         # Aplicar las condiciones de prescindidos
         displacements[list(prescribed_dofs.keys())] = list(prescribed_dofs.values())
-        Uc = np.copy(displacements[restrained_dofs])
-        Upc = np.copy(displacements[free_dofs])
+        Uc = displacements[restrained_dofs]
 
         # resolver el sistema de ecuaciones
         if np.linalg.det(K_d) == 0:
@@ -343,17 +339,17 @@ class LinearStaticAnalysis:
                 factorDeRegularizacion = 1e-7
                 Warning(f"La matriz de rigidez global es singular, por lo que para resolver se le sumara un I[ndof. ndof] * {factorDeRegularizacion} a la matriz de rigidez global")
                 K_d += np.eye(K_d.shape[0]) * factorDeRegularizacion
-                U_d = np.linalg.solve(K_d, F_d - K_dc @ Uc - K_d @ Upc)
+                U_d = np.linalg.solve(K_d, F_d - K_dc @ Uc)
             except:
                 raise ValueError("La matriz de rigidez global es singular y no se puede resolver")
         else:
-            U_d = np.linalg.solve(K_d, F_d - K_dc @ Uc - K_d @ Upc)
+            U_d = np.linalg.solve(K_d, F_d - K_dc @ Uc)
 
 
-        displacements[free_dofs] = U_d + Upc
+        displacements[free_dofs] = U_d
 
         # Calcular las reacciones en los apoyos
-        R = K_cd @ (U_d + Upc) + K_c @ Uc - F_c
+        R = K_cd @ U_d + K_c @ Uc - F_c
         # Completar el vector de reacciones
         reactions = np.zeros(nn * 3)
         reactions[restrained_dofs] = R
