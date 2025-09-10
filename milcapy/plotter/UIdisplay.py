@@ -146,18 +146,19 @@ class MatplotlibCanvas(QWidget):
 
             # Actualizar anotación
             node_x, node_y = self.nodes[self.selected_node].get_offsets()[0]
+            decimals = self.plotter_options.disp_nodes_decimals
             if self.model.nodes[self.selected_node].local_axis is not None:
                 displacements = self.model.results[self.current_load_pattern].get_node_displacements(
                 self.selected_node)
                 T = self.model.nodes[self.selected_node].local_axis.get_transformation_matrix()
                 displacements = T.T @ displacements
                 self.annotation.set_text(
-                    f"Nodo {self.selected_node}\nu1 = {displacements[0]:.7f}\nu2 = {displacements[1]:.7f}\nr3 = {displacements[2]:.7f}")
+                    f"Nodo {self.selected_node}\nu1 = {displacements[0]:.{decimals}f}\nu2 = {displacements[1]:.{decimals}f}\nr3 = {displacements[2]:.{decimals}f}")
             else:
                 displacements = self.model.results[self.current_load_pattern].get_node_displacements(
                 self.selected_node)
                 self.annotation.set_text(
-                    f"Nodo {self.selected_node}\nux = {displacements[0]:.7f}\nuy = {displacements[1]:.7f}\nrz = {displacements[2]:.7f}")
+                    f"Nodo {self.selected_node}\nux = {displacements[0]:.{decimals}f}\nuy = {displacements[1]:.{decimals}f}\nrz = {displacements[2]:.{decimals}f}")
 
             self.annotation.xy = (node_x, node_y)
             self.annotation.set_visible(True)

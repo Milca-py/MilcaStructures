@@ -262,20 +262,23 @@ def redondear_si_mas_de_3_decimales(num):
     Redondea un número a 3 decimales solo si:
       - Es float, y
       - Tiene más de 3 decimales.
-    Si es entero, lo devuelve tal cual.
+    Si es entero, lo devuelve como int.
+    Elimina ceros innecesarios en los decimales.
     """
-    # Si es entero (int o float sin decimales)
+    # Si es equivalente a entero (int o float sin decimales)
     if float(num).is_integer():
         return int(num)
 
-    # Contar decimales con formato seguro
+    # Si es float, contamos decimales reales
     num_str = f"{num:.16f}".rstrip("0").rstrip(".")
     if '.' in num_str:
         decimales = len(num_str.split('.')[1])
         if decimales > 3:
-            return round(num, 3)
+            num = round(num, 3)
 
-    return num
+    # Convertimos a str y quitamos ceros innecesarios
+    return float(f"{num:.16f}".rstrip("0").rstrip("."))
+
 
 
 

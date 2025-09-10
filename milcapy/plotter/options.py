@@ -80,8 +80,10 @@ class PlotterOptions:        # ✅✅✅
         self.deformation_line_width = 2.0 ######### # Ancho de línea para deformaciones
         self.deformation_color = 'blue' # #007acc' ########### # Color para deformacione
         # CON ESTOS DATOS DE ACTUALIZA DE FORMA SIN DEFORMAR automatixcamente, y se REVIERTE CON EL BOTON DE DEFORMADA
-        self.show_undeformed = False    ########## # Mostrar estructura sin deformar
-        self.undeformed_color = '#959a9d'   ######### Color para estructura sin deformar
+        self.show_undeformed = True    ########## # Mostrar estructura sin deformar ################################################################################ Undeformed
+        self.undeformed_color = '#cccccc'   ######### Color para estructura sin deformar
+        self.disp_nodes_decimals = 7
+
 
         # ANOTACIONES DE LOS DEZPLAZAMIENTOS EN NODOS
         self.disp_nodes = True    ########## # Mostrar desplazamientos en nodos
@@ -149,10 +151,10 @@ class PlotterOptions:        # ✅✅✅
         self.cst_element_label_color = 'black'
         self.cst_element_label_font_size = 8
 
-        self.cst_edge_color = '#fa644f'
-        self.cst_face_color = "#ffb44c"
-        self.cst_deformed_color_edge = '#fa644f'
-        self.cst_deformed_color_face = '#e37f7f'
+        self.cst_edge_color = '#800000'
+        self.cst_face_color = "#ff7f7f"
+        self.cst_deformed_color_edge = '#800000'
+        self.cst_deformed_color_face = '#ff7f7f'
         self.cst_undeformed_color_edge = '#b6f9ff'
         self.cst_undeformed_color_face = '#e3eaf3'
 
@@ -163,10 +165,10 @@ class PlotterOptions:        # ✅✅✅
         self.membrane_q6_element_label_color = 'black'
         self.membrane_q6_element_label_font_size = 8
 
-        self.membrane_q6_edge_color = '#fa644f'
-        self.membrane_q6_face_color = "#ffb44c"
-        self.membrane_q6_deformed_color_edge = '#fa644f'
-        self.membrane_q6_deformed_color_face = '#e37f7f'
+        self.membrane_q6_edge_color = '#800000'
+        self.membrane_q6_face_color = "#ff7f7f"
+        self.membrane_q6_deformed_color_edge = '#800000'
+        self.membrane_q6_deformed_color_face = '#ff7f7f'
         self.membrane_q6_undeformed_color_edge = '#b6f9ff'
         self.membrane_q6_undeformed_color_face = '#e3eaf3'
 
@@ -176,10 +178,10 @@ class PlotterOptions:        # ✅✅✅
         self.membrane_q6i_element_label_color = 'black'
         self.membrane_q6i_element_label_font_size = 8
 
-        self.membrane_q6i_edge_color = '#11272d'
-        self.membrane_q6i_face_color = "#ffb44c"
-        self.membrane_q6i_deformed_color_edge = '#fa644f'
-        self.membrane_q6i_deformed_color_face = '#e37f7f'
+        self.membrane_q6i_edge_color = '#800000'
+        self.membrane_q6i_face_color = "#ff7f7f"
+        self.membrane_q6i_deformed_color_edge = '#800000'
+        self.membrane_q6i_deformed_color_face = '#ff7f7f'
         self.membrane_q6i_undeformed_color_edge = '#b6f9ff'
         self.membrane_q6i_undeformed_color_face = '#e3eaf3'
 
@@ -191,6 +193,8 @@ class PlotterOptions:        # ✅✅✅
 
 
 
+        self.optCargaOP = "prom" # "max", "mean", "prom"
+
     def reset(self, pattern_name: str):
         """
         Reinicia todas las opciones a sus valores predeterminados.
@@ -201,43 +205,77 @@ class PlotterOptions:        # ✅✅✅
         self.distributed_load_label_font_size = self.label_size
         self.disp_nodes_font_size = self.relsult_label_size
         self.reactions_font_size = self.relsult_label_size
-        self.load_max(pattern_name)
+        if self.optCargaOP == "max":
+            self.load_max(pattern_name)
+        elif self.optCargaOP == "mean":
+            self.load_mean(pattern_name)
+        elif self.optCargaOP == "prom":
+            self.load_max(pattern_name, prom=True)
 
     def load_mean(self, pattern_name: str):
         """
         Calcula y asigna la media de los resultados para un patrón.
         """
         from numpy import nan
+        if self.model.membrane_q6 != {} or self.model.membrane_q6i != {} or self.model.csts != {}:
+            fact = 0.1
+        else:
+            fact = 0.7
         val = self._calculate_mean(pattern_name)
         self.support_size = 0.10 * val["length_mean"] if round(val["length_mean"], 2) not in [0, None, nan] else 0.4
-        self.scale_dist_qload[pattern_name] = 0.15 * val["length_mean"] / val["q_mean"] if val["q_mean"] not in [0, None, nan] else 0
-        self.scale_dist_pload[pattern_name] = 0.05 * val["length_mean"] / val["p_mean"] if val["p_mean"] not in [0, None, nan] else 0
+        self.scale_dist_qload[pattern_name] = 0.07 * val["length_mean"] / val["q_mean"] if val["q_mean"] not in [0, None, nan] else 0
+        self.scale_dist_pload[pattern_name] = 0.02 * val["length_mean"] / val["p_mean"] if val["p_mean"] not in [0, None, nan] else 0
         self.point_load_length_arrow = 0.15 * val["length_mean"]
         self.point_moment_length_arrow = 0.075 * val["length_mean"]
-        self.axial_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan] else 0
-        self.shear_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan] else 0
-        self.moment_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan] else 0
-        self.slope_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan] else 100
+        self.axial_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan] else 0
+        self.shear_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan] else 0
+        self.moment_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan] else 0
+        self.slope_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = self.fi_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan] else 100
+        self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan] else 100
 
-    def load_max(self, pattern_name: str):
+    def load_max(self, pattern_name: str, prom: bool = False):
         """
         Calcula y asigna el máximo de los resultados para un patrón.
         """
         from numpy import nan
+        if self.model.membrane_q6 != {} or self.model.membrane_q6i != {} or self.model.csts != {}: # Si hay elementos de membrana
+            fact = 0.3
+        else:
+            fact = 1
         val = self._calculate_max(pattern_name)
+        if prom:
+            lmin = val["length_min"]
+            lmax = val["length_max"]
+            if 0 < lmin < 0.3*lmax:
+                val["length_max"] = 0.65 * (lmax + lmin) / 2
+            elif 0.3*lmax < lmin < 0.4*lmax:
+                val["length_max"] = 0.8 * (lmax + lmin) / 2
+            elif 0.4*lmax < lmin < 0.5*lmax:
+                val["length_max"] = 0.95 * (lmax + lmin) / 2
+            elif 0.5*lmax < lmin < 0.6*lmax:
+                val["length_max"] = 1.1 * (lmax + lmin) / 2
+            elif 0.6*lmax < lmin < 0.7*lmax:
+                val["length_max"] = 1.25 * (lmax + lmin) / 2
+            elif 0.7*lmax < lmin < 0.8*lmax:
+                val["length_max"] = 1.4 * (lmax + lmin) / 2
+            elif 0.8*lmax < lmin < 0.9*lmax:
+                val["length_max"] = 1.55 * (lmax + lmin) / 2
+            elif 0.9*lmax < lmin < 1*lmax:
+                val["length_max"] = 1.7 * (lmax + lmin) / 2
+            else:
+                val["length_max"] = lmax
         self.support_size = 0.10 * val["length_max"] if round(val["length_max"], 2) not in [0, None, nan] else 0.4
         self.scale_dist_qload[pattern_name] = 0.15 * val["length_max"] / val["q_max"] if val["q_max"] not in [0, None, nan] else 0
         self.scale_dist_pload[pattern_name] = 0.05 * val["length_max"] / val["p_max"] if val["p_max"] not in [0, None, nan] else 0
         self.point_load_length_arrow = 0.15 * val["length_max"]
         self.point_moment_length_arrow = 0.075 * val["length_max"]
-        self.axial_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan] else 0
-        self.shear_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan] else 0
-        self.moment_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan] else 0
-        self.slope_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan] else 100
+        self.axial_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan] else 0
+        self.shear_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan] else 0
+        self.moment_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan] else 0
+        self.slope_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
-        self.UI_deformation_scale[pattern_name] = self.fi_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan] else 100
+        self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan] else 100
 
     def _calculate_max(self, pattern_name: str):
         """
@@ -247,6 +285,7 @@ class PlotterOptions:        # ✅✅✅
         length_max_mq6 = 0
         length_max_mq6i = 0
         length_max_cst = 0
+        length_min = 100000000000000
         q_max = 0
         p_max = 0
         deflection_max = 0
@@ -265,6 +304,7 @@ class PlotterOptions:        # ✅✅✅
             deflection_m = abs(results["deflections"]).max()
 
             length_max = member.length() if member.length() > length_max else length_max
+            length_min = member.length() if member.length() < length_min else length_min
             q_max = max(q_m) if max(q_m) > q_max else q_max
             p_max = max(p_m) if max(p_m) > p_max else p_max
             deflection_max = deflection_m if deflection_m > deflection_max else deflection_max
@@ -274,18 +314,25 @@ class PlotterOptions:        # ✅✅✅
             axial_max = axial_m if axial_m > axial_max else axial_max
 
         for membrane_q6 in self.model.membrane_q6.values():
+            minxx = min(membrane_q6.node1.vertex.distance_to(membrane_q6.node3.vertex), membrane_q6.node2.vertex.distance_to(membrane_q6.node4.vertex))
             maxxx = max(membrane_q6.node1.vertex.distance_to(membrane_q6.node3.vertex), membrane_q6.node2.vertex.distance_to(membrane_q6.node4.vertex))
             length_max_mq6 = maxxx if maxxx > length_max_mq6 else length_max_mq6
+            length_min = minxx if minxx < length_min else length_min
 
         for membrane_q6i in self.model.membrane_q6i.values():
             maxxx = max(membrane_q6i.node1.vertex.distance_to(membrane_q6i.node3.vertex), membrane_q6i.node2.vertex.distance_to(membrane_q6i.node4.vertex))
+            minxx = min(membrane_q6i.node1.vertex.distance_to(membrane_q6i.node3.vertex), membrane_q6i.node2.vertex.distance_to(membrane_q6i.node4.vertex))
             length_max_mq6i = maxxx if maxxx > length_max_mq6i else length_max_mq6i
+            length_min = minxx if minxx < length_min else length_min
 
         for cst in self.model.csts.values():
             maxxx = max(cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex))
+            minxx = min(cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex))
             length_max_cst = maxxx if maxxx > length_max_cst else length_max_cst
+            length_min = minxx if minxx < length_min else length_min
         return {
             "length_max": max(length_max, length_max_mq6, length_max_mq6i, length_max_cst),
+            "length_min": length_min,
             "q_max": q_max,
             "p_max": p_max,
             "deflection_max": deflection_max,

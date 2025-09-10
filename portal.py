@@ -16,6 +16,7 @@ model.add_member(1, 1, 2, "muros", BeamTheoriesType.TIMOSHENKO)
 model.add_member(2, 2, 3, "vigas", BeamTheoriesType.EULER_BERNOULLI)
 model.add_member(3, 3, 4, "vigas", BeamTheoriesType.EULER_BERNOULLI)
 model.add_member(4, 4, 5, "muros", BeamTheoriesType.TIMOSHENKO)
+model.add_member(5, 2, 4, "vigas", BeamTheoriesType.EULER_BERNOULLI)
 
 model.add_restraint(1, (False, True, True))
 model.add_restraint(5, (False, True, True))
@@ -33,6 +34,8 @@ lengthOffset = 1
 model.add_elastic_support(3, ky=10)
 model.add_end_length_offset(2, la=lengthOffset, qla=True)
 model.add_end_length_offset(3, lb=lengthOffset, qlb=True)
+
+model.add_releases(5, vi=True, mj=True)
 
 model.add_load_pattern("Live Load")
 model.add_point_load(3, "Live Load", 0, -50, 0)

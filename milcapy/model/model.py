@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 from enum import Enum
 
+
 class FieldType(Enum):
     SX = "sx"
     SY = "sy"
@@ -44,6 +45,7 @@ class FieldType(Enum):
     UX = "ux"
     UY = "uy"
     UMAG = "umag"
+
 
 class SystemMilcaModel:
     """
@@ -74,11 +76,12 @@ class SystemMilcaModel:
         self.truss_elements: Dict[int, TrussElement] = {}
         # self.membrane_q6imod: Dict[int, MembraneQuad6IMod] = {} $ POR MIENTRAS SE AGREGARA A Q6
         # Patrones de carga con las asiganciones de carga en los miembros y nodos
-        self.load_patterns: Dict[str, LoadPattern] = {} # {pattern_name: load pattern}
+        # {pattern_name: load pattern}
+        self.load_patterns: Dict[str, LoadPattern] = {}
         self.current_load_pattern: Optional[str] = None
 
         # Coleccion de resultados incluyendo postprocesamiento [ADD]
-        self.results: Dict[str, Results] = {} # {pattern_name: results}
+        self.results: Dict[str, Results] = {}  # {pattern_name: results}
 
         # Analisis [UNIQUE]
         self.analysis: Optional[AnalysisManager] = None
@@ -88,8 +91,10 @@ class SystemMilcaModel:
 
         # Opciones del modelo [UNIQUE]
         self.plotter_options: "PlotterOptions" = PlotterOptions(self)
-        self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(factor=1, n=17)
+        self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(
+            factor=1, n=17)
 
+    #! MATERIALES ##########################################################
     def add_material(
         self,
         name: str,
@@ -115,10 +120,12 @@ class SystemMilcaModel:
         if name in self.materials:
             raise ValueError(f"Ya existe un material con el nombre '{name}'")
 
-        material = GenericMaterial(name, modulus_elasticity, poisson_ratio, specific_weight)
+        material = GenericMaterial(
+            name, modulus_elasticity, poisson_ratio, specific_weight)
         self.materials[name] = material
         return material
 
+    #! SECCIONES ###########################################################
     def add_rectangular_section(
         self,
         name: str,
@@ -145,7 +152,8 @@ class SystemMilcaModel:
             raise ValueError(f"Ya existe una sección con el nombre '{name}'")
 
         if material_name not in self.materials:
-            raise ValueError(f"No existe un material con el nombre '{material_name}'")
+            raise ValueError(
+                f"No existe un material con el nombre '{material_name}'")
 
         section = RectangularSection(
             name=name,
@@ -178,7 +186,8 @@ class SystemMilcaModel:
         if diameter <= 0:
             raise ValueError("El radio debe ser positivo.")
         if material_name not in self.materials:
-            raise ValueError(f"No existe un material con el nombre '{material_name}'")
+            raise ValueError(
+                f"No existe un material con el nombre '{material_name}'")
         if isinstance(shear_method, str):
             shear_method = to_enum(shear_method, ShearCoefficientMethodType)
         section = CircularSection(
@@ -218,7 +227,8 @@ class SystemMilcaModel:
             raise ValueError(f"Ya existe una sección con el nombre '{name}'")
 
         if material_name not in self.materials:
-            raise ValueError(f"No existe un material con el nombre '{material_name}'")
+            raise ValueError(
+                f"No existe un material con el nombre '{material_name}'")
 
         section = GenericSection(
             name=name,
@@ -254,7 +264,8 @@ class SystemMilcaModel:
             raise ValueError(f"Ya existe una sección con el nombre '{name}'")
 
         if material_name not in self.materials:
-            raise ValueError(f"No existe un material con el nombre '{material_name}'")
+            raise ValueError(
+                f"No existe un material con el nombre '{material_name}'")
 
         section = ShellSection(
             name=name,
@@ -264,6 +275,34 @@ class SystemMilcaModel:
         self.sections[name] = section
         return section
 
+    def set_property_modifiers(
+        self,
+        section_name: str,
+        axial_area: Optional[float] = 1,
+        shear_area: Optional[float] = 1,
+        moment_inertia: Optional[float] = 1,
+        weight: Optional[float] = 1
+    ) -> None:
+        """
+        Establece los modificadores de propiedad de una sección.
+
+        Args:
+            section_name (str): Nombre de la sección.
+            axial_area (float): Modificador de área axial.
+            shear_area (float): Modificador de área de flexión.
+            moment_inertia (float): Modificador de momento de inercia.
+        """
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        section = self.sections[section_name]
+        section.kA = axial_area
+        section.kAs = shear_area
+        section.kI = moment_inertia
+        section.kg = weight
+
+    #! NODOS ###############################################################
     def add_node(
         self,
         id: int,
@@ -291,13 +330,15 @@ class SystemMilcaModel:
         self.nodes[id] = node
         return node
 
+    #! ELEMENTOS ###########################################################
     def add_member(
         self,
         id: int,
         node_i_id: int,
         node_j_id: int,
         section_name: str,
-        beam_theory: Union[str, BeamTheoriesType] = BeamTheoriesType.TIMOSHENKO,
+        beam_theory: Union[str,
+                           BeamTheoriesType] = BeamTheoriesType.TIMOSHENKO,
         # member_type: Union[str, MemberType] = MemberType.FRAME
     ) -> Member:
         """
@@ -319,7 +360,8 @@ class SystemMilcaModel:
         self.__id_verifier(id, node_i_id, node_j_id)
 
         if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
 
         # # Convertir a enum si es string
         # if isinstance(member_type, str):
@@ -339,48 +381,6 @@ class SystemMilcaModel:
         )
         self.members[id] = element
         return element
-
-    def add_cst(
-        self,
-        id: int,
-        node_i_id: int,
-        node_j_id: int,
-        node_k_id: int,
-        section_name: str,
-    ) -> MembraneTriangle:
-        """
-        Agrega un triángulo de membrana al modelo.
-
-        Args:
-            id (int): Identificador del triángulo.
-            node_i_id (int): ID del nodo inicial.
-            node_j_id (int): ID del nodo final.
-            node_k_id (int): ID del nodo final.
-            section_name (str): Nombre de la sección asociada.
-
-        Returns:
-            MembraneTriangle: El triángulo creado.
-
-        Raises:
-            ValueError: Si ya existe un elemento con el mismo ID, o si no existen los nodos o el material.
-        Notes:
-            El elemento agregado es un CONSTANT STRAIN TRIANGLE (CST).
-            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
-        """
-        self.__id_verifier(id, node_i_id, node_j_id, node_k_id)
-
-        if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-
-        cst = MembraneTriangle(
-            id=id,
-            node1=self.nodes[node_i_id],
-            node2=self.nodes[node_j_id],
-            node3=self.nodes[node_k_id],
-            section=self.sections[section_name],
-        )
-        self.csts[id] = cst
-        return cst
 
     def add_elastic_timoshenko_beam(
         self,
@@ -409,7 +409,8 @@ class SystemMilcaModel:
         self.__id_verifier(id, node_i_id, node_j_id)
 
         if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
 
         # Convertir a enum si es string
         if isinstance(member_type, str):
@@ -455,7 +456,8 @@ class SystemMilcaModel:
         self.__id_verifier(id, node_i_id, node_j_id)
 
         if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
 
         # Convertir a enum si es string
         if isinstance(member_type, str):
@@ -473,172 +475,6 @@ class SystemMilcaModel:
         )
         self.members[id] = element
         return element
-
-    def __id_verifier(self, ele_id: int, *id_nodes: int):
-        """
-        Verifica que el ID del elemento no exista y que los nodos existan.
-
-        Args:
-            ele_id (int): ID del elemento.
-            *id_nodes (int): IDs de los nodos.
-
-        Raises:
-            ValueError: Si el ID del elemento ya existe o si no existen los nodos.
-        """
-        if (ele_id in self.members
-            or ele_id in self.csts
-            or ele_id in self.membrane_q6
-            or ele_id in self.membrane_q6i):
-            raise ValueError(f"Ya existe un elemento con el ID {ele_id}")
-
-        for node_id in id_nodes:
-            if node_id not in self.nodes:
-                raise ValueError(f"No existe un nodo con el ID {node_id}")
-
-    def add_membrane_q6(
-        self,
-        id: int,
-        node_i_id: int,
-        node_j_id: int,
-        node_k_id: int,
-        node_l_id: int,
-        section_name: str
-        ) -> MembraneQuad6:
-        """
-        Agrega un cuadrilátero de membrana de 6 nodos al modelo con rigidez a la perforación (3dof/nodo).
-
-        Args:
-            id (int): Identificador del cuadrilátero.
-            node_i_id (int): ID del nodo inicial.
-            node_j_id (int): ID del nodo final.
-            node_k_id (int): ID del nodo final.
-            node_l_id (int): ID del nodo final.
-            section_name (str): Nombre de la sección asociada.
-
-        Returns:
-            MembraneQuad6: El cuadrilátero creado.
-
-        Raises:
-            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
-
-        Notes:
-            El elemento agregado es un Q6 el mismo elemento que platea el dr. wilson en su libro "analisis estatico y dinamico de estructuras" membranas con grados de libertad de perforación.
-            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
-        """
-        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
-
-        if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-
-        MQ6 = MembraneQuad6(
-            id=id,
-            node1=self.nodes[node_i_id],
-            node2=self.nodes[node_j_id],
-            node3=self.nodes[node_k_id],
-            node4=self.nodes[node_l_id],
-            section=self.sections[section_name],
-        )
-        self.membrane_q6[id] = MQ6
-        return MQ6
-
-    def add_membrane_q6i(
-        self,
-        id: int,
-        node_i_id: int,
-        node_j_id: int,
-        node_k_id: int,
-        node_l_id: int,
-        section_name: str
-        ) -> MembraneQuad6I:
-
-        """
-        Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, sin rigidez a la perforación.
-
-        Args:
-            id (int): Identificador del cuadrilátero.
-            node_i_id (int): ID del nodo inicial.
-            node_j_id (int): ID del nodo final.
-            node_k_id (int): ID del nodo final.
-            node_l_id (int): ID del nodo final.
-            section_name (str): Nombre de la sección asociada.
-
-        Returns:
-            MembraneQuad6I: El cuadrilátero creado.
-
-        Raises:
-            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
-
-        Notes:
-            El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
-            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
-        """
-
-
-        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
-
-        if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-
-        MQ6I = MembraneQuad6I(
-            id=id,
-            node1=self.nodes[node_i_id],
-            node2=self.nodes[node_j_id],
-            node3=self.nodes[node_k_id],
-            node4=self.nodes[node_l_id],
-            section=self.sections[section_name],
-        )
-        self.membrane_q6i[id] = MQ6I
-        return MQ6I
-
-
-    def add_membrane_q6i_mod(
-        self,
-        id: int,
-        node_i_id: int,
-        node_j_id: int,
-        node_k_id: int,
-        node_l_id: int,
-        section_name: str
-        ) -> MembraneQuad6IMod:
-        """
-        Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, con rigidez a la perforación.
-
-        Args:
-            id (int): Identificador del cuadrilátero.
-            node_i_id (int): ID del nodo inicial.
-            node_j_id (int): ID del nodo final.
-            node_k_id (int): ID del nodo final.
-            node_l_id (int): ID del nodo final.
-            section_name (str): Nombre de la sección asociada.
-
-        Returns:
-            MembraneQuad6I: El cuadrilátero creado.
-
-        Raises:
-            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
-
-        Notes:
-            El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
-            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
-            OJO: es un modelo rigidez combinada no esta documentado en ningun libro (no confiar)
-        """
-
-        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
-
-        if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-
-        MQ6IMod = MembraneQuad6IMod(
-            id=id,
-            node1=self.nodes[node_i_id],
-            node2=self.nodes[node_j_id],
-            node3=self.nodes[node_k_id],
-            node4=self.nodes[node_l_id],
-            section=self.sections[section_name],
-        )
-        self.membrane_q6[id] = MQ6IMod
-        return MQ6IMod
-
 
     def add_truss_element(
         self,
@@ -665,7 +501,8 @@ class SystemMilcaModel:
         self.__id_verifier(id, node_i_id, node_j_id)
 
         if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
 
         TE = TrussElement(
             id=id,
@@ -676,6 +513,196 @@ class SystemMilcaModel:
         self.truss_elements[id] = TE
         return TE
 
+
+    #! ELEMENTOS FINITOS ###################################################
+    def add_cst(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        section_name: str,
+    ) -> MembraneTriangle:
+        """
+        Agrega un triángulo de membrana al modelo.
+
+        Args:
+            id (int): Identificador del triángulo.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+
+        Returns:
+            MembraneTriangle: El triángulo creado.
+
+        Raises:
+            ValueError: Si ya existe un elemento con el mismo ID, o si no existen los nodos o el material.
+        Notes:
+            El elemento agregado es un CONSTANT STRAIN TRIANGLE (CST).
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+        """
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id)
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        cst = MembraneTriangle(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            section=self.sections[section_name],
+        )
+        self.csts[id] = cst
+        return cst
+
+    def add_membrane_q6(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        node_l_id: int,
+        section_name: str
+    ) -> MembraneQuad6:
+        """
+        Agrega un cuadrilátero de membrana de 6 nodos al modelo con rigidez a la perforación (3dof/nodo).
+
+        Args:
+            id (int): Identificador del cuadrilátero.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            node_l_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+
+        Returns:
+            MembraneQuad6: El cuadrilátero creado.
+
+        Raises:
+            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+
+        Notes:
+            El elemento agregado es un Q6 el mismo elemento que platea el dr. wilson en su libro "analisis estatico y dinamico de estructuras" membranas con grados de libertad de perforación.
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+        """
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        MQ6 = MembraneQuad6(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            node4=self.nodes[node_l_id],
+            section=self.sections[section_name],
+        )
+        self.membrane_q6[id] = MQ6
+        return MQ6
+
+    def add_membrane_q6i(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        node_l_id: int,
+        section_name: str
+    ) -> MembraneQuad6I:
+        """
+        Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, sin rigidez a la perforación.
+
+        Args:
+            id (int): Identificador del cuadrilátero.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            node_l_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+
+        Returns:
+            MembraneQuad6I: El cuadrilátero creado.
+
+        Raises:
+            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+
+        Notes:
+            El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+        """
+
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        MQ6I = MembraneQuad6I(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            node4=self.nodes[node_l_id],
+            section=self.sections[section_name],
+        )
+        self.membrane_q6i[id] = MQ6I
+        return MQ6I
+
+    def add_membrane_q6i_mod(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        node_l_id: int,
+        section_name: str
+    ) -> MembraneQuad6IMod:
+        """
+        Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, con rigidez a la perforación.
+
+        Args:
+            id (int): Identificador del cuadrilátero.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            node_l_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+
+        Returns:
+            MembraneQuad6I: El cuadrilátero creado.
+
+        Raises:
+            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+
+        Notes:
+            El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+            OJO: es un modelo rigidez combinada no esta documentado en ningun libro (no confiar)
+        """
+
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        MQ6IMod = MembraneQuad6IMod(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            node4=self.nodes[node_l_id],
+            section=self.sections[section_name],
+        )
+        self.membrane_q6[id] = MQ6IMod
+        return MQ6IMod
+
+    #! CONDICIONES DE FRONTERA #############################################
 
     def add_restraint(
         self,
@@ -695,12 +722,16 @@ class SystemMilcaModel:
         if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
         if len(restraints) != 3:
-            raise ValueError("La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
+            raise ValueError(
+                "La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
         if not all(isinstance(x, bool) for x in restraints):
-            raise ValueError("La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
+            raise ValueError(
+                "La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
 
         self.nodes[node_id].set_restraints(restraints)
 
+
+    #! PATRONES DE CARGA ###################################################
     def add_load_pattern(
         self,
         name: str,
@@ -722,7 +753,8 @@ class SystemMilcaModel:
             ValueError: Si ya existe un patrón con el mismo nombre.
         """
         if name in self.load_patterns:
-            raise ValueError(f"Ya existe un patrón de carga con el nombre '{name}'")
+            raise ValueError(
+                f"Ya existe un patrón de carga con el nombre '{name}'")
 
         if isinstance(state, str):
             state = to_enum(state, StateType)
@@ -752,13 +784,15 @@ class SystemMilcaModel:
             ValueError: Si no existe el patrón de carga.
         """
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
 
         if isinstance(state, str):
             state = to_enum(state, StateType)
 
         self.load_patterns[load_pattern_name].state = state
 
+    #! CARGAS ##############################################################
     def add_point_load(
         self,
         node_id: int,
@@ -789,7 +823,8 @@ class SystemMilcaModel:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
 
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
 
         # Convertir a enum si es string
         if isinstance(CSys, str):
@@ -841,7 +876,8 @@ class SystemMilcaModel:
             raise ValueError(f"No existe un miembro con el ID {member_id}")
 
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
 
         # Convertir a enum si son strings
         if isinstance(CSys, str):
@@ -885,7 +921,8 @@ class SystemMilcaModel:
             ValueError: Si no existe el patrón de carga.
         """
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
         for member in self.members.values():
             self.add_distributed_load(
                 member_id=member.id,
@@ -898,10 +935,10 @@ class SystemMilcaModel:
             )
 
     def add_cst_uniform_temperature_load(
-        self,
-        cst_id: int,
-        load_pattern_name: str,
-        dt: float) -> None:
+            self,
+            cst_id: int,
+            load_pattern_name: str,
+            dt: float) -> None:
         """
         Asigna una carga uniforme de temperatura a un CST dentro de un patrón de carga.
 
@@ -916,19 +953,21 @@ class SystemMilcaModel:
         if cst_id not in self.csts:
             raise ValueError(f"No existe un miembro con el ID {cst_id}")
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
 
         self.load_patterns[load_pattern_name].add_cst_uniform_temperature_load(
             cst_id=cst_id,
             dt=dt
         )
+
     def add_cst_uniform_distributed_load(
         self,
         cst_id: int,
         load_pattern_name: str,
         qx: float,
         qy: float,
-        ) -> None:
+    ) -> None:
         """
         Asigna una carga distribuida uniforme a un CST dentro de un patrón de carga.
 
@@ -944,7 +983,8 @@ class SystemMilcaModel:
         if cst_id not in self.csts:
             raise ValueError(f"No existe un miembro con el ID {cst_id}")
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
 
         self.load_patterns[load_pattern_name].add_cst_uniform_distributed_load(
             cst_id=cst_id,
@@ -958,7 +998,7 @@ class SystemMilcaModel:
         load_pattern_name: str,
         q: float,
         edge: int
-        ) -> None:
+    ) -> None:
         """
         Asigna una carga uniforme a una cara de un CST dentro de un patrón de carga.
 
@@ -974,7 +1014,8 @@ class SystemMilcaModel:
         if cst_id not in self.csts:
             raise ValueError(f"No existe un miembro con el ID {cst_id}")
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
         if edge not in [1, 2, 3]:
             raise ValueError(f"Las caras(edge) solo puenden ser [1, 2, 3]")
 
@@ -991,7 +1032,7 @@ class SystemMilcaModel:
         qi: float,
         qj: float,
         edge: int
-        ) -> None:
+    ) -> None:
         """
         Asigna una carga lineal a una cara de un CST dentro de un patrón de carga.
 
@@ -1008,7 +1049,8 @@ class SystemMilcaModel:
         if cst_id not in self.csts:
             raise ValueError(f"No existe un miembro con el ID {cst_id}")
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
         if edge not in [1, 2, 3]:
             raise ValueError(f"Las caras(edge) solo puenden ser [1, 2, 3]")
 
@@ -1019,6 +1061,8 @@ class SystemMilcaModel:
             edge=edge
         )
 
+
+    #! TOPICO ESPECIALES DE ANALISIS #######################################
     def add_end_length_offset(
         self,
         member_id: int,
@@ -1053,32 +1097,6 @@ class SystemMilcaModel:
         self.members[member_id].fla = fla
         self.members[member_id].flb = flb
 
-    def set_property_modifiers(
-        self,
-        section_name: str,
-        axial_area: Optional[float] = 1,
-        shear_area: Optional[float] = 1,
-        moment_inertia: Optional[float] = 1,
-        weight: Optional[float] = 1
-    ) -> None:
-        """
-        Establece los modificadores de propiedad de una sección.
-
-        Args:
-            section_name (str): Nombre de la sección.
-            axial_area (float): Modificador de área axial.
-            shear_area (float): Modificador de área de flexión.
-            moment_inertia (float): Modificador de momento de inercia.
-        """
-        if section_name not in self.sections:
-            raise ValueError(f"No existe una sección con el nombre '{section_name}'")
-
-        section = self.sections[section_name]
-        section.kA = axial_area
-        section.kAs = shear_area
-        section.kI = moment_inertia
-        section.kg = weight
-
     def add_prescribed_dof(
         self,
         node_id: int,
@@ -1104,7 +1122,8 @@ class SystemMilcaModel:
         if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
         if load_pattern_name not in self.load_patterns:
-            raise ValueError(f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
+            raise ValueError(
+                f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
         if isinstance(CSys, str):
             CSys = to_enum(CSys, CoordinateSystemType)
         if CSys not in [CoordinateSystemType.LOCAL, CoordinateSystemType.GLOBAL]:
@@ -1117,10 +1136,11 @@ class SystemMilcaModel:
                 [0, 0, 1]
             ]).T
             ux, uy, rz = np.dot(T, np.array([ux or 0, uy or 0, rz or 0]))
-            ux = ux if ux!=0 else None
-            uy = uy if uy!=0 else None
-            rz = rz if rz!=0 else None
-        self.load_patterns[load_pattern_name].add_prescribed_dof(node_id, PrescribedDOF(ux=ux, uy=uy, rz=rz))
+            ux = ux if ux != 0 else None
+            uy = uy if uy != 0 else None
+            rz = rz if rz != 0 else None
+        self.load_patterns[load_pattern_name].add_prescribed_dof(
+            node_id, PrescribedDOF(ux=ux, uy=uy, rz=rz))
 
     def add_elastic_support(
         self,
@@ -1156,10 +1176,11 @@ class SystemMilcaModel:
                 [0, 0, 1]
             ])
             kx, ky, krz = np.dot(T, np.array([kx or 0, ky or 0, krz or 0]))
-            kx = kx if kx!=0 else None
-            ky = ky if ky!=0 else None
-            krz = krz if krz!=0 else None
-        self.nodes[node_id].set_elastic_support(ElasticSupport(kx=kx, ky=ky, krz=krz))
+            kx = kx if kx != 0 else None
+            ky = ky if ky != 0 else None
+            krz = krz if krz != 0 else None
+        self.nodes[node_id].set_elastic_support(
+            ElasticSupport(kx=kx, ky=ky, krz=krz))
 
     def add_local_axis_for_node(
         self,
@@ -1181,16 +1202,15 @@ class SystemMilcaModel:
         local_axis = LocalAxis(angle)
         self.nodes[node_id].set_local_axis(local_axis)
 
-
     def add_releases(
         self,
         member_id: int,
-        pi: bool=False,
-        vi: bool=False,
-        mi: bool=False,
-        pj: bool=False,
-        vj: bool=False,
-        mj: bool=False
+        pi: bool = False,
+        vi: bool = False,
+        mi: bool = False,
+        pj: bool = False,
+        vj: bool = False,
+        mj: bool = False
     ):
         """
         Asigna liberaciones a un miembro.
@@ -1212,14 +1232,16 @@ class SystemMilcaModel:
 
         # Reglas de exclusión
         if pi and pj:
-            raise ValueError("Liberación inválida: no se pueden liberar P en ambos extremos (pi y pj).")
+            raise ValueError(
+                "Liberación inválida: no se pueden liberar P en ambos extremos (pi y pj).")
         if vi and vj:
-            raise ValueError("Liberación inválida: no se pueden liberar V en ambos extremos (vi y vj).")
+            raise ValueError(
+                "Liberación inválida: no se pueden liberar V en ambos extremos (vi y vj).")
 
-        self.members[member_id].add_releases(uxi=pi, uyi=vi, rzi=mi, uxj=pj, uyj=vj, rzj=mj)
+        self.members[member_id].add_releases(
+            uxi=pi, uyi=vi, rzi=mi, uxj=pj, uyj=vj, rzj=mj)
 
-
-
+    #! ANALISIS ##############################################################
     def solve(
         self,
         load_pattern_name: list[str] | None = None
@@ -1238,15 +1260,17 @@ class SystemMilcaModel:
         """
         # Verificar que exista al menos un patrón de carga
         if not self.load_patterns:
-            raise ValueError("No hay patrones de carga definidos. Agregue al menos uno para resolver el sistema.")
+            raise ValueError(
+                "No hay patrones de carga definidos. Agregue al menos uno para resolver el sistema.")
 
         # Inicializar análisis
         self.analysis = AnalysisManager(self)
         self.analysis.analyze_for_list_load_pattern(load_pattern_name)
 
-
         return self.results
 
+
+    #! SETERS Y GETERS #######################################################
     def get_global_stiffness_matrix(
         self
     ) -> NDArray:
@@ -1270,6 +1294,8 @@ class SystemMilcaModel:
         """
         return self.global_load_vector.get(load_pattern_name)
 
+
+    #! VISUALIZACION #########################################################
     def show(
         self
     ):
@@ -1281,6 +1307,8 @@ class SystemMilcaModel:
         self.plotter.initialize_plot()
         main_window(self)
 
+
+    #! PLOT DE ELEMENTOS FINITOS #############################################
     def plot_field(
         self,
         field: Union[FieldType, str],
@@ -1309,15 +1337,23 @@ class SystemMilcaModel:
                 triangles.append([n1.id - 1, n2.id - 1, n3.id - 1])
 
                 # esfuerzos y deformaciones (al centroide)
-                stresses = self.results[self.current_load_pattern].get_cst_stresses(cst.id)
-                strains = self.results[self.current_load_pattern].get_cst_strains(cst.id)
+                stresses = self.results[self.current_load_pattern].get_cst_stresses(
+                    cst.id)
+                strains = self.results[self.current_load_pattern].get_cst_strains(
+                    cst.id)
 
-                if field == FieldType.SX:   val = stresses[0]
-                elif field == FieldType.SY: val = stresses[1]
-                elif field == FieldType.SXY: val = stresses[2]
-                elif field == FieldType.EX: val = strains[0]
-                elif field == FieldType.EY: val = strains[1]
-                elif field == FieldType.EXY: val = strains[2]
+                if field == FieldType.SX:
+                    val = stresses[0]
+                elif field == FieldType.SY:
+                    val = stresses[1]
+                elif field == FieldType.SXY:
+                    val = stresses[2]
+                elif field == FieldType.EX:
+                    val = strains[0]
+                elif field == FieldType.EY:
+                    val = strains[1]
+                elif field == FieldType.EXY:
+                    val = strains[2]
                 else:
                     val = None
 
@@ -1329,7 +1365,8 @@ class SystemMilcaModel:
         # --- NUEVO: desplazamientos nodales ---
         if field in [FieldType.UX, FieldType.UY, FieldType.UMAG]:
             for nid, node in self.nodes.items():
-                ux, uy = self.results[self.current_load_pattern].get_node_displacements(nid)[:2]
+                ux, uy = self.results[self.current_load_pattern].get_node_displacements(nid)[
+                    :2]
                 if field == FieldType.UX:
                     node_values[nid] = [ux]
                 elif field == FieldType.UY:
@@ -1345,16 +1382,15 @@ class SystemMilcaModel:
 
         triang = tri.Triangulation(x, y, triangles)
 
-
-
-
         # --- GRAFICADO CON tricontourf ---
         plt.figure(figsize=(15, 8))
-        tcf = plt.tricontourf(triang, nodal_field, levels=20, cmap=cmap)  # suavizado
+        tcf = plt.tricontourf(triang, nodal_field,
+                              levels=20, cmap=cmap)  # suavizado
         plt.colorbar(tcf, label=f"{field.value}")
         # --- GRAFICANDO LOS MIEMBROS ESTRUCTURALES ----
         for member in self.members.values():
-            coord = np.hstack((member.node_i.vertex.coordinates, member.node_j.vertex.coordinates))
+            coord = np.hstack((member.node_i.vertex.coordinates,
+                              member.node_j.vertex.coordinates))
             x = coord[[0, 2]]
             y = coord[[1, 3]]
             plt.plot(x, y, color="b")
@@ -1391,3 +1427,27 @@ class SystemMilcaModel:
 
     def plot_exy(self):
         self.plot_field(FieldType.EXY)
+
+
+    #! METODOS PRIVADOS ######################################################
+    def __id_verifier(self, ele_id: int, *id_nodes: int):
+        """
+        Verifica que el ID del elemento no exista y que los nodos existan.
+
+        Args:
+            ele_id (int): ID del elemento.
+            *id_nodes (int): IDs de los nodos.
+
+        Raises:
+            ValueError: Si el ID del elemento ya existe o si no existen los nodos.
+        """
+        if (ele_id in self.members
+            or ele_id in self.csts
+            or ele_id in self.membrane_q6
+                or ele_id in self.membrane_q6i):
+            raise ValueError(f"Ya existe un elemento con el ID {ele_id}")
+
+        for node_id in id_nodes:
+            if node_id not in self.nodes:
+                raise ValueError(f"No existe un nodo con el ID {node_id}")
+

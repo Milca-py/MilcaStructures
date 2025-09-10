@@ -11,7 +11,7 @@ from milcapy.plotter.suports import (
     support_kt, support_kr
 )
 from milcapy.plotter.load import (
-    graphic_one_arrow, graphic_one_arrow_dof, moment_fancy_arrow, graphic_n_arrow
+    graphic_one_arrow, graphic_one_arrow_dof, moment_fancy_arrow, graphic_n_arrow, redondear_si_mas_de_3_decimales
 )
 from milcapy.plotter.plotter_values import PlotterValues
 from milcapy.plotter.options import PlotterOptions
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     from matplotlib.axes import Axes
 
-from milcapy.plotter.utils import redondear_si_decimal
 
 class Plotter:
     def __init__(
@@ -167,7 +166,12 @@ class Plotter:
 
     def initialize_plot(self):
         """Plotea por primera y unica vez (crea los objetos artist)"""
-        self.plotter_options.load_max(list(self.model.results.keys())[0])
+        if self.plotter_options.optCargaOP == "max":
+            self.plotter_options.load_max(list(self.model.results.keys())[0])
+        elif self.plotter_options.optCargaOP == "mean":
+            self.plotter_options.load_mean(list(self.model.results.keys())[0])
+        elif self.plotter_options.optCargaOP == "prom":
+            self.plotter_options.load_max(list(self.model.results.keys())[0], prom=True)
         self.plot_nodes()
         self.plot_members()
         self.plot_cst()
@@ -183,7 +187,12 @@ class Plotter:
         self.plot_end_length_offset()
         self.plot_frame_release()
         for load_pattern_name in self.model.results.keys():
-            self.plotter_options.load_max(load_pattern_name)
+            if self.plotter_options.optCargaOP == "max":
+                self.plotter_options.load_max(load_pattern_name)
+            elif self.plotter_options.optCargaOP == "mean":
+                self.plotter_options.load_mean(load_pattern_name)
+            elif self.plotter_options.optCargaOP == "prom":
+                self.plotter_options.load_max(load_pattern_name, prom=True)
             self.current_load_pattern = load_pattern_name
             self.current_values = self.get_plotter_values(load_pattern_name)
             self.plot_point_loads()
@@ -683,8 +692,8 @@ class Plotter:
                 arrows, texts = graphic_n_arrow(
                     x=coords[0][0],
                     y=coords[0][1],
-                    load_i=-round(load["q_i"], 2),
-                    load_j=-round(load["q_j"], 2),
+                    load_i=-redondear_si_mas_de_3_decimales(load["q_i"]),
+                    load_j=-redondear_si_mas_de_3_decimales(load["q_j"]),
                     angle=np.pi/2,
                     length=length,
                     ax=self.axes,
@@ -704,8 +713,8 @@ class Plotter:
                 arrows, texts = graphic_n_arrow(
                     x=coords[0][0],
                     y=coords[0][1],
-                    load_i=-round(load["p_i"], 2),
-                    load_j=-round(load["p_j"], 2),
+                    load_i=-redondear_si_mas_de_3_decimales(load["p_i"]),
+                    load_j=-redondear_si_mas_de_3_decimales(load["p_j"]),
                     angle=0,
                     length=length,
                     ax=self.axes,
@@ -1201,7 +1210,7 @@ class Plotter:
                 coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
                 coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"kx = {redondear_si_decimal(kx)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"kx = {redondear_si_mas_de_3_decimales(kx)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["kx"] = (x_data, y_data, theta, line, text)
                 else:
@@ -1222,7 +1231,7 @@ class Plotter:
                 coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
                 coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"ky = {redondear_si_decimal(ky)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"ky = {redondear_si_mas_de_3_decimales(ky)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["ky"] = (x_data, y_data, theta, line, text)
                 else:
@@ -1243,7 +1252,7 @@ class Plotter:
                 coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
                 coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"krz = {redondear_si_decimal(krz)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"krz = {redondear_si_mas_de_3_decimales(krz)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["krz"] = (x_data, y_data, theta, line, text)
                 else:
@@ -1596,7 +1605,7 @@ class Plotter:
             self.deformed_shape[self.current_load_pattern][element.id] = []
             x, y = self.current_values.get_deformed_shape(element.id, escala)
             line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
-                                    color=self.plotter_options.deformation_color)
+                                    color=self.plotter_options.deformation_color, zorder=70)
             self.deformed_shape[self.current_load_pattern][element.id].append(line)
             line.set_visible(self.plotter_options.UI_deformed)
 
@@ -1609,9 +1618,9 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.cst_element_line_width,
-                                    color=self.plotter_options.cst_deformed_color_edge)
+                                    color=self.plotter_options.cst_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.cst_deformed_color_face,
-                                      alpha=self.plotter_options.cst_alpha)
+                                      alpha=self.plotter_options.cst_alpha, zorder=70)
             self.deformed_shape[self.current_load_pattern][cst.id].append(line)
             self.deformed_shape[self.current_load_pattern][cst.id].append(polygon)
 
@@ -1626,9 +1635,9 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q6_element_line_width,
-                                    color=self.plotter_options.membrane_q6_deformed_color_edge)
+                                    color=self.plotter_options.membrane_q6_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q6_deformed_color_face,
-                                      alpha=self.plotter_options.membrane_q6_alpha)
+                                      alpha=self.plotter_options.membrane_q6_alpha, zorder=70)
             self.deformed_shape[self.current_load_pattern][membrane_q6.id].append(line)
             self.deformed_shape[self.current_load_pattern][membrane_q6.id].append(polygon)
 
@@ -1643,9 +1652,9 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q6i_element_line_width,
-                                    color=self.plotter_options.membrane_q6i_deformed_color_edge)
+                                    color=self.plotter_options.membrane_q6i_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q6i_deformed_color_face,
-                                      alpha=self.plotter_options.membrane_q6i_alpha)
+                                      alpha=self.plotter_options.membrane_q6i_alpha, zorder=70)
             self.deformed_shape[self.current_load_pattern][membrane_q6i.id].append(line)
             self.deformed_shape[self.current_load_pattern][membrane_q6i.id].append(polygon)
 
@@ -1727,7 +1736,7 @@ class Plotter:
             self.rigid_deformed_shape[self.current_load_pattern][member_id] = []
             x, y = self.current_values.rigid_deformed(member_id, escala)
             line, = self.axes.plot(
-                x, y, color=self.plotter_options.rigid_deformed_color, lw=0.7, ls='--', zorder=1)
+                x, y, color=self.plotter_options.rigid_deformed_color, lw=0.7, ls='--', zorder=60)
             self.rigid_deformed_shape[self.current_load_pattern][member_id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
@@ -1738,7 +1747,7 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color)
+                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
             self.rigid_deformed_shape[self.current_load_pattern][cst.id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
@@ -1749,7 +1758,7 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color)
+                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
             self.rigid_deformed_shape[self.current_load_pattern][membrane_q6.id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
@@ -1761,7 +1770,7 @@ class Plotter:
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color)
+                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
             self.rigid_deformed_shape[self.current_load_pattern][membrane_q6i.id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
