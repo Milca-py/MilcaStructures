@@ -1,34 +1,78 @@
 # Milca Structures
 ---
-## milcapy
-Libreria para el analisis estructural de marcos en 2 dimensiones (incluyendo mebranas Q6, CST, con modos incompatibles para evitar el bloqueo por cortante).
 
-### Caracteristicas
+## 📦 milcapy  
+Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos **membrana Q6**, **CST** y elementos con **modos incompatibles** para evitar el bloqueo por cortante.  
 
-- Creacion de materiales
-- Creacion de secciones
-- Asignacion de modicadores de propiedades de seccion
-- Creacion de nodos
-- Creacion de miembros
-- Creacion de patrones de carga
-- Creacion de restringimientos
-- Creacion de cargas
-- Creacion de resultados
-- Creacion de graficos
+Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).  
+Además, incorpora conceptos avanzados de **análisis matricial de estructuras**.
 
-### Instalacion
+---
+
+### Características principales
+
+- **Definición de materiales**
+- **Definición de secciones**
+  - Rectangulares
+  - Circulares
+  - Genéricas
+  - Tipo cáscara
+- **Definición de nodos**
+- **Definición de elementos**
+  - Vigas (marcos)
+    - Vigas de **Timoshenko**
+    - Vigas de **Euler-Bernoulli**
+  - Armaduras
+  - Membranas
+    - CST (Constant Strain Triangle)
+    - Q6 (Quadrilateral 4 nodos & 3dof por nodo)
+    - Q6i (Q6 con modos incompatibles)
+- **Patrones de carga**
+- **Modificadores de propiedades de sección**
+- **Condiciones de frontera**
+  - Restricciones convencionales
+  - Apoyos elásticos
+  - Definición de eje local para nodos
+- **Cargas**
+  - Cargas nodales
+  - Cargas distribuidas
+  - Peso propio
+- **Opciones avanzadas**
+  - Desfase de extremos (brazos rígidos)
+  - Liberaciones
+- **Resultados y análisis**
+  - Obtención de la matriz de rigidez global
+  - Vector de cargas por patrón de carga
+  - Resultados globales y locales
+- **Visualización interactiva** del modelo
+
+---
+
+### Instalación
 
 ```bash
 pip install milcapy
 ```
 
-### 0. Comandos de importacion
+### Comandos de importacion
 
 ```python
-from milcapy import SystemModel, BeamTheoriesType, model_viewer
+from milcapy import (
+  SystemModel,
+  BeamTheoriesType,
+  CoordinateSystemType,
+  DirectionType,
+  StateType,
+  LoadType,
+  model_viewer,
+)
 ```
 > - `SystemModel` → Plano de contruccion para crear el modelo
 > - `BeamTheoriesType` → Tipos de teorías de vigas
+> - `CoordinateSystemType` → Tipos de sistemas de coordenadas
+> - `DirectionType` → Tipos de direcciones
+> - `StateType` → Tipos de estados
+> - `LoadType` → Tipos de cargas
 > - `model_viewer` → Para visualizar el modelo
 
 
@@ -107,7 +151,7 @@ model.add_node('id', 'x', 'y')
 > - `y` (`float`) → Coordenada y del nodo
 >> **⚠️ NOTA IMPORTANTE:** los ID's deben ser ordenados y secuenciales (1, 2, 3, ...)
 
-### 5. Comando de elemeneto marco
+### 5. Comando de elemento marco
 
 #### 5.1. Comando de marco implemetadas con las teorías de viga de Timoshenko y Euler-Bernoulli
 
@@ -328,8 +372,9 @@ model.add_distributed_load('member_id', 'load_pattern_name', 'load_start=0', 'lo
 > - `replace` (`bool`) → Reemplazar la carga existente (opcional)
 >> **CSYS DISPONIBLES:** 'GLOBAL', 'LOCAL'
 >> **DIRECCION DISPONIBLES:**
->>> **LOCAL:** 'LOCAL_1', 'LOCAL_2', 'LOCAL_3'
->>> **GLOBAL:** 'X', 'Y', 'Z', 'X_PROJ', 'Y_PROJ', 'GRAVITY', 'GRAVITY_PROJ'
+>>> - **LOCAL:** 'LOCAL_1', 'LOCAL_2', 'LOCAL_3'
+>>> - **GLOBAL:** 'X', 'Y', 'Z', 'X_PROJ', 'Y_PROJ', 'GRAVITY', 'GRAVITY_PROJ'
+>>
 >> **TIPO DE CARGA DISPONIBLES:** 'FORCE'
 
 ###### 9.3.4. Comando de cargas de peso propio
@@ -413,8 +458,8 @@ displacements: np.ndarray = results.get_model_displacements()
 reactions: np.ndarray = results.get_model_reactions()
 ```
 
-> - `displacements` (`np.ndarray`) → Desplazamientos globales del modelo.  
-> - `reactions` (`np.ndarray`) → Reacciones globales del modelo.  
+> - `displacements` (`np.ndarray`) → Desplazamientos globales del modelo.
+> - `reactions` (`np.ndarray`) → Reacciones globales del modelo.
 
 ---
 
@@ -424,9 +469,9 @@ displacements: np.ndarray = results.get_node_displacements(node_id)
 reactions: np.ndarray = results.get_node_reactions(node_id)
 ```
 
-> - `node_id` (`int`) → Identificador del nodo.  
-> - `displacements` (`np.ndarray`) → Desplazamientos del nodo.  
-> - `reactions` (`np.ndarray`) → Reacciones en el nodo.  
+> - `node_id` (`int`) → Identificador del nodo.
+> - `displacements` (`np.ndarray`) → Desplazamientos del nodo.
+> - `reactions` (`np.ndarray`) → Reacciones en el nodo.
 
 ---
 
@@ -443,8 +488,8 @@ slope: np.ndarray              = results.get_member_slope(member_id)
 axial_displacement: np.ndarray = results.get_member_axial_displacement(member_id)
 ```
 
-> - `member_id` (`int`) → Identificador del miembro.  
-> - Cada propiedad retorna un `np.ndarray` con los resultados correspondientes.  
+> - `member_id` (`int`) → Identificador del miembro.
+> - Cada propiedad retorna un `np.ndarray` con los resultados correspondientes.
 
 ---
 
@@ -455,10 +500,10 @@ strains: np.ndarray       = results.get_cst_strains(cst_id)
 stresses: np.ndarray      = results.get_cst_stresses(cst_id)
 ```
 
-> - `cst_id` (`int`) → Identificador del elemento CST.  
-> - `displacements` (`np.ndarray`) → Desplazamientos.  
-> - `strains` (`np.ndarray`) → Deformaciones.  
-> - `stresses` (`np.ndarray`) → Esfuerzos.  
+> - `cst_id` (`int`) → Identificador del elemento CST.
+> - `displacements` (`np.ndarray`) → Desplazamientos.
+> - `strains` (`np.ndarray`) → Deformaciones.
+> - `stresses` (`np.ndarray`) → Esfuerzos.
 
 ---
 
@@ -467,8 +512,8 @@ stresses: np.ndarray      = results.get_cst_stresses(cst_id)
 displacements: np.ndarray = results.get_membrane_q6_displacements(membrane_q6_id)
 ```
 
-> - `membrane_q6_id` (`int`) → Identificador del elemento Q6.  
-> - `displacements` (`np.ndarray`) → Desplazamientos.  
+> - `membrane_q6_id` (`int`) → Identificador del elemento Q6.
+> - `displacements` (`np.ndarray`) → Desplazamientos.
 
 ---
 
@@ -477,5 +522,85 @@ displacements: np.ndarray = results.get_membrane_q6_displacements(membrane_q6_id
 displacements: np.ndarray = results.get_membrane_q6i_displacements(membrane_q6i_id)
 ```
 
-> - `membrane_q6i_id` (`int`) → Identificador del elemento Q6i.  
-> - `displacements` (`np.ndarray`) → Desplazamientos.  
+> - `membrane_q6i_id` (`int`) → Identificador del elemento Q6i.
+> - `displacements` (`np.ndarray`) → Desplazamientos.
+
+
+
+### Ejemplo de uso
+```python
+from milcapy import SystemModel, BeamTheoriesType, model_viewer
+
+model = SystemModel()
+
+model.add_material(name="concreto", modulus_elasticity=2.1e6, poisson_ratio=0.2)
+model.add_rectangular_section(name="vigas", material_name="concreto", base=0.3, height=0.5)
+model.add_rectangular_section(name="muros", material_name="concreto", base=0.3, height=2.0)
+
+model.add_node(1, 0, 0)
+model.add_node(2, 0, 5)
+model.add_node(3, 7, 8.5)
+model.add_node(4, 14, 5)
+model.add_node(5, 14, 0)
+
+model.add_member(1, 1, 2, "muros", BeamTheoriesType.TIMOSHENKO)
+model.add_member(2, 2, 3, "vigas", BeamTheoriesType.EULER_BERNOULLI)
+model.add_member(3, 3, 4, "vigas", BeamTheoriesType.EULER_BERNOULLI)
+model.add_member(4, 4, 5, "muros", BeamTheoriesType.TIMOSHENKO)
+model.add_member(5, 2, 4, "vigas", BeamTheoriesType.EULER_BERNOULLI)
+
+model.add_restraint(1, (False, True, True))
+model.add_restraint(5, (False, True, True))
+
+model.add_local_axis_for_node(1, -37*3.1416/180)
+model.add_local_axis_for_node(5, +37*3.1416/180)
+
+lengthOffset = 1
+
+model.add_elastic_support(3, ky=10)
+model.add_end_length_offset(2, la=lengthOffset, qla=True)
+model.add_end_length_offset(3, lb=lengthOffset, qlb=True)
+model.add_end_length_offset(5, la=lengthOffset, lb=lengthOffset, qla=True)
+
+model.add_releases(5, mi=True, mj=True)
+
+model.add_load_pattern("Live Load")
+model.add_point_load(3, "Live Load", 0, -50, 0)
+model.add_distributed_load(2, "Live Load", -10, -5)
+model.add_distributed_load(3, "Live Load", -5, -10)
+model.add_distributed_load(5, "Live Load", -5, -5)
+model.add_load_pattern("Dead Load")
+model.add_point_load(3, "Dead Load", 40, -50, 10)
+model.add_distributed_load(5, "Dead Load", -5, -5)
+
+model.add_prescribed_dof(1, "Live Load", uy=-0.01, CSys="LOCAL")
+model.add_prescribed_dof(5, "Live Load", uy=-0.01, CSys="LOCAL")
+
+model.postprocessing_options.n = 100
+
+model.solve()
+
+model_viewer(model)
+```
+
+#### model_viewer
+##### modelo
+![Resultados](assets/modelo.png)
+
+##### deformada
+![Resultados](assets/deformada.png)
+
+##### deformada rigida
+![Resultados](assets/deformada_rigida.png)
+
+##### reacciones
+![Resultados](assets/reacciones.png)
+
+##### Diagramas de fuerzas axiales
+![Resultados](assets/diag_axiales.png)
+
+##### Diagramas de fuerzas cortantes
+![Resultados](assets/diag_cortantes.png)
+
+##### Diagramas de fuerzas cortantes
+![Resultados](assets/diag_momentos.png)

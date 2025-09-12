@@ -21,13 +21,8 @@ model.add_member(5, 2, 4, "vigas", BeamTheoriesType.EULER_BERNOULLI)
 model.add_restraint(1, (False, True, True))
 model.add_restraint(5, (False, True, True))
 
-
-# model.add_restraint(1, (True, True, True))
-# model.add_restraint(5, (True, True, True))
-
 model.add_local_axis_for_node(1, -37*3.1416/180)
 model.add_local_axis_for_node(5, +37*3.1416/180)
-
 
 lengthOffset = 1
 
@@ -54,7 +49,4 @@ model.postprocessing_options.n = 100
 
 model.solve()
 
-# model.plot_model("Dead Load")
-
 model_viewer(model)
-
