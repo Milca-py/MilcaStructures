@@ -34,20 +34,27 @@ lengthOffset = 1
 model.add_elastic_support(3, ky=10)
 model.add_end_length_offset(2, la=lengthOffset, qla=True)
 model.add_end_length_offset(3, lb=lengthOffset, qlb=True)
+model.add_end_length_offset(5, la=lengthOffset, lb=lengthOffset, qla=True)
 
-model.add_releases(5, vi=True, mj=True)
+model.add_releases(5, mi=True, mj=True)
 
 model.add_load_pattern("Live Load")
 model.add_point_load(3, "Live Load", 0, -50, 0)
 model.add_distributed_load(2, "Live Load", -10, -5)
 model.add_distributed_load(3, "Live Load", -5, -10)
+model.add_distributed_load(5, "Live Load", -5, -5)
+model.add_load_pattern("Dead Load")
+model.add_point_load(3, "Dead Load", 40, -50, 10)
+model.add_distributed_load(5, "Dead Load", -5, -5)
 
-model.add_prescribed_dof(1, "Live Load", uy=-0.1, CSys="LOCAL")
-model.add_prescribed_dof(5, "Live Load", uy=-0.1, CSys="LOCAL")
+model.add_prescribed_dof(1, "Live Load", uy=-0.01, CSys="LOCAL")
+model.add_prescribed_dof(5, "Live Load", uy=-0.01, CSys="LOCAL")
 
-model.postprocessing_options.n = 10
+model.postprocessing_options.n = 100
 
 model.solve()
+
+# model.plot_model("Dead Load")
 
 model_viewer(model)
 

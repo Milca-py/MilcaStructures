@@ -24,6 +24,7 @@ from milcapy.utils.types import (
     LoadType,
     to_enum,
 )
+from milcapy.utils.types import FieldTypeMembrane, InternalForceType
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -32,19 +33,8 @@ from numpy.typing import NDArray
 if TYPE_CHECKING:
     from milcapy.utils.types import Restraints
 
-from enum import Enum
 
 
-class FieldType(Enum):
-    SX = "sx"
-    SY = "sy"
-    SXY = "sxy"
-    EX = "ex"
-    EY = "ey"
-    EXY = "exy"
-    UX = "ux"
-    UY = "uy"
-    UMAG = "umag"
 
 
 class SystemMilcaModel:
@@ -170,7 +160,6 @@ class SystemMilcaModel:
         name: str,
         material_name: str,
         diameter: float,
-        shear_method: ShearCoefficientMethodType = ShearCoefficientMethodType.TIMOSHENKO
     ) -> Section:
         """
         Agrega una sección circular al modelo.
@@ -179,22 +168,19 @@ class SystemMilcaModel:
             name (str): Nombre de la sección.
             material_name (str): Nombre del material asociado (ya agregado).
             diameter (float): Diámetro de la sección.
-            shear_method (ShearCoefficientMethodType): Método de cálculo del coeficiente de corte.
         Raises:
             ValueError: Si el diámetro es menor o igual a cero.
         """
         if diameter <= 0:
-            raise ValueError("El radio debe ser positivo.")
+            raise ValueError("El diámetro debe ser positivo.")
         if material_name not in self.materials:
             raise ValueError(
                 f"No existe un material con el nombre '{material_name}'")
-        if isinstance(shear_method, str):
-            shear_method = to_enum(shear_method, ShearCoefficientMethodType)
         section = CircularSection(
             name=name,
             material=self.materials[material_name],
             radius=diameter/2,
-            shear_method=shear_method
+            shear_method=ShearCoefficientMethodType.TIMOSHENKO
         )
         self.sections[name] = section
         return section
@@ -288,9 +274,10 @@ class SystemMilcaModel:
 
         Args:
             section_name (str): Nombre de la sección.
-            axial_area (float): Modificador de área axial.
-            shear_area (float): Modificador de área de flexión.
+            axial_area (float): Modificador de área transversal.
+            shear_area (float): Modificador de área de corte.
             moment_inertia (float): Modificador de momento de inercia.
+            weight (float): Modificador de peso.
         """
         if section_name not in self.sections:
             raise ValueError(
@@ -388,7 +375,6 @@ class SystemMilcaModel:
         node_i_id: int,
         node_j_id: int,
         section_name: str,
-        member_type: Union[str, MemberType] = MemberType.FRAME
     ) -> Member:
         """
         Agrega una viga de Timoshenko al modelo con rigidez axial.
@@ -398,7 +384,6 @@ class SystemMilcaModel:
             node_i_id (int): ID del nodo inicial.
             node_j_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            member_type (str, opcional): Tipo de miembro. Por defecto es FRAME.
 
         Returns:
             Member: El miembro creado.
@@ -412,10 +397,6 @@ class SystemMilcaModel:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
 
-        # Convertir a enum si es string
-        if isinstance(member_type, str):
-            member_type = to_enum(member_type, MemberType)
-
         beam_theory = BeamTheoriesType.TIMOSHENKO
 
         element = Member(
@@ -423,7 +404,7 @@ class SystemMilcaModel:
             node_i=self.nodes[node_i_id],
             node_j=self.nodes[node_j_id],
             section=self.sections[section_name],
-            member_type=member_type,
+            member_type=MemberType.FRAME,
             beam_theory=beam_theory,
         )
         self.members[id] = element
@@ -435,7 +416,6 @@ class SystemMilcaModel:
         node_i_id: int,
         node_j_id: int,
         section_name: str,
-        member_type: Union[str, MemberType] = MemberType.FRAME
     ) -> Member:
         """
         Agrega una viga de Euler-Bernoulli al modelo con rigidez axial.
@@ -445,7 +425,6 @@ class SystemMilcaModel:
             node_i_id (int): ID del nodo inicial.
             node_j_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            member_type (str, opcional): Tipo de miembro. Por defecto es FRAME.
 
         Returns:
             Member: El miembro creado.
@@ -459,10 +438,6 @@ class SystemMilcaModel:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
 
-        # Convertir a enum si es string
-        if isinstance(member_type, str):
-            member_type = to_enum(member_type, MemberType)
-
         beam_theory = BeamTheoriesType.EULER_BERNOULLI
 
         element = Member(
@@ -470,7 +445,7 @@ class SystemMilcaModel:
             node_i=self.nodes[node_i_id],
             node_j=self.nodes[node_j_id],
             section=self.sections[section_name],
-            member_type=member_type,
+            member_type=MemberType.FRAME,
             beam_theory=beam_theory,
         )
         self.members[id] = element
@@ -707,28 +682,29 @@ class SystemMilcaModel:
     def add_restraint(
         self,
         node_id: int,
-        restraints: "Restraints"
+        ux: bool,
+        uy: bool,
+        rz: bool,
     ) -> None:
         """
         Asigna restricciones (condiciones de frontera) a un nodo.
 
         Args:
             node_id (int): Identificador del nodo.
-            restraints (Restraints): Tupla booleana con las restricciones.
+            ux (bool): Restricción de traslación en el eje x.
+            uy (bool): Restricción de traslación en el eje y.
+            rz (bool): Restricción de rotación en el eje z.
 
         Raises:
             ValueError: Si no existe el nodo.
         """
         if node_id not in self.nodes:
             raise ValueError(f"No existe un nodo con el ID {node_id}")
-        if len(restraints) != 3:
+        if not all(isinstance(x, bool) for x in [ux, uy, rz]):
             raise ValueError(
-                "La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
-        if not all(isinstance(x, bool) for x in restraints):
-            raise ValueError(
-                "La tupla 'restraints' de restricciones debe tener 3 elementos de boleanos")
+                "ux, uy y rz deben ser booleanos")
 
-        self.nodes[node_id].set_restraints(restraints)
+        self.nodes[node_id].set_restraints((ux, uy, rz))
 
 
     #! PATRONES DE CARGA ###################################################
@@ -1078,8 +1054,8 @@ class SystemMilcaModel:
 
         Args:
             member_id (int): ID del miembro.
-            la (float): Desplazamiento de longitud final en el nodo inicial.
-            lb (float): Desplazamiento de longitud final en el nodo final.
+            la (float): Desface de longitud final en el nodo inicial.
+            lb (float): Desface de longitud final en el nodo final.
             qla (bool, opcional): Si se aplica el carga en el brazo inicial. Default es True.
             qlb (bool, opcional): Si se aplica el carga en el brazo final. Default es True.
             fla (float, opcional): Factor de zona rigida del brazo inicial. Default es 1.
@@ -1295,7 +1271,7 @@ class SystemMilcaModel:
         return self.global_load_vector.get(load_pattern_name)
 
 
-    #! VISUALIZACION #########################################################
+    #! VISUALIZACION EN VENTANA INTERACTIVA ##################################
     def show(
         self
     ):
@@ -1307,11 +1283,52 @@ class SystemMilcaModel:
         self.plotter.initialize_plot()
         main_window(self)
 
+    #! RESULTADOS ###########################################################
+    def get_results(
+        self,
+        load_pattern_name: str
+    ):
+        """
+        Obtiene los resultados del análisis.
+
+        Returns:
+            Results: Objeto con los resultados del análisis.
+        """
+        return self.results.get(load_pattern_name)
+
 
     #! PLOT DE ELEMENTOS FINITOS #############################################
+
+    def plot_model(
+        self,
+        load_pattern: Optional[str] = None,
+        type: Optional[InternalForceType] = None,
+    ):
+        """
+        Grafica el modelo estructural.
+        """
+
+        import matplotlib.pyplot as plt
+        from milcapy.plotter.UIdisplay import MainWindow, QApplication, sys
+        __Plotter = Plotter(self, load_pattern)
+        __Plotter.initialize_plot(type)
+
+        __Plotter.plotter_options.UI_axial = True
+        __Plotter.update_axial_force(visibility=True)
+
+        plt.show()
+
+        # app = QApplication.instance()
+        # if app is None:  # Si no existe una instancia, se crea
+        #     app = QApplication(sys.argv)
+        # window = MainWindow(self)
+        # window.show()
+
+
+
     def plot_field(
         self,
-        field: Union[FieldType, str],
+        field: Union[FieldTypeMembrane, str],
         cmap: str = "jet"
     ):
         """
@@ -1342,17 +1359,17 @@ class SystemMilcaModel:
                 strains = self.results[self.current_load_pattern].get_cst_strains(
                     cst.id)
 
-                if field == FieldType.SX:
+                if field == FieldTypeMembrane.SX:
                     val = stresses[0]
-                elif field == FieldType.SY:
+                elif field == FieldTypeMembrane.SY:
                     val = stresses[1]
-                elif field == FieldType.SXY:
+                elif field == FieldTypeMembrane.SXY:
                     val = stresses[2]
-                elif field == FieldType.EX:
+                elif field == FieldTypeMembrane.EX:
                     val = strains[0]
-                elif field == FieldType.EY:
+                elif field == FieldTypeMembrane.EY:
                     val = strains[1]
-                elif field == FieldType.EXY:
+                elif field == FieldTypeMembrane.EXY:
                     val = strains[2]
                 else:
                     val = None
@@ -1363,15 +1380,15 @@ class SystemMilcaModel:
                         node_values[n.id].append(val)
 
         # --- NUEVO: desplazamientos nodales ---
-        if field in [FieldType.UX, FieldType.UY, FieldType.UMAG]:
+        if field in [FieldTypeMembrane.UX, FieldTypeMembrane.UY, FieldTypeMembrane.UMAG]:
             for nid, node in self.nodes.items():
                 ux, uy = self.results[self.current_load_pattern].get_node_displacements(nid)[
                     :2]
-                if field == FieldType.UX:
+                if field == FieldTypeMembrane.UX:
                     node_values[nid] = [ux]
-                elif field == FieldType.UY:
+                elif field == FieldTypeMembrane.UY:
                     node_values[nid] = [uy]
-                elif field == FieldType.UMAG:
+                elif field == FieldTypeMembrane.UMAG:
                     node_values[nid] = [np.sqrt(ux**2 + uy**2)]
 
         # promediar valores en los nodos
@@ -1401,32 +1418,32 @@ class SystemMilcaModel:
         plt.tight_layout()
         plt.show()
 
-    def plot_ux(self):
-        self.plot_field(FieldType.UX)
+    def _plot_ux(self):
+        self.plot_field(FieldTypeMembrane.UX)
 
-    def plot_uy(self):
-        self.plot_field(FieldType.UY)
+    def _plot_uy(self):
+        self.plot_field(FieldTypeMembrane.UY)
 
-    def plot_umag(self):
-        self.plot_field(FieldType.UMAG)
+    def _plot_umag(self):
+        self.plot_field(FieldTypeMembrane.UMAG)
 
-    def plot_sx(self):
-        self.plot_field(FieldType.SX)
+    def _plot_sx(self):
+        self.plot_field(FieldTypeMembrane.SX)
 
-    def plot_sy(self):
-        self.plot_field(FieldType.SY)
+    def _plot_sy(self):
+        self.plot_field(FieldTypeMembrane.SY)
 
-    def plot_sxy(self):
-        self.plot_field(FieldType.SXY)
+    def _plot_sxy(self):
+        self.plot_field(FieldTypeMembrane.SXY)
 
-    def plot_ex(self):
-        self.plot_field(FieldType.EX)
+    def _plot_ex(self):
+        self.plot_field(FieldTypeMembrane.EX)
 
-    def plot_ey(self):
-        self.plot_field(FieldType.EY)
+    def _plot_ey(self):
+        self.plot_field(FieldTypeMembrane.EY)
 
-    def plot_exy(self):
-        self.plot_field(FieldType.EXY)
+    def _plot_exy(self):
+        self.plot_field(FieldTypeMembrane.EXY)
 
 
     #! METODOS PRIVADOS ######################################################
@@ -1450,4 +1467,3 @@ class SystemMilcaModel:
         for node_id in id_nodes:
             if node_id not in self.nodes:
                 raise ValueError(f"No existe un nodo con el ID {node_id}")
-

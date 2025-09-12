@@ -68,6 +68,18 @@ class InternalForceType(Enum):
 
 
 
+class FieldTypeMembrane(Enum):
+    SX = "sx"
+    SY = "sy"
+    SXY = "sxy"
+    EX = "ex"
+    EY = "ey"
+    EXY = "exy"
+    UX = "ux"
+    UY = "uy"
+    UMAG = "umag"
+
+
 
 def to_enum(key: str, enum: Enum) -> Enum:
     """Convierte un string a un miembro de un Enum."""

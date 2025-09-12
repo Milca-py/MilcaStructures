@@ -1,0 +1,113 @@
+\documentclass[a4paper,10pt]{book}
+
+% ========== PAQUETES ========== 
+\usepackage[utf8]{inputenc}      % Codificación UTF-8
+\usepackage[most]{tcolorbox}
+\usepackage{anyfontsize}
+\usepackage[T1]{fontenc}         % Mejor tipografía
+\usepackage{graphicx}            % Manejo de imágenes
+\usepackage{amsmath}             % Matemáticas
+\usepackage{amsfonts}            % Fuentes matemáticas
+\usepackage{amssymb}             % Símbolos matemáticos
+\usepackage{hyperref}            % Hipervínculos en PDF
+\usepackage[style=apa,backend=biber]{biblatex} % Bibliografía APA
+\usepackage{fancyhdr}            % Cabeceras y pies personalizados
+\usepackage{geometry}            % Márgenes personalizados
+\usepackage{tocbibind}           % Incluir bibliografía en el índice
+\usepackage{titlesec}            % Personalización de títulos
+\usepackage{lipsum}              % Texto de ejemplo
+\usepackage[labelfont=bf]{caption}
+
+\usepackage{graphicx}    % Para insertar imágenes
+\usepackage{amsmath}     % Para fórmulas matemáticas
+\usepackage{array}       % Mejor control de columnas
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{float}  % Para posicionar exactamente la tabla
+
+% ========== CONFIGURACIONES ========== 
+% Márgenes optimizados para lectura
+\geometry{left=3cm, right=3cm, top=3cm, bottom=3cm}
+
+% Cabecera y pie de página
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Análisis Estructural Computacional de Marcos en Dos Dimensiones}
+\fancyhead[R]{Generado por Milcapy}
+\fancyfoot[C]{\thepage}
+
+% Títulos de capítulos
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}
+  {\chaptername\ \thechapter}{20pt}{\Huge}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=red,
+    pdfauthor={Amilcar Machacca Mayo},
+    pdftitle={Análisis Estructural Computacional de Marcos en Dos Dimensiones}
+}
+
+% =========================
+% PORTADA
+% =========================
+\begin{document}
+
+% % Portada del libro
+% \begin{titlepage}
+%     \centering
+%     \vfill
+%     {\Huge \textbf{Análisis Estructural Computacional de Marcos en Dos Dimensiones}}\\[1cm]
+%     {\Large \textbf{Autor:} \href{https://github.com/Milca-py}{\textcolor{blue}{Amilcar Machacca Mayo}}}\\[0.5cm]
+%     {\large \textit{Universidad Nacional de San Antonio Abad del Cusco}}\\[1.5cm]
+%     \vfill
+%     {\large \today}
+%     \vfill
+% \end{titlepage}
+
+
+% Portada del libro
+\begin{titlepage}
+    \centering
+    
+    \vfill
+    {\Huge \textbf{Análisis Estructural Computacional de Marcos en Dos Dimensiones}}\\[3cm]
+
+    \includegraphics[width=0.5\textwidth]{img/logo.png}\\[3cm]
+
+    {\Large \textbf{Autor:} \href{https://github.com/Milca-py}{\textcolor{blue}{Amilcar Machacca Mayo}}}\\[0.5cm]
+    
+    {\large \textit{Universidad Nacional de San Antonio Abad del Cusco}}\\[1.5cm]
+    
+    \vfill
+    {\large \today}
+    \vfill
+\end{titlepage}
+
+
+% =========================
+% PÁGINAS PRELIMINARES
+% =========================
+\frontmatter
+\pagenumbering{roman}
+
+% Índice
+\tableofcontents  % Índice de contenido
+
+% =========================
+% CONTENIDO PRINCIPAL
+% =========================
+\mainmatter
+\pagenumbering{arabic}
+
+% Incluir capítulos
+\include{cap1}  % Capítulo 1
+\include{cap2}  % Capítulo 1
+
+
+% Fin del documento
+\end{document}
