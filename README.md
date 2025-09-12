@@ -1,11 +1,14 @@
 # Milca Structures
 ---
 
-## 📦 milcapy
+## milcapy
+## <img src="assets/logo.png" alt="Logo" width="100" height="100">
 Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos **membrana Q6**, **CST** y elementos con **modos incompatibles** para evitar el bloqueo por cortante.
 
 Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).
 Además, incorpora conceptos avanzados de **análisis matricial de estructuras**.
+
+Desarrollado por **Amilcar Machacca Mayo**
 
 ---
 
