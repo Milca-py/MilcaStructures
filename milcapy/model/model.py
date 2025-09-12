@@ -1193,12 +1193,12 @@ class SystemMilcaModel:
 
         Args:
             member_id (int): Identificador del miembro.
-            pi (bool, opcional): Liberación de P del nodo inicial. Default es False.
-            vi (bool, opcional): Liberación de V del nodo inicial. Default es False.
-            mi (bool, opcional): Liberación de M del nodo inicial. Default es False.
-            pj (bool, opcional): Liberación de P del nodo final. Default es False.
-            vj (bool, opcional): Liberación de V del nodo final. Default es False.
-            mj (bool, opcional): Liberación de M del nodo final. Default es False.
+            pi (bool, opcional): Liberación de fuerza axial del nodo inicial. Default es False.
+            vi (bool, opcional): Liberación de cortante del nodo inicial. Default es False.
+            mi (bool, opcional): Liberación de momento del nodo inicial. Default es False.
+            pj (bool, opcional): Liberación de fuerza axial del nodo final. Default es False.
+            vj (bool, opcional): Liberación de cortante del nodo final. Default es False.
+            mj (bool, opcional): Liberación de momento del nodo final. Default es False.
 
         Raises:
             ValueError: Si no existe el miembro.

@@ -1,10 +1,10 @@
 # Milca Structures
 ---
 
-## 📦 milcapy  
-Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos **membrana Q6**, **CST** y elementos con **modos incompatibles** para evitar el bloqueo por cortante.  
+## 📦 milcapy
+Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos **membrana Q6**, **CST** y elementos con **modos incompatibles** para evitar el bloqueo por cortante.
 
-Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).  
+Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).
 Además, incorpora conceptos avanzados de **análisis matricial de estructuras**.
 
 ---
@@ -40,10 +40,11 @@ Además, incorpora conceptos avanzados de **análisis matricial de estructuras**
 - **Opciones avanzadas**
   - Desfase de extremos (brazos rígidos)
   - Liberaciones
-- **Resultados y análisis**
+- **Resultados**
   - Obtención de la matriz de rigidez global
   - Vector de cargas por patrón de carga
-  - Resultados globales y locales
+  - Resultados de los nodos
+  - Resultados de los miembros
 - **Visualización interactiva** del modelo
 
 ---
@@ -406,12 +407,12 @@ model.add_releases('member_id', 'pi=False', 'vi=False', 'mi=False', 'pj=False', 
 ```
 
 > - `member_id` (`int`) → ID del miembro
-> - `pi` (`bool`) → Liberación de P del nodo inicial (opcional)
-> - `vi` (`bool`) → Liberación de V del nodo inicial (opcional)
-> - `mi` (`bool`) → Liberación de M del nodo inicial (opcional)
-> - `pj` (`bool`) → Liberación de P del nodo final (opcional)
-> - `vj` (`bool`) → Liberación de V del nodo final (opcional)
-> - `mj` (`bool`) → Liberación de M del nodo final (opcional)
+> - `pi` (`bool`) → Liberación de fuerza Axial del nodo inicial (opcional)
+> - `vi` (`bool`) → Liberación de cortante del nodo inicial (opcional)
+> - `mi` (`bool`) → Liberación de momento del nodo inicial (opcional)
+> - `pj` (`bool`) → Liberación de fuerza Axial del nodo final (opcional)
+> - `vj` (`bool`) → Liberación de cortante del nodo final (opcional)
+> - `mj` (`bool`) → Liberación de momento del nodo final (opcional)
 
 ### 10. Comandos de analisis
 ```python
