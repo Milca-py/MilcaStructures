@@ -90,6 +90,9 @@ class AnalysisManager:
             post_processing.process_displacements_for_membrane_q6()
             post_processing.process_displacements_for_membrane_q6i()
             post_processing.post_process_for_members()
+            post_processing.process_displacements_for_trusses()
+            post_processing.process_internal_forces_for_trusses()
+            post_processing.post_process_for_trusses()
 
             # actualizar el estado de analisis en LoadPattern
             load_pattern.analyzed = True

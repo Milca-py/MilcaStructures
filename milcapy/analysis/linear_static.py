@@ -90,6 +90,12 @@ class LinearStaticAnalysis:
             dofs = cst.dofs
             F[dofs - 1] += f
 
+        # Agregar cargas de los elementos Truss
+        for truss in self.model.trusses.values():
+            f = truss.global_load_vector()
+            dofs = truss.dofs
+            F[dofs - 1] += f
+
         end_time = time.time()
         self.assembly_time += (end_time - start_time)
 
@@ -152,6 +158,19 @@ class LinearStaticAnalysis:
 
             rows = np.repeat(dofs - 1, 8) # 8 es el numero de grados de libertad del elemento
             cols = np.tile(dofs - 1, 8)
+            values = k.flatten()
+
+            for i, j, val in zip(rows, cols, values):
+                K[i, j] += val
+
+
+        # Rigidez de los elementos Armadura
+        for truss in self.model.trusses.values():
+            k = truss.global_stiffness_matrix()
+            dofs = truss.dofs
+
+            rows = np.repeat(dofs - 1, 4)
+            cols = np.tile(dofs - 1, 4)
             values = k.flatten()
 
             for i, j, val in zip(rows, cols, values):
@@ -366,5 +385,8 @@ class LinearStaticAnalysis:
 
         end_time = time.time()
         self.solution_time = (end_time - start_time)
+
+        ## Tiempo de solucion
+        print(f"Tiempo de solucion: {self.solution_time} para el Load Pattern: {self.model.current_load_pattern}")
 
         return displacements, reactions

@@ -30,8 +30,8 @@ model.add_member(9, 4, 8, "seccion1")
 # model.add_cst(10, 1, 6, 2, "memb")
 # model.add_cst(11, 1, 5, 6, "memb")
 
-model.add_restraint(1, (True, True, True))
-model.add_restraint(5, (True, True, True))
+model.add_restraint(1, *(True, True, True))
+model.add_restraint(5, *(True, True, True))
 
 model.add_load_pattern("Live Load")
 model.add_point_load(2, "Live Load", 5, 0, 0, "GLOBAL")

@@ -49,6 +49,13 @@ class Results:
         "strains": np.ndarray,
         "stresses": np.ndarray,
         }
+
+    self.trusses: {
+        "displacements": np.ndarray,
+        "internal_forces": np.ndarray,
+        "axial_forces": np.ndarray,
+        "axial_displacements": np.ndarray,
+            }
     """
 
     def __init__(self):
@@ -57,6 +64,7 @@ class Results:
         self.CST: Dict[int, np.ndarray] = {}
         self.membrane_q6: Dict[int, np.ndarray] = {}
         self.membrane_q6i: Dict[int, np.ndarray] = {}
+        self.trusses: Dict[int, Dict[str, np.ndarray]] = {}
         self.model: Dict[str, np.ndarray] = {}
 
     def set_model_displacements(self, displacements: np.ndarray) -> None:
@@ -79,7 +87,6 @@ class Results:
         if member_id not in self.members:
             self.members[member_id] = {"displacements": np.zeros(6), "internal_forces": np.zeros(6)}
         self.members[member_id]["displacements"] = displacement
-
 
     def set_member_internal_forces(self, member_id: int, internal_forces: np.ndarray) -> None:
         if member_id not in self.members:
@@ -217,3 +224,33 @@ class Results:
 
     def get_membrane_q6i_stresses(self, membrane_q6i_id: int) -> None:
         pass
+
+    def set_truss_displacements(self, truss_id: int, displacement: np.ndarray) -> None:
+        if truss_id not in self.trusses:
+            self.trusses[truss_id] = {"displacements": np.zeros(6)}
+        self.trusses[truss_id]["displacements"] = displacement
+
+    def get_truss_displacements(self, truss_id: int) -> np.ndarray:
+        return self.trusses[truss_id]["displacements"]
+
+    def set_truss_axial_force(self, truss_id: int, axial_force: np.ndarray) -> None:
+        self.trusses[truss_id]["axial_forces"] = axial_force
+
+    def get_truss_axial_force(self, truss_id: int) -> np.ndarray:
+        return self.trusses[truss_id]["axial_forces"]
+
+    def set_truss_internal_forces(self, truss_id: int, internal_forces: np.ndarray) -> None:
+        self.trusses[truss_id]["internal_forces"] = internal_forces
+
+    def get_truss_internal_forces(self, truss_id: int) -> np.ndarray:
+        return self.trusses[truss_id]["internal_forces"]
+
+    def get_results_truss(self, truss_id: int) -> Dict[str, np.ndarray]:
+        return self.trusses[truss_id]
+
+    def set_truss_axial_displacement(self, truss_id: int, axial_displacement: np.ndarray) -> None:
+        self.trusses[truss_id]["axial_displacements"] = axial_displacement
+
+    def get_truss_axial_displacement(self, truss_id: int) -> np.ndarray:
+        return self.trusses[truss_id]["axial_displacements"]
+

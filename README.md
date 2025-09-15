@@ -1,3 +1,16 @@
+# Mejoras que debo de relizar
+- ~~Agregar elementos Armadura~~
+- Cooregir si los valores son 0 en internal forces
+- Dar escala controlable a las fuerzas internas
+- ~~Que las armaduras tambien tengas graficos de axiales~~
+- Verficar si los membranas funcionan en planos locales
+- compatiblidad entre releases y length offsets
+- graficos de modelo separado
+- ecuaciones de gobierno para vigas con releases
+- generador de reportes automaticos
+- ~~en la ventanda de FI que input de leng-position sea dinamica al hacer click en un diagrama~~
+- crear una pagina web en donde uno de mis proyectos sea esta libreria y que ahi este su documentacion y otras proyectos mios
+
 # Milca Structures
 ---
 
@@ -80,7 +93,7 @@ from milcapy import (
 > - `model_viewer` → Para visualizar el modelo
 
 
-### 1. Comandos de modelado
+### 1. Comandos de modelo
 
 ```python
 model = SystemModel()

@@ -32,8 +32,8 @@ if element_type == ElementType.MQ6I:
     model.add_membrane_q6i(1, 1, 2, 3, 4, "viga")
 if element_type == ElementType.MQ6IMod:
     model.add_membrane_q6i_mod(1, 1, 2, 3, 4, "viga")
-model.add_restraint(1, (True, True, False))
-model.add_restraint(4, (True, True, False))
+model.add_restraint(1, *(True, True, False))
+model.add_restraint(4, *(True, True, False))
 model.add_load_pattern("carga")
 model.add_point_load(2, "carga", fy=-0.5*p)
 model.add_point_load(3, "carga", fy=-0.5*p)

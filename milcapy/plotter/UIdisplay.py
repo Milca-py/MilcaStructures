@@ -73,6 +73,7 @@ class MatplotlibCanvas(QWidget):
             fontweight="normal",      # Negrita ("bold", "light", "normal")
             color="blue",             # Color del texto
             style="italic",           # Cursiva ("italic", "normal")
+            zorder=100,
             # bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="blue"), # Estilo del fondo
             arrowprops=dict(arrowstyle="->", color="black")  # Flecha
         )
@@ -97,6 +98,10 @@ class MatplotlibCanvas(QWidget):
     @property
     def members(self):
         return self.model.plotter.members  # {id: [line2D], ...}
+
+    @property
+    def trusses(self):
+        return self.model.plotter.trusses   # {id: [line2D], ...}
 
     @property
     def csts(self):
@@ -235,29 +240,46 @@ class MatplotlibCanvas(QWidget):
         global_contains = False
 
         if event.button == 3:  # Clic derecho
-            for member_id, line in self.members.items():
+            for member_id, line in list(self.members.items()) + list(self.trusses.items()):
                 contains, _ = line.contains(event)
                 if contains:
                     global_contains = True
                     self.model.plotter.selected_member = member_id
                     # Guardar el color original y cambiar a rojo
-                    original_color = self.model.plotter.members[member_id].get_color()
-                    original_linewidth = self.model.plotter.members[member_id].get_linewidth()
-                    self.model.plotter.members[member_id].set_color("red")
-                    self.model.plotter.members[member_id].set_linewidth(2)
-                    self.model.plotter.figure.canvas.draw_idle()
-                    x = self.model.results[self.current_load_pattern].get_member_x_val(member_id)
+                    if member_id in self.trusses:
+                        original_color = self.model.plotter.trusses[member_id].get_color()
+                        original_linewidth = self.model.plotter.trusses[member_id].get_linewidth()
+                        self.model.plotter.trusses[member_id].set_color("red")
+                        self.model.plotter.trusses[member_id].set_linewidth(2)
+                        self.model.plotter.figure.canvas.draw_idle()
+                        element = self.model.trusses[member_id]
+                    else:
+                        original_color = self.model.plotter.members[member_id].get_color()
+                        original_linewidth = self.model.plotter.members[member_id].get_linewidth()
+                        self.model.plotter.members[member_id].set_color("red")
+                        self.model.plotter.members[member_id].set_linewidth(2)
+                        self.model.plotter.figure.canvas.draw_idle()
+                        element = self.model.members[member_id]
+                    try:
+                        x = self.model.results[self.current_load_pattern].get_member_x_val(member_id)
+                    except:
+                        x = np.linspace(0, element.length(), self.model.postprocessing_options.n)
 
                     # Crear ventana emergente de Tkinter y esperar a que se cierre
-                    InternalForceDiagramWidget(self.model.members[member_id], self.model.plotter.diagrams, x)
+                    InternalForceDiagramWidget(element, self.model.plotter.diagrams, x)
                     break
 
             if global_contains:
                 # Restaurar el color original
                 plt.close("all")
-                self.model.plotter.members[member_id].set_color(original_color)
-                self.model.plotter.members[member_id].set_linewidth(original_linewidth)
-                self.model.plotter.figure.canvas.draw_idle()
+                if member_id in self.trusses:
+                    self.model.plotter.trusses[member_id].set_color(original_color)
+                    self.model.plotter.trusses[member_id].set_linewidth(original_linewidth)
+                    self.model.plotter.figure.canvas.draw_idle()
+                else:
+                    self.model.plotter.members[member_id].set_color(original_color)
+                    self.model.plotter.members[member_id].set_linewidth(original_linewidth)
+                    self.model.plotter.figure.canvas.draw_idle()
 
 
 class GraphicOptionsDialog(QDialog):
@@ -509,11 +531,13 @@ class GraphicOptionsDialog(QDialog):
             self.model.plotter.change_background_color()    # cambia el color de fondo
         self.model.plotter.update_nodes()                   # actualiza los nodos
         self.model.plotter.update_members()                 # actualiza los miembros
+        self.model.plotter.update_trusses()                 # actualiza los trusses
         self.model.plotter.update_cst()                     # actualiza los CSTs
         self.model.plotter.update_membrane_q6()             # actualiza los MQ6
         self.model.plotter.update_membrane_q6i()            # actualiza los MQ6I
         self.model.plotter.update_node_labels()             # actualiza los labels de los nodos
         self.model.plotter.update_member_labels()           # actualiza los labels de los miembros
+        self.model.plotter.update_trusses_labels()          # actualiza los labels de los trusses
         self.model.plotter.update_cst_labels()              # actualiza los labels de los CSTs
         self.model.plotter.update_membrane_q6_labels()      # actualiza los labels de los MQ6
         self.model.plotter.update_membrane_q6i_labels()     # actualiza los labels de los MQ6I
@@ -829,6 +853,7 @@ class MainWindow(QMainWindow):
             if type == "D": # mientras se muestra la deformada
                 if self.model.plotter_options.show_undeformed: # si se muestra la NO DEFORMADA
                     self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color) # COLOR DE LA NO DEFORMADA CUANDO LA DEFORMADA SE MUESTRA
+                    self.model.plotter.update_trusses(color=self.model.plotter_options.undeformed_color)
                     self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_undeformed_color_edge, color_face=self.model.plotter_options.cst_undeformed_color_face)
                     self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q6_undeformed_color_face)
                     self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q6i_undeformed_color_face)
@@ -838,6 +863,7 @@ class MainWindow(QMainWindow):
                     self.model.plotter_options.UI_show_members = False
                     self.options_values["UI_show_members"] = False
                     self.model.plotter.update_members()
+                    self.model.plotter.update_trusses()
                     self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_edge_color, color_face=self.model.plotter_options.cst_face_color)
                     self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_edge_color, color_face=self.model.plotter_options.membrane_q6_face_color)
                     self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_edge_color, color_face=self.model.plotter_options.membrane_q6i_face_color)
@@ -850,6 +876,7 @@ class MainWindow(QMainWindow):
             self.model.plotter_options.UI_load = True
             if type == "D":
                 self.model.plotter.update_members(color=self.model.plotter_options.element_color)
+                self.model.plotter.update_trusses(color=self.model.plotter_options.truss_color)
                 self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_edge_color, color_face=self.model.plotter_options.cst_face_color)
                 self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_edge_color, color_face=self.model.plotter_options.membrane_q6_face_color)
                 self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_edge_color, color_face=self.model.plotter_options.membrane_q6i_face_color)
@@ -871,6 +898,7 @@ class MainWindow(QMainWindow):
         self.model.plotter.update_cst_labels()
         self.model.plotter.update_membrane_q6_labels()
         self.model.plotter.update_membrane_q6i_labels()
+        self.model.plotter.update_trusses_labels()
 
 
 

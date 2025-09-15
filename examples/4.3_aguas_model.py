@@ -16,8 +16,8 @@ model.add_member(2, 2, 3, "seccion1")
 model.add_member(3, 3, 4, "seccion1")
 model.add_member(4, 4, 5, "seccion1")
 
-model.add_restraint(1, (True, True, True))
-model.add_restraint(5, (True, True, True))
+model.add_restraint(1, *(True, True, True))
+model.add_restraint(5, *(True, True, True))
 
 model.add_load_pattern("Live Load")
 model.add_distributed_load(2, "Live Load", 2, 6, "GLOBAL","GRAVITY")

@@ -104,6 +104,22 @@ class PostProcessing:   # para un solo load pattern
             global_displacements = np.hstack((self.results.get_node_displacements(membrane_q6i.node1.id)[:2], self.results.get_node_displacements(membrane_q6i.node2.id)[:2], self.results.get_node_displacements(membrane_q6i.node3.id)[:2], self.results.get_node_displacements(membrane_q6i.node4.id)[:2]))
             self.results.set_membrane_q6i_displacements(id, global_displacements)
 
+    def process_displacements_for_trusses(self) -> None:
+        for id, truss in self.model.trusses.items():
+            global_displacements = np.hstack((self.results.get_node_displacements(truss.node_i.id)[:2], self.results.get_node_displacements(truss.node_j.id)[:2]))
+            Tlg = truss.transformation_matrix()
+            local_displacements = Tlg @ global_displacements
+            self.results.set_truss_displacements(id, local_displacements)
+
+    def process_internal_forces_for_trusses(self) -> None:
+        for id, truss in self.model.trusses.items():
+            local_displacements = self.results.get_truss_displacements(id)
+            load_vector = truss.q_local()
+            stiffness_matrix = truss.local_stiffness_matrix()
+            array_internal_forces = np.dot(stiffness_matrix, local_displacements) - load_vector
+            self.results.set_truss_internal_forces(id, array_internal_forces)
+
+
     def post_process_for_members(self) -> None:
         """Almacena todos los resultados para cada miembro en el objeto Results (solo parte flexible)."""
 
@@ -181,3 +197,24 @@ class PostProcessing:   # para un solo load pattern
 
     def post_process_for_membrane_q6i(self) -> None:
         pass
+
+    def post_process_for_trusses(self) -> None:
+        """Almacena todos los resultados para cada truss en el objeto Results."""
+
+        n = self.options.n
+        calculator = BeamSeg()
+
+        for id, truss in self.model.trusses.items():
+            results = self.results.get_results_truss(id)
+            calculator.process_builder_for_truss(truss, results, self.load_pattern_name)
+            calculator.coefficients()
+            x_val = np.linspace(0, truss.length(), n)
+            array_axial_force = np.zeros(n)
+            array_axial_displacement = np.zeros(n)
+            for i, x in enumerate(x_val):
+                array_axial_force[i] = calculator.axial(x)
+                array_axial_displacement[i] = calculator.axial_displacement(x)
+
+
+            self.results.set_truss_axial_force(id, array_axial_force)
+            self.results.set_truss_axial_displacement(id, array_axial_displacement)

@@ -24,8 +24,4 @@ def model_viewer(
     """
     Muestra la interfaz gráfica para visualizar el modelo.
     """
-    from milcapy.plotter.UIdisplay import main_window
-    from milcapy.plotter.plotter import Plotter
-    model.plotter = Plotter(model)
-    model.plotter.initialize_plot()
-    main_window(model)
+    model.show()

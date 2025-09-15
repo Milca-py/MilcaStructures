@@ -63,7 +63,7 @@ class SystemMilcaModel:
         self.csts: Dict[int, MembraneTriangle] = {}
         self.membrane_q6: Dict[int, MembraneQuad6] = {}
         self.membrane_q6i: Dict[int, MembraneQuad6I] = {}
-        self.truss_elements: Dict[int, TrussElement] = {}
+        self.trusses: Dict[int, TrussElement] = {}
         # self.membrane_q6imod: Dict[int, MembraneQuad6IMod] = {} $ POR MIENTRAS SE AGREGARA A Q6
         # Patrones de carga con las asiganciones de carga en los miembros y nodos
         # {pattern_name: load pattern}
@@ -451,7 +451,7 @@ class SystemMilcaModel:
         self.members[id] = element
         return element
 
-    def add_truss_element(
+    def add_truss(
         self,
         id: int,
         node_i_id: int,
@@ -485,7 +485,7 @@ class SystemMilcaModel:
             node_j=self.nodes[node_j_id],
             section=self.sections[section_name],
         )
-        self.truss_elements[id] = TE
+        self.trusses[id] = TE
         return TE
 
 
@@ -848,7 +848,7 @@ class SystemMilcaModel:
         Raises:
             ValueError: Si no existe el miembro o el patrón de carga.
         """
-        if member_id not in self.members:
+        if member_id not in list(self.members.keys()) + list(self.trusses.keys()):
             raise ValueError(f"No existe un miembro con el ID {member_id}")
 
         if load_pattern_name not in self.load_patterns:
@@ -870,6 +870,9 @@ class SystemMilcaModel:
             load_type_enum = to_enum(load_type, LoadType)
         else:
             load_type_enum = load_type
+
+        if isinstance(self.trusses.get(member_id), TrussElement) and direction_enum != DirectionType.LOCAL_1:
+            raise ValueError("Solo se puede aplicar carga distribuida axial en Armaduras osea solo en la direccion LOCAL_1")
 
         self.load_patterns[load_pattern_name].add_distributed_load(
             member_id=member_id,
@@ -1278,9 +1281,13 @@ class SystemMilcaModel:
         """
         Muestra la interfaz gráfica para visualizar el modelo.
         """
+        import time
+        start_time = time.time()
         from milcapy.plotter.UIdisplay import main_window
         self.plotter = Plotter(self)
         self.plotter.initialize_plot()
+        end_time = time.time()
+        print(f"Tiempo de generacion de la visualizacion: {end_time - start_time}")
         main_window(self)
 
     #! RESULTADOS ###########################################################

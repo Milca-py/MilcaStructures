@@ -24,6 +24,7 @@ class PlotterValues:
         {
             'nodes': {node_id: (x, y)},
             'members': {member_id: ((x1, y1), (x2, y2))},
+            'trusses': {member_id: ((x1, y1), (x2, y2))},
             'restraints': {node_id: (bool, bool, bool)}
         }
         """
@@ -42,6 +43,16 @@ class PlotterValues:
                     (node_j.vertex.x, node_j.vertex.y)
                 )
 
+            # Coordenadas de trusses
+            trusses = {}
+            for truss in system.trusses.values():
+                node_i = truss.node_i
+                node_j = truss.node_j
+                trusses[truss.id] = (
+                    (node_i.vertex.x, node_i.vertex.y),
+                    (node_j.vertex.x, node_j.vertex.y)
+                )
+
             # Restricciones de nodos
             restraints = {}
             for node in system.nodes.values():
@@ -51,6 +62,7 @@ class PlotterValues:
             cls._static_data = {
                 'nodes': nodes,
                 'members': members,
+                'trusses': trusses,
                 'restraints': restraints
             }
 
@@ -80,6 +92,7 @@ class PlotterValues:
         self.cst               = {} # {cst_id: (coords, displacements)}
         self.membrane_q6       = {} # {membrane_q6_id: (coords, displacements)}
         self.membrane_q6i      = {} # {membrane_q6i_id: (coords, displacements)}
+        self.trusses           = {} # {truss_id: (coords, displacements)}
 
         if not self.load_pattern:
             raise ValueError(
@@ -92,6 +105,7 @@ class PlotterValues:
         self._process_cst_element()
         self._process_membrane_q6()
         self._process_membrane_q6i()
+        self._process_trusses()
 
     def _process_load_data(self) -> None:
         """Procesa los datos de cargas para el load pattern actual."""
@@ -194,3 +208,12 @@ class PlotterValues:
             coordinates =  np.concatenate(([membrane_q6i.node1.vertex.coordinates, membrane_q6i.node2.vertex.coordinates, membrane_q6i.node3.vertex.coordinates, membrane_q6i.node4.vertex.coordinates]))
             displacements = self.model.results[self.current_load_pattern].get_membrane_q6i_displacements(membrane_q6i.id)
             self.membrane_q6i[membrane_q6i.id] = (coordinates, displacements)
+
+    def _process_trusses(self) -> None:
+        """
+        Obtiene la coordenadas y desplazamientos de un Truss en coordenadas globales.
+        """
+        for truss in self.model.trusses.values():
+            coordinates =  np.concatenate((truss.node_i.vertex.coordinates, truss.node_j.vertex.coordinates))
+            displacements = np.concatenate((self.results.get_node_displacements(truss.node_i.id)[:2], self.results.get_node_displacements(truss.node_j.id)[:2]))
+            self.trusses[truss.id] = (coordinates, displacements)

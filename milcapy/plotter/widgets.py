@@ -85,7 +85,10 @@ class InternalForceDiagramWidget:
 
         # Crear la ventana principal
         self.root = tk.Tk()
-        self.root.geometry("650x650")
+        if hasattr(member, "phi"): # si es marco
+            self.root.geometry("650x650")
+        else:   # si es armadura
+            self.root.geometry("650x300")
         self.root.title(
             f"Diagramas de esfuerzos internos, barra Nro {self.member.id} {section}, Longitud = {self.member.length():.3f}")
         self.root.iconbitmap("milcapy/plotter/assets/milca.ico")
@@ -346,7 +349,6 @@ class InternalForceDiagramWidget:
 
         fig.tight_layout(pad=0)
 
-    # ... [resto de métodos sin cambios] ...
 
     def plot_member_values(self, ax: plt.Axes, config: DiagramConfig):
         """Plotea el grafico completo de un miembro con sus topicos asignados"""
@@ -555,6 +557,7 @@ class InternalForceDiagramWidget:
                 # Actualizar punto y línea de clic
                 elements['click_point'].set_data([x_click], [y_click])
                 elements['click_line'].set_xdata([x_click])
+                self.position_var.set("{:.4f}".format(x_click))
 
                 # Actualizar etiquetas de valores
                 elements['labels']['value'].configure(

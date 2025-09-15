@@ -1,5 +1,6 @@
 from milcapy.elements.member import Member
-from typing import Dict, Tuple
+from milcapy.elements.truss import TrussElement
+from typing import Dict, Tuple, Optional, Union
 import numpy as np
 from milcapy.utils.element import q_phi, length_offset_transformation_matrix
 
@@ -43,6 +44,7 @@ class BeamSeg():
         self.lb: float | None = None
         self.qla: bool | None = None
         self.qlb: bool | None = None
+        self.member: Optional[Union[Member, TrussElement]] | None = None
 
     def coefficients(self):
         """
@@ -351,7 +353,44 @@ class BeamSeg():
         self.I = member.section.I()
         self.A = member.section.A()
         self.phi = member.phi()
+        self.member = member
 
+
+    def process_builder_for_truss(self, truss: "TrussElement", results: dict, pattern_name: str):
+        self.xi = 0
+        self.xj = truss.length()
+        self.qi = 0
+        self.qj = 0
+        self.pi = truss.get_distributed_load(pattern_name).p_i
+        self.pj = truss.get_distributed_load(pattern_name).p_j
+        self.Pi = results["internal_forces"][0]
+        self.Pj = results["internal_forces"][1]
+        self.Vi = 0
+        self.Vj = 0
+        self.Mi = 0
+        self.Mj = 0
+        self.ui = results["displacements"][0]
+        self.uj = results["displacements"][1]
+        self.vi = 0
+        self.vj = 0
+        self.thetai = 0
+        self.thetaj = 0
+        self.E = truss.section.E()
+        self.I = 0
+        self.A = truss.section.A()
+        self.phi = 0
+        # Coeficientes de integración
+        self.C1 = 0
+        self.C2 = 0
+        self.C3 = 0
+        self.C4 = 0
+
+        # TOPICOS
+        # Brazos rigidos
+        self.la = 0
+        self.lb = 0
+        self.qla = True
+        self.qlb = True
 
 def deformed_shape(member: "Member", results: dict, escale: float) -> Tuple[np.ndarray, np.ndarray]:
 

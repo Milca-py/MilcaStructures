@@ -145,7 +145,8 @@ def graphic_n_arrow(
     angle_rotation: float = 0,
     label: bool = True,
     color_label: str = 'blue',
-    label_font_size: int = 8
+    label_font_size: int = 8,
+    length_arrow = None
 ) -> None:
     """
     Dibuja una flecha en un punto.
@@ -156,8 +157,14 @@ def graphic_n_arrow(
     b = rotate_xy(np.array([x + length, y]), angle_rotation, x, y)
 
     # coordenadas de los extremos carga
-    c = rotate_xy(np.array([x + load_i * ratio_scale * np.cos(angle), y + load_i * ratio_scale * np.sin(angle)]), angle_rotation, x, y)
-    d = rotate_xy(np.array([x + load_j * ratio_scale * np.cos(angle) + length, y + load_j * ratio_scale * np.sin(angle)]), angle_rotation, x, y)
+    if length_arrow:
+        li = length_arrow*np.sign(load_i)
+        lj = length_arrow*np.sign(load_j)
+        c = rotate_xy(np.array([x + li * np.cos(angle), y + li * np.sin(angle)]), angle_rotation, x, y)
+        d = rotate_xy(np.array([x + lj * np.cos(angle) + length, y + lj * np.sin(angle)]), angle_rotation, x, y)
+    else:
+        c = rotate_xy(np.array([x + load_i * ratio_scale * np.cos(angle), y + load_i * ratio_scale * np.sin(angle)]), angle_rotation, x, y)
+        d = rotate_xy(np.array([x + load_j * ratio_scale * np.cos(angle) + length, y + load_j * ratio_scale * np.sin(angle)]), angle_rotation, x, y)
 
     cood_i = vertex_range(c, d, nrof_arrows)
     cood_j = vertex_range(a, b, nrof_arrows)

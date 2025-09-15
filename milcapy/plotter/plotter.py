@@ -73,6 +73,7 @@ class Plotter:
         # etiquetas
         self.node_labels = {}            # ✅visibilidad, setdata
         self.member_labels = {}          # ✅visibilidad, setdata
+        self.trusses_labels = {}         # ✅visibilidad, setdata
         self.point_load_labels = {}      # ✅🐍 visibilidad, setdata
         self.distributed_load_labels = {}  # ✅🐍 visibilidad, setdata
         self.internal_forces_labels = {}  # 🐍 visibilidad, setdata
@@ -116,6 +117,9 @@ class Plotter:
         #! MEMBRANE Q6I ELEMENT:
         self.membrane_q6i = {} # {membrane_q6i_id: [Line2D, Polygon2D, Text]}
 
+        #! TRUSS ELEMENT:
+        self.trusses = {} # {truss_id: [Line2D]}
+
 
 
     @property
@@ -136,33 +140,71 @@ class Plotter:
 
     @property
     def diagrams(self) -> Dict[str, DiagramConfig]:
-        return {
-                'N(x)': DiagramConfig(
-                    name='Diagrama de Fuerza Normal',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"],
-                    precision=4,
-                ),
-                'V(x)': DiagramConfig(
-                    name='Diagrama de Fuerza Cortante',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"],
-                    precision=4,
-                ),
-                'M(x)': DiagramConfig(
-                    name='Diagrama de Momento Flector',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"],
-                    precision=4,
-                ),
-                'θ(x)': DiagramConfig(
-                    name='Diagrama de Rotación',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"],
-                    precision=6,
-                ),
-                'y(x)': DiagramConfig(
-                    name='Diagrama de Deflexión',
-                    values=self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"],
-                    precision=6,
-                )
-            }
+        tol = self.plotter_options.tol
+        DECIMALS = self.plotter_options.decimals
+
+        if self.selected_member in self.trusses:
+            return {
+                    'N(x)': DiagramConfig(
+                        name='Diagrama de Fuerza Normal',
+                        values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_forces"],
+                        precision=4,
+                    ),
+                    'y(x)': DiagramConfig(
+                        name='Diagrama de desplazamiento axial',
+                        values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_displacements"],
+                        precision=6,
+                    )
+                }
+        else:
+            axial_forces = self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"]
+            shear_forces = self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"]
+            bending_moments = self.model.results[self.current_load_pattern].members[self.selected_member]["bending_moments"]
+            slopes = self.model.results[self.current_load_pattern].members[self.selected_member]["slopes"]
+            deflections = self.model.results[self.current_load_pattern].members[self.selected_member]["deflections"]
+            if np.all(np.abs(np.round(axial_forces, DECIMALS)) < tol):
+                axial_forces = np.zeros(axial_forces.shape, dtype=int)
+            if np.all(np.abs(np.round(shear_forces, DECIMALS)) < tol):
+                shear_forces = np.zeros(shear_forces.shape, dtype=int)
+            if np.all(np.abs(np.round(bending_moments, DECIMALS)) < tol):
+                bending_moments = np.zeros(bending_moments.shape, dtype=int)
+            if np.all(np.abs(np.round(slopes, DECIMALS)) < tol):
+                slopes = np.zeros(slopes.shape, dtype=int)
+            if np.all(np.abs(np.round(deflections, DECIMALS)) < tol):
+                deflections = np.zeros(deflections.shape, dtype=int)
+            if self.selected_member == 11:
+                print("axial_forces", axial_forces)
+                print("shear_forces", shear_forces)
+                print("bending_moments", bending_moments)
+                print("slopes", slopes)
+                print("deflections", deflections)
+            return {
+                    'N(x)': DiagramConfig(
+                        name='Diagrama de Fuerza Normal',
+                        values=axial_forces,
+                        precision=4,
+                    ),
+                    'V(x)': DiagramConfig(
+                        name='Diagrama de Fuerza Cortante',
+                        values=shear_forces,
+                        precision=4,
+                    ),
+                    'M(x)': DiagramConfig(
+                        name='Diagrama de Momento Flector',
+                        values=bending_moments,
+                        precision=4,
+                    ),
+                    'θ(x)': DiagramConfig(
+                        name='Diagrama de Rotación',
+                        values=slopes,
+                        precision=6,
+                    ),
+                    'y(x)': DiagramConfig(
+                        name='Diagrama de Deflexión',
+                        values=deflections,
+                        precision=6,
+                    )
+                }
 
     def initialize_plot(self):
         """Plotea por primera y unica vez (crea los objetos artist)"""
@@ -174,6 +216,7 @@ class Plotter:
             self.plotter_options.load_max(list(self.model.results.keys())[0], prom=True)
         self.plot_nodes()
         self.plot_members()
+        self.plot_trusses()
         self.plot_cst()
         self.plot_membrane_q6()
         self.plot_membrane_q6i()
@@ -181,6 +224,7 @@ class Plotter:
         self.plot_elastic_supports()
         self.plot_node_labels()
         self.plot_member_labels()
+        self.plot_trusses_labels()
         self.plot_cst_labels()
         self.plot_membrane_q6_labels()
         self.plot_membrane_q6i_labels()
@@ -674,7 +718,11 @@ class Plotter:
 
 
             # Calcular longitud y ángulo de rotación del elemento
-            element = self.model.members[id_element]
+            if id_element in self.model.trusses:
+                element = self.model.trusses[id_element]
+                element.qla, element.qlb = None, None
+            else:
+                element = self.model.members[id_element]
             length = element.length()
             angle_rotation = element.angle_x()
 
@@ -682,10 +730,16 @@ class Plotter:
                 la = element.la or 0
                 lb = element.lb or 0
                 length = length - la - lb
-                ((xi, yi), (xj, yj)) = self.current_values.members[id_element]
+                if id_element in self.model.trusses:
+                    ((xi, yi, xj, yj), disp) = self.current_values.trusses[id_element]
+                else:
+                    ((xi, yi), (xj, yj)) = self.current_values.members[id_element]
                 coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)), (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
             else:
-                coords = self.current_values.members[id_element]
+                if id_element in self.model.trusses:
+                    ((xi, yi, xj, yj), disp) = self.current_values.trusses[id_element]
+                else:
+                    coords = self.current_values.members[id_element]
 
             # Cargas transversales
             if round(load["q_i"], 2) != 0 or round(load["q_j"], 2) != 0:
@@ -724,7 +778,8 @@ class Plotter:
                     angle_rotation=angle_rotation,
                     label=self.plotter_options.distributed_load_label,
                     color_label=self.plotter_options.distributed_load_label_color,
-                    label_font_size=self.plotter_options.distributed_load_label_font_size
+                    label_font_size=self.plotter_options.distributed_load_label_font_size,
+                    length_arrow=self.plotter_options.scale_dist_pload[self.current_load_pattern]
                 )
                 arrowslist = arrowslist + arrows
                 textslist = textslist + texts
@@ -794,6 +849,8 @@ class Plotter:
         """
         Grafica los diagramas de fuerzas internas.
         """
+        tol = self.plotter_options.tol
+        DECIMALS = self.plotter_options.decimals
         # ESCALAS:
         if type == InternalForceType.AXIAL_FORCE:
             escala = self.plotter_options.axial_scale[self.current_load_pattern] if escala is None else escala
@@ -806,17 +863,51 @@ class Plotter:
             self.bending_moment[self.current_load_pattern] = {}
 
         artist = []
-        for member_id, member in self.model.members.items():
+        for member_id, member in list(self.model.members.items()) + list(self.model.trusses.items()):
 
             # Obtener valores del diagrama
             if type == InternalForceType.AXIAL_FORCE:
-                y_val = self.model.results[self.current_load_pattern].members[member_id]["axial_forces"] * escala
+                if member_id in self.model.trusses:
+                    y_val = self.model.results[self.current_load_pattern].get_truss_axial_force(member_id)
+                else:
+                    y_val = self.model.results[self.current_load_pattern].get_member_axial_force(member_id)
+                y_val = np.round(y_val, DECIMALS)
+
+                if np.all(np.abs(y_val) < tol):
+                    continue
+                else:
+                    y_val = y_val * escala
+
             elif type == InternalForceType.SHEAR_FORCE:
-                y_val = self.model.results[self.current_load_pattern].members[member_id]["shear_forces"] * escala
+                if member_id in self.model.trusses:
+                    y_val = np.zeros(self.model.postprocessing_options.n)
+                else:
+                    y_val = self.model.results[self.current_load_pattern].get_member_shear_force(member_id)
+                y_val = np.round(y_val, DECIMALS)
+
+                if np.all(np.abs(y_val) < tol):
+                    continue
+                else:
+                    y_val = y_val * escala
+
             elif type == InternalForceType.BENDING_MOMENT:
-                y_val = self.model.results[self.current_load_pattern].members[member_id]["bending_moments"] * escala
+                if member_id in self.model.trusses:
+                    y_val = np.zeros(self.model.postprocessing_options.n)
+                else:
+                    y_val = self.model.results[self.current_load_pattern].get_member_bending_moment(member_id)
+                y_val = np.round(y_val, DECIMALS)
+
+                tol = 110**DECIMALS  # o ajusta según tus unidades/escala
+                if np.all(np.abs(y_val) < tol):
+                    continue
+                else:
+                    y_val = y_val * escala
+
             # x_val = np.linspace(0, member.length(), len(y_val))
-            x_val = self.model.results[self.current_load_pattern].members[member_id]["x_val"]
+            try:
+                x_val = self.model.results[self.current_load_pattern].get_member_x_val(member_id)
+            except:
+                x_val = np.linspace(0, member.length(), len(y_val))
 
 
             # Configuración inicial
@@ -837,6 +928,8 @@ class Plotter:
                 iv = np.argmax(y)
 
             # [[inicial], [maximo], [final], [medio]]
+            # if member_id in self.model.trusses:
+            #     member.la, member.lb = None, None
             if member.la or member.lb:
                 la = member.la or 0
                 lb = member.lb or 0
@@ -1588,6 +1681,31 @@ class Plotter:
 
 
 
+    def plot_trusses(self):
+        """
+        Dibuja los elementos de la estructura.
+        """
+        # if not self.plotter_options.UI_show_members:
+        #     return
+        for id, (coord, disp) in self.current_values.trusses.items():
+            x_coords = [coord[0], coord[2]]
+            y_coords = [coord[1], coord[3]]
+            line, = self.axes.plot(x_coords, y_coords, color=self.plotter_options.truss_color,
+                                   linewidth=self.plotter_options.element_line_width)
+            self.trusses[id] = line
+            line.set_visible(self.plotter_options.UI_show_members)
+        self.figure.canvas.draw_idle()
+
+    def update_trusses(self, color=None):
+        for truss in self.trusses.values():
+            truss.set_visible(self.plotter_options.UI_show_members)
+        if color:
+            for truss in self.trusses.values():
+                truss.set_color(color)
+        self.figure.canvas.draw_idle()
+
+
+
 
 
 
@@ -1595,6 +1713,17 @@ class Plotter:
     def plot_deformed(self, escala: float | None = None) -> None:
         """
         Dibuja la forma deformada de la estructura.
+        Actualiza la visibilidad de la forma deformada de la estructura.
+        forma de los datos de la propiedad de la forma deformada:
+            {
+            load_pattern:{
+                member_id: [line2D]
+                truss_id: [line2D]
+                cst_id: [Line2D, Polygon2D]
+                membrane_q6_id: [Line2D, Polygon2D]
+                membrane_q6i_id: [Line2D, Polygon2D]
+                        }
+            }
         """
         self.deformed_shape[self.current_load_pattern] = {}
 
@@ -1609,6 +1738,17 @@ class Plotter:
             self.deformed_shape[self.current_load_pattern][element.id].append(line)
             line.set_visible(self.plotter_options.UI_deformed)
 
+
+
+        for truss in self.model.trusses.values():
+            self.deformed_shape[self.current_load_pattern][truss.id] = []
+            crd, disp = self.current_values.trusses[truss.id]
+            disp = np.array(disp)*escala
+            x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+            line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
+                                    color=self.plotter_options.truss_deformed_color, zorder=70)
+            self.deformed_shape[self.current_load_pattern][truss.id].append(line)
+            line.set_visible(self.plotter_options.UI_deformed)
 
 
 
@@ -1672,6 +1812,7 @@ class Plotter:
             {
             load_pattern:{
                 member_id: [line2D]
+                truss_id: [line2D]
                 cst_id: [Line2D, Polygon2D]
                 membrane_q6_id: [Line2D, Polygon2D]
                 membrane_q6i_id: [Line2D, Polygon2D]
@@ -1689,6 +1830,13 @@ class Plotter:
             for member in self.model.members.values():
                 x, y = self.current_values.get_deformed_shape(member.id, escala)
                 self.deformed_shape[self.current_load_pattern][member.id][0].set_data(x, y)
+
+            for truss in self.model.trusses.values():
+                crd, disp = self.current_values.trusses[truss.id]
+                disp = np.array(disp)*escala
+                x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+                self.deformed_shape[self.current_load_pattern][truss.id][0].set_data(x, y)
+
 
 
             for cst in self.model.csts.values():
@@ -1739,6 +1887,17 @@ class Plotter:
                 x, y, color=self.plotter_options.rigid_deformed_color, lw=0.7, ls='--', zorder=60)
             self.rigid_deformed_shape[self.current_load_pattern][member_id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
+
+
+        for truss in self.model.trusses.values():
+            self.rigid_deformed_shape[self.current_load_pattern][truss.id] = []
+            crd, disp = self.current_values.trusses[truss.id]
+            disp = np.array(disp)*escala
+            x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+            line, = self.axes.plot(x, y, lw=0.7, color=self.plotter_options.rigid_deformed_color, ls='--', zorder=60)
+            self.rigid_deformed_shape[self.current_load_pattern][truss.id].append(line)
+            line.set_visible(self.plotter_options.UI_rigid_deformed)
+
 
 
         for cst in self.model.csts.values():
@@ -1876,4 +2035,37 @@ class Plotter:
                 artist.set_visible(visibility)
                 if color:
                     artist.set_color(color)
+        self.figure.canvas.draw_idle()
+
+
+    def plot_trusses_labels(self):
+        """
+        Dibuja las etiquetas de los trusses.
+        """
+        for element_id, (coords, displacements) in self.current_values.trusses.items():
+            x_val = (coords[0] + coords[2]) / 2
+            y_val = (coords[1] + coords[3]) / 2
+
+            # bbox = {
+            #     "boxstyle": "round,pad=0.2",  # Estilo y padding del cuadro
+            #     "facecolor": "lightblue",     # Color de fondo
+            #     "edgecolor": "black",         # Color del borde
+            #     "linewidth": 0.5,               # Grosor del borde
+            #     "linestyle": "-",            # Estilo del borde
+            #     "alpha": 0.8                  # Transparencia
+            # }
+            text = self.axes.text(x_val, y_val, str(element_id),
+                                  fontsize=self.plotter_options.label_font_size,
+                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  clip_on=True)
+            self.trusses_labels[element_id] = text
+            text.set_visible(self.plotter_options.UI_member_labels)
+        self.figure.canvas.draw_idle()
+
+    def update_trusses_labels(self):
+        """
+        Actualiza la visibilidad de las etiquetas de los trusses.
+        """
+        for text in self.trusses_labels.values():
+            text.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()

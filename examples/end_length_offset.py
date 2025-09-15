@@ -239,8 +239,8 @@ model.add_member(60, 50, 54, "seccion1")
 model.add_member(61, 51, 55, "seccion1")
 model.add_member(62, 52, 56, "seccion1")
 
-model.add_restraint(49, (True, True, True))
-model.add_restraint(53, (True, True, True))
+model.add_restraint(49, *(True, True, True))
+model.add_restraint(53, *(True, True, True))
 
 model.add_point_load(50, "Live Load", 5, 0, 0, "GLOBAL")
 model.add_point_load(51, "Live Load", 10, 0, 0, "GLOBAL")
