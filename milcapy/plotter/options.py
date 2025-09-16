@@ -33,7 +33,7 @@ class PlotterOptions:        # ✅✅✅
         self.element_color = 'blue'    #####
         # APOYOS:
         self.UI_support = True               ###########
-        self.elastic_support_label = False
+        self.elastic_support_label = True
         self.support_size = 0.5        #####
         self.support_color = '#00ff00'    #####
         # OPCIONES DE SELECCIÓN:
@@ -92,7 +92,7 @@ class PlotterOptions:        # ✅✅✅
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
-        self.fi_label = True
+        self.fi_label = False                                                        ############################################################################### LABEL FI
         self.fi_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
         self.UI_axial = False
         self.axial_scale = {}

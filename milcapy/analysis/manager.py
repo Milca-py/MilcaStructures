@@ -37,6 +37,9 @@ class AnalysisManager:
         # Notificar a todos los miembros del modelo
         for member in self.model.members.values():
             member.set_current_load_pattern(self.current_load_pattern)
+        # Notificar a todos los cerchas del modelo
+        for truss in self.model.trusses.values():
+            truss.set_current_load_pattern(self.current_load_pattern)
         # Notificar a todos los nodos del modelo
         for node in self.model.nodes.values():
             node.set_current_load_pattern(self.current_load_pattern)

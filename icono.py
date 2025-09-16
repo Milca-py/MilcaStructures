@@ -20,6 +20,7 @@ model.add_restraint(1, *(True, True, True))
 model.add_restraint(4, *(False, True, True))
 
 model.add_local_axis_for_node(4, +10*3.1416/180)
+model.add_elastic_support(4, kx=10, CSys="LOCAL")
 
 lengthOffset = 0.25
 

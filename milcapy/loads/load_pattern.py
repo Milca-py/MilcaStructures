@@ -393,7 +393,8 @@ class LoadPattern:
         Asigna las cargas distribuidas a los miembros correspondientes del sistema.
         """
         for member_id, load in self.distributed_loads.items():
-            member = self._system.members.get(member_id)
+            members = self._system.members | self._system.trusses
+            member = members.get(member_id)
             if member:
                 member.set_distributed_load(load)
             else:

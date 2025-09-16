@@ -1323,7 +1323,7 @@ class Plotter:
             kx, ky, krz = T @ np.array([kx or 0, ky or 0, krz or 0])
             artist = []
             data_artist = {}
-            if kx != 0:
+            if redondear_si_mas_de_3_decimales(kx) != 0:
                 theta = 0 #if kx < 0 else 180
                 line = support_kt(
                     self.axes,
@@ -1344,7 +1344,7 @@ class Plotter:
                 else:
                     data_artist["kx"] = (x_data, y_data, theta, line)
 
-            if ky != 0:
+            if redondear_si_mas_de_3_decimales(ky) != 0:
                 theta = 90 #if ky < 0 else 270
                 line = support_kt(
                     self.axes,
@@ -1365,7 +1365,7 @@ class Plotter:
                 else:
                     data_artist["ky"] = (x_data, y_data, theta, line)
 
-            if krz != 0:
+            if redondear_si_mas_de_3_decimales(krz) != 0:
                 theta = 135
                 line = support_kr(
                     self.axes,
