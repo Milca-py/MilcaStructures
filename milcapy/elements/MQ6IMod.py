@@ -27,6 +27,7 @@ class MembraneQuad6IMod(MembraneQuad6):
         # Kdisp = MQ6I.Ki()
         # T = self.get_transformation_matrix()
         dofDisp = [0, 1,      3, 4,     6, 7,     9, 10]
+        # INSERTAMOS LOS K DISP EN LOS DOFDISP DE KROT
         Krot[np.ix_(dofDisp,dofDisp)] = Kdisp
         K = Krot
         # K_GLOBAL = T @ K @ T.T

@@ -1,4 +1,4 @@
-from milcapy import SystemModel
+from milcapy import SystemModel, ConstitutiveModel
 
 E = 2e6
 v = 0.3
@@ -8,6 +8,7 @@ l = 2.4
 t = 0.4
 sec = [0.4, 0.4]
 F = 100
+STATE = ConstitutiveModel.PLANE_STRAIN
 
 wallPortal = SystemModel()
 wallPortal.add_material("concreto", E, v)
@@ -29,18 +30,18 @@ wallPortal.add_node(13, b+l, 2*h)
 wallPortal.add_node(14, b+l+b, 2*h)
 wallPortal.add_node(15, b+l, 3*h)
 wallPortal.add_node(16, b+l+b, 3*h)
-wallPortal.add_cst(1, 1, 2, 4, "muro")
-wallPortal.add_cst(2, 1, 4, 3, "muro")
-wallPortal.add_cst(3, 3, 4, 6, "muro")
-wallPortal.add_cst(4, 3, 6, 5, "muro")
-wallPortal.add_cst(5, 5, 6, 8, "muro")
-wallPortal.add_cst(6, 5, 8, 7, "muro")
-wallPortal.add_cst(7, 9, 10, 12, "muro")
-wallPortal.add_cst(8, 9, 12, 11, "muro")
-wallPortal.add_cst(9, 11, 12, 14, "muro")
-wallPortal.add_cst(10, 11, 14, 13, "muro")
-wallPortal.add_cst(11, 13, 14, 16, "muro")
-wallPortal.add_cst(12, 13, 16, 15, "muro")
+wallPortal.add_cst(1, 1, 2, 4, "muro", STATE)
+wallPortal.add_cst(2, 1, 4, 3, "muro", STATE)
+wallPortal.add_cst(3, 3, 4, 6, "muro", STATE)
+wallPortal.add_cst(4, 3, 6, 5, "muro", STATE)
+wallPortal.add_cst(5, 5, 6, 8, "muro", STATE)
+wallPortal.add_cst(6, 5, 8, 7, "muro", STATE)
+wallPortal.add_cst(7, 9, 10, 12, "muro", STATE)
+wallPortal.add_cst(8, 9, 12, 11, "muro", STATE)
+wallPortal.add_cst(9, 11, 12, 14, "muro", STATE)
+wallPortal.add_cst(10, 11, 14, 13, "muro", STATE)
+wallPortal.add_cst(11, 13, 14, 16, "muro", STATE)
+wallPortal.add_cst(12, 13, 16, 15, "muro", STATE)
 wallPortal.add_elastic_euler_bernoulli_beam(13, 4, 11, "vig40x40")
 wallPortal.add_elastic_euler_bernoulli_beam(14, 6, 13, "vig40x40")
 wallPortal.add_elastic_euler_bernoulli_beam(15, 8, 15, "vig40x40")
@@ -53,6 +54,7 @@ wallPortal.add_point_load(3, "carga", fx=1*F)
 wallPortal.add_point_load(5, "carga", fx=2*F)
 wallPortal.add_point_load(7, "carga", fx=3*F)
 wallPortal.solve()
+print(f'A {STATE.value} \n{list(wallPortal.csts.values())[1].D}')
 wallPortal.show()
 
 

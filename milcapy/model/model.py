@@ -24,7 +24,7 @@ from milcapy.utils.types import (
     LoadType,
     to_enum,
 )
-from milcapy.utils.types import FieldTypeMembrane, InternalForceType
+from milcapy.utils.types import FieldTypeMembrane, InternalForceType, ConstitutiveModel
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -497,6 +497,7 @@ class SystemMilcaModel:
         node_j_id: int,
         node_k_id: int,
         section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
     ) -> MembraneTriangle:
         """
         Agrega un triángulo de membrana al modelo.
@@ -507,6 +508,7 @@ class SystemMilcaModel:
             node_j_id (int): ID del nodo final.
             node_k_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str]): Estado constitutivo del triángulo.
 
         Returns:
             MembraneTriangle: El triángulo creado.
@@ -523,12 +525,16 @@ class SystemMilcaModel:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
 
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+
         cst = MembraneTriangle(
             id=id,
             node1=self.nodes[node_i_id],
             node2=self.nodes[node_j_id],
             node3=self.nodes[node_k_id],
             section=self.sections[section_name],
+            state=state,
         )
         self.csts[id] = cst
         return cst
@@ -1317,11 +1323,11 @@ class SystemMilcaModel:
 
         import matplotlib.pyplot as plt
         from milcapy.plotter.UIdisplay import MainWindow, QApplication, sys
-        __Plotter = Plotter(self, load_pattern)
-        __Plotter.initialize_plot(type)
+        __Plotter = Plotter(self)#, load_pattern)
+        __Plotter.initialize_plot()#type)
 
-        __Plotter.plotter_options.UI_axial = True
-        __Plotter.update_axial_force(visibility=True)
+        # __Plotter.plotter_options.UI_axial = True
+        # __Plotter.update_axial_force(visibility=True)
 
         plt.show()
 

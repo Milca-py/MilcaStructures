@@ -1,7 +1,7 @@
 # Mejoras que debo de relizar
 - ~~Agregar elementos Armadura~~
-- Cooregir si los valores son 0 en internal forces
-- Dar escala controlable a las fuerzas internas
+- ~~Cooregir si los valores son 0 en internal forces~~
+- -Dar escala controlable a las fuerzas internas
 - ~~Que las armaduras tambien tengas graficos de axiales~~
 - Verficar si los membranas funcionan en planos locales
 - compatiblidad entre releases y length offsets
@@ -10,6 +10,8 @@
 - generador de reportes automaticos
 - ~~en la ventanda de FI que input de leng-position sea dinamica al hacer click en un diagrama~~
 - crear una pagina web en donde uno de mis proyectos sea esta libreria y que ahi este su documentacion y otras proyectos mios
+- Corregir ecuaciones para apoyos elasticos continuous
+- 
 
 # Milca Structures
 ---
@@ -82,6 +84,8 @@ from milcapy import (
   StateType,
   LoadType,
   model_viewer,
+  FieldTypeMembrane,
+  ConstitutiveModel,
 )
 ```
 > - `SystemModel` → Plano de contruccion para crear el modelo
@@ -91,7 +95,8 @@ from milcapy import (
 > - `StateType` → Tipos de estados
 > - `LoadType` → Tipos de cargas
 > - `model_viewer` → Para visualizar el modelo
-
+> - `FieldTypeMembrane` → Tipos de campos para membranas
+> - `ConstitutiveModel` → Tipos de estados constitutivos para membranas
 
 ### 1. Comandos de modelo
 
@@ -209,7 +214,7 @@ model.add_elastic_euler_bernoulli_beam('id', 'node_i_id', 'node_j_id', 'section_
 ### 6. Comando de elemento de Armadura
 
 ```python
-model.add_truss_element('id', 'node_i_id', 'node_j_id', 'section_name')
+model.add_truss('id', 'node_i_id', 'node_j_id', 'section_name')
 ```
 
 > - `id` (`int`) → ID del miembro
@@ -227,7 +232,7 @@ Cada nodo posee dos grados de libertad de traslación (en `x` y `y`). La deforma
 por lo que es adecuado para geometrías simples o como base en mallados más refinados.
 
 ```python
-model.add_cst('id', 'node_i_id', 'node_j_id', 'node_k_id', 'section_name')
+model.add_cst('id', 'node_i_id', 'node_j_id', 'node_k_id', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
 ```
 
 > - `id` (`int`) → ID del miembro
@@ -235,8 +240,9 @@ model.add_cst('id', 'node_i_id', 'node_j_id', 'node_k_id', 'section_name')
 > - `node_j_id` (`int`) → ID del nodo final
 > - `node_k_id` (`int`) → ID del nodo final
 > - `section_name` (`str`) → Nombre de la sección
->> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.
-
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+>> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
+>> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
 
 #### 7.2. Comando de elemento de membrana Q6
 El elemento de membrana Q6 (*Quadrilateral with degrees of freedom of perforation*) es un elemento finito bidimensional de cuatro nodos.

@@ -5,6 +5,8 @@ from .utils.types import (
     DirectionType,
     StateType,
     LoadType,
+    FieldTypeMembrane,
+    ConstitutiveModel,
     )
 
 class SystemModel(SystemMilcaModel):

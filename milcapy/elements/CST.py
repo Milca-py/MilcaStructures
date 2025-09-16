@@ -4,7 +4,7 @@ from milcapy.section.section import ShellSection
 import numpy as np
 from milcapy.loads.load import CSTLoad
 from typing import Optional
-
+from milcapy.utils.types import ConstitutiveModel
 
 class MembraneTriangle:
     """
@@ -16,7 +16,8 @@ class MembraneTriangle:
         node1: Node,
         node2: Node,
         node3: Node,
-        section: ShellSection
+        section: ShellSection,
+        state: ConstitutiveModel,
         ) -> None:
         """
         Inicializa el elemento de membrana triangular.
@@ -27,12 +28,14 @@ class MembraneTriangle:
             node2 (Node): Segundo nodo.
             node3 (Node): Tercer nodo.
             section (ShellSection): Sección del elemento tipo area (shell).
+            state (ConstitutiveModel): Estado constitutivo del elemento.
         """
         self.id = id
         self.node1 = node1
         self.node2 = node2
         self.node3 = node3
         self.section = section
+        self.state = state
         self.dofs = np.concatenate((node1.dofs[:2], node2.dofs[:2], node3.dofs[:2]))
         self.current_load_pattern: Optional[str] = None
         self.loads: Dict[str, CSTLoad] = {} # {lp_name: CSTLoad}
@@ -89,12 +92,24 @@ class MembraneTriangle:
         Matriz constitutiva de esfuerzo plano.
         """
         v = self.section.v()
-        k = 1/(1-v**2)
-        return k*np.array([
-                        [1, v, 0],
-                        [v, 1, 0],
-                        [0, 0, (1-v)/2],
-                        ])
+        E = self.section.E()
+        # ! T E N S I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRESS:
+            k = E/(1-v**2)
+            return k*np.array([
+                            [1, v, 0],
+                            [v, 1, 0],
+                            [0, 0, (1-v)/2],
+                            ])
+
+        # ! D E F O R M A C I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRAIN:
+            k = (E*(1-v))/((1 + v)*(1 - 2*v))
+            return k * np.array([
+                [1,                 v/(1-v), 0],
+                [v/(1-v),           1,       0],
+                [0,                 0,       (1-2*v)/(2*(1-v))],
+            ])
 
     def global_stiffness_matrix(self) -> np.ndarray:
         """

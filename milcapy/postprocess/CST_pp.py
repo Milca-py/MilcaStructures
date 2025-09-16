@@ -41,7 +41,7 @@ class PP_CST(MembraneTriangle):
             cst (MembraneTriangle): objeto CST del que se va a obtener la informacion
             displacements (np.ndarray): array con los valores de desplazamiento en cada nodo
         """
-        super().__init__(0, cst.node1, cst.node2, cst.node3, cst.section)
+        super().__init__(0, cst.node1, cst.node2, cst.node3, cst.section, cst.state)
         self.displacements = displacements
         self.coordinates = np.concatenate(([cst.node1.vertex.coordinates, cst.node2.vertex.coordinates, cst.node3.vertex.coordinates]))
 

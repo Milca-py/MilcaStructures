@@ -308,7 +308,7 @@ class GraphicOptionsDialog(QDialog):
         main_layout.addWidget(self.create_node_options())
         main_layout.addWidget(self.create_member_options())
         main_layout.addWidget(self.create_assignations_options())
-        main_layout.addWidget(self.create_deformed_shape_options())
+        main_layout.addWidget(self.create_scale_options())
 
         # Botones Aceptar / Restaurar / Aplicar / Cancelar
         button_layout = QHBoxLayout()
@@ -414,24 +414,34 @@ class GraphicOptionsDialog(QDialog):
         group.setLayout(layout)
         return group
 
-    def create_deformed_shape_options(self):
+    def create_scale_options(self):
         """
         Crea las opciones para visualización de la forma deformada.
 
         Returns:
             QGroupBox: El grupo de opciones para visualización de la forma deformada.
         """
-        group = QGroupBox("Forma Deformada")
+        group = QGroupBox("Escalas")
         layout = QVBoxLayout()
 
         self.deformation_scale_input = QLineEdit()
         self.deformation_scale_input.setPlaceholderText(
             "Escala de deformación")
         self.deformation_scale_input.setValidator(
-            QDoubleValidator(0.01, 1000.0, 2))
+            QDoubleValidator(1e-9, 1e9, 20))
 
         layout.addWidget(QLabel("Escala de Deformación"))
         layout.addWidget(self.deformation_scale_input)
+
+        # self.internal_forces_scale_input = QLineEdit()
+        # self.internal_forces_scale_input.setPlaceholderText(
+        #     "Escala de fuerzas internas")
+        # self.internal_forces_scale_input.setValidator(
+        #     QDoubleValidator(1e-9, 1e9, 20))
+
+        # layout.addWidget(QLabel("Escala de Fuerzas Internas"))
+        # layout.addWidget(self.internal_forces_scale_input)
+
         group.setLayout(layout)
         return group
 
@@ -455,6 +465,8 @@ class GraphicOptionsDialog(QDialog):
         self.show_supports_checkbox.setChecked(True)
         scale = self.plotter_options.UI_deformation_scale.get(self.current_load_pattern, 40)
         self.deformation_scale_input.setText(str(round(scale, 2)))
+        # scale = self.plotter_options.UI_internal_forces_scale.get(self.current_load_pattern, 40)
+        # self.internal_forces_scale_input.setText(str(round(scale, 2)))
         self.__recover_values()
         # ! RESTABLECE EL COLOR DE FONDO INICIAL
         self.options["UI_background_color"] = 'white'

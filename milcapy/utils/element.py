@@ -54,7 +54,7 @@ def local_stiffness_matrix(
 def transformation_matrix(
     angle: float
 ) -> np.ndarray:
-    """Matriz de transformación para un ángulo dado.
+    """Matriz de transformación para un ángulo dado del sistema local al sistema global.
 
     Args:
         angle (float): Ángulo de rotación en radianes.

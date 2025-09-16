@@ -1,5 +1,5 @@
 from typing import Tuple
-from enum import Enum
+from enum import Enum, auto
 
 # Definición de restricciones
 Restraints = Tuple[bool, bool, bool]
@@ -89,3 +89,8 @@ def to_enum(key: str, enum: Enum) -> Enum:
         return enum(key)
     except ValueError:
         raise ValueError(f'La clave "{key}" no se encuentra en el Enum "{enum.__name__}".')
+
+
+class ConstitutiveModel(Enum):
+    PLANE_STRESS = 'PLANE_STRESS'     # Esfuerzo plano
+    PLANE_STRAIN = 'PLANE_STRAIN'     # Deformación plana

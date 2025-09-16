@@ -18,6 +18,10 @@ from milcapy.plotter.options import PlotterOptions
 from milcapy.plotter.widgets import DiagramConfig
 from milcapy.plotter.utils import separate_areas, process_segments
 
+from matplotlib.patches import Polygon
+from matplotlib.text import Text
+from matplotlib.lines import Line2D
+
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
     from matplotlib.figure import Figure
@@ -172,12 +176,6 @@ class Plotter:
                 slopes = np.zeros(slopes.shape, dtype=int)
             if np.all(np.abs(np.round(deflections, DECIMALS)) < tol):
                 deflections = np.zeros(deflections.shape, dtype=int)
-            if self.selected_member == 11:
-                print("axial_forces", axial_forces)
-                print("shear_forces", shear_forces)
-                print("bending_moments", bending_moments)
-                print("slopes", slopes)
-                print("deflections", deflections)
             return {
                     'N(x)': DiagramConfig(
                         name='Diagrama de Fuerza Normal',
@@ -813,37 +811,37 @@ class Plotter:
                 text.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    def plot_deformed(self, escala: float | None = None) -> None:
-        """
-        Grafica la forma de deformación.
-        """
-        self.deformed_shape[self.current_load_pattern] = {}
-        escala = self.plotter_options.UI_deformation_scale[
-            self.current_load_pattern] if escala is None else escala
-        for element in self.model.members.values():
-            x, y = self.current_values.get_deformed_shape(element.id, escala)
-            line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
-                                   color=self.plotter_options.deformation_color)
-            self.deformed_shape[self.current_load_pattern][element.id] = line
-            line.set_visible(self.plotter_options.UI_deformed)
-        self.figure.canvas.draw_idle()
+    # def plot_deformed(self, escala: float | None = None) -> None:
+    #     """
+    #     Grafica la forma de deformación.
+    #     """
+    #     self.deformed_shape[self.current_load_pattern] = {}
+    #     escala = self.plotter_options.UI_deformation_scale[
+    #         self.current_load_pattern] if escala is None else escala
+    #     for element in self.model.members.values():
+    #         x, y = self.current_values.get_deformed_shape(element.id, escala)
+    #         line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
+    #                                color=self.plotter_options.deformation_color)
+    #         self.deformed_shape[self.current_load_pattern][element.id] = line
+    #         line.set_visible(self.plotter_options.UI_deformed)
+    #     self.figure.canvas.draw_idle()
 
-    def update_deformed(self, visibility: Optional[bool] = None, escala: float | None = None):
-        """
-        Actualiza la visibilidad de la forma de deformación.
-        """
-        visibility = self.plotter_options.UI_deformed if visibility is None else visibility
-        for line in self.deformed_shape[self.current_load_pattern].values():
-            line.set_visible(visibility)
+    # def update_deformed(self, visibility: Optional[bool] = None, escala: float | None = None):
+    #     """
+    #     Actualiza la visibilidad de la forma de deformación.
+    #     """
+    #     visibility = self.plotter_options.UI_deformed if visibility is None else visibility
+    #     for line in self.deformed_shape[self.current_load_pattern].values():
+    #         line.set_visible(visibility)
 
-        # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
-        if escala is not None:
-            for member in self.model.members.values():
-                self.current_values = self.get_plotter_values(self.current_load_pattern)
-                x, y = self.current_values.get_deformed_shape(member.id, escala)
-                self.deformed_shape[self.current_load_pattern][member.id].set_data(x, y)
+    #     # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
+    #     if escala is not None:
+    #         for member in self.model.members.values():
+    #             self.current_values = self.get_plotter_values(self.current_load_pattern)
+    #             x, y = self.current_values.get_deformed_shape(member.id, escala)
+    #             self.deformed_shape[self.current_load_pattern][member.id].set_data(x, y)
 
-        self.figure.canvas.draw_idle()
+    #     self.figure.canvas.draw_idle()
 
     def plot_internal_forces(self, type: InternalForceType, escala: float | None = None) -> None:
         """
@@ -897,7 +895,6 @@ class Plotter:
                     y_val = self.model.results[self.current_load_pattern].get_member_bending_moment(member_id)
                 y_val = np.round(y_val, DECIMALS)
 
-                tol = 110**DECIMALS  # o ajusta según tus unidades/escala
                 if np.all(np.abs(y_val) < tol):
                     continue
                 else:
@@ -1015,25 +1012,63 @@ class Plotter:
             artist.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-    def update_internal_forces(self, type: InternalForceType, visibility: bool | None = None) -> None:
+    def update_internal_forces(self, type: InternalForceType, visibility: bool | None = None, scale: float | None = None) -> None:
         """
         Actualiza la visibilidad de los diagramas de fuerzas internas.
         """
+        def scale_text(txt, sx, sy, origin=(0, 0)):
+            x0, y0 = origin
+            x, y = txt.get_position()
+            new_x = x0 + sx * (x - x0)
+            new_y = y0 + sy * (y - y0)
+            txt.set_position((new_x, new_y))
+
+        def scale_line(line, sx, sy, origin=(0, 0)):
+            x0, y0 = origin
+            x, y = line.get_data()
+            new_x = x0 + sx * (x - x0)
+            new_y = y0 + sy * (y - y0)
+            line.set_data(new_x, new_y)
+
+        def scale_polygon(poly, sx, sy, origin=(0, 0)):
+            x0, y0 = origin
+            verts = poly.get_xy()
+            verts[:, 0] = x0 + sx * (verts[:, 0] - x0)
+            verts[:, 1] = y0 + sy * (verts[:, 1] - y0)
+            poly.set_xy(verts)
+
+        def if_scale(ele_id, artist, scale):
+            sx, sy = scale, scale
+            listGlobalElements = list(self.members.values()) + list(self.trusses.values())
+            origin = listGlobalElements[ele_id].node_i.vertex.coordinates
+            if isinstance(artist, Text):
+                scale_text(artist, sx, sy, origin)
+            elif isinstance(artist, Line2D):
+                scale_line(artist, sx, sy, origin)
+            elif isinstance(artist, Polygon):
+                scale_polygon(artist, sx, sy, origin)
+
         if type == InternalForceType.AXIAL_FORCE:
             visibility = self.plotter_options.UI_axial if visibility is None else visibility
-            for listArtist in self.axial_force[self.current_load_pattern].values():
+            for ele_id, listArtist in self.axial_force[self.current_load_pattern].items():
                 for artist in listArtist:
                     artist.set_visible(visibility)
+                    if scale:
+                        if_scale(ele_id, artist, scale)
         elif type == InternalForceType.SHEAR_FORCE:
             visibility = self.plotter_options.UI_shear if visibility is None else visibility
             for listArtist in self.shear_force[self.current_load_pattern].values():
                 for artist in listArtist:
                     artist.set_visible(visibility)
+                    if scale:
+                        if_scale(ele_id, artist, scale)
         elif type == InternalForceType.BENDING_MOMENT:
             visibility = self.plotter_options.UI_moment if visibility is None else visibility
             for listArtist in self.bending_moment[self.current_load_pattern].values():
                 for artist in listArtist:
                     artist.set_visible(visibility)
+                    if scale:
+                        if_scale(ele_id, artist, scale)
         self.figure.canvas.draw_idle()
 
 
