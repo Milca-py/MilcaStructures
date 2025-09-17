@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "milcapy"
+version = "0.1.0"
+authors = [
+    { name = "Amilcar Machacca Mayo", email = "200190@unsaac.edu.pe" }
+]
+description = "Librería para el análisis de estructuras 2D (Frame, Truss, CST, Membrana Q6, Q6i)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[tool.setuptools.packages.find]
+include = ["milcapy*"]
+
+
+[project.urls]
+Homepage = "https://github.com/Milca-py/MilcaStructures"
