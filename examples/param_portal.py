@@ -79,8 +79,15 @@ class PortalParametric2D:
         
         return braces
 
+from enum import Enum
+from milcapy.utils.types import to_enum
+class EleType(Enum):
+    TRUSS = 1
+    BEAMR = 2
+    FRAME = 3
 
-def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float, braces: list[int]) -> None:
+
+def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float, braces: list[int], ele_type: EleType|str, dual: bool = False) -> None:
     portal = PortalParametric2D(n_bahias, n_pisos, l_bahia, h_piso)
     nodes = portal.nodes()
     members = portal.members()
@@ -91,9 +98,10 @@ def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float
     matConc = [2.24e6, 0.2, 2.4]
     matBra = [2.04e7, 0.3, 7.8]
     model.add_material("concreto", *matConc)
+    model.add_material("acero", *matBra)
     model.add_rectangular_section("vig", "concreto", *secVig)
     model.add_rectangular_section("col", "concreto", *secCol)
-    model.add_rectangular_section("bra", "concreto", *secBra)
+    model.add_rectangular_section("bra", "acero", *secBra)
     for node_id, (x, y) in nodes.items():
         model.add_node(node_id, x, y)
     for member_id, (node_i, node_j) in members["viga"].items():
@@ -101,8 +109,27 @@ def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float
     for member_id, (node_i, node_j) in members["columna"].items():
         model.add_member(member_id, node_i, node_j, "col")
     for i, bay in enumerate(braces):
-        for member_id, (node_i, node_j) in portal.braces(bay).items():
-            model.add_truss(member_id + (i +1)* len(model.members) + 1, node_i, node_j, "bra")
+        for j, (member_id, (node_i, node_j)) in enumerate(portal.braces(bay).items()):
+            if isinstance(ele_type, str):
+                ele_type = to_enum(ele_type, EleType)
+            if dual:
+                if ele_type == EleType.FRAME:
+                    model.add_member(member_id + (i +1)* len(model.members) + 1, node_i, node_j, "bra", beam_theory=BeamTheoriesType.EULER_BERNOULLI)
+                elif ele_type == EleType.BEAMR:
+                    ID_ELE = member_id + (i +1)* len(model.members) + 1
+                    model.add_member(ID_ELE, node_i, node_j, "bra", beam_theory=BeamTheoriesType.EULER_BERNOULLI)
+                    model.add_releases(ID_ELE, mi=True, mj=True)
+                else:
+                    model.add_truss(member_id + (i +1)* len(model.members) + 1, node_i, node_j, "bra")
+            elif j%2 == 0:
+                if ele_type == EleType.FRAME:
+                    model.add_member(member_id + (i +1)* len(model.members) + 1, node_i, node_j, "bra", beam_theory=BeamTheoriesType.EULER_BERNOULLI)
+                elif ele_type == EleType.BEAMR:
+                    ID_ELE = member_id + (i +1)* len(model.members) + 1
+                    model.add_member(ID_ELE, node_i, node_j, "bra", beam_theory=BeamTheoriesType.EULER_BERNOULLI)
+                    model.add_releases(ID_ELE, mi=True, mj=True)
+                else:
+                    model.add_truss(member_id + (i +1)* len(model.members) + 1, node_i, node_j, "bra")
     for node_id in portal.nodes_from_story(0):
         model.add_restraint(node_id, True, True, True)
     model.add_load_pattern("Dead Load")
@@ -110,7 +137,7 @@ def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float
     for i, node_id in enumerate(portal.nodes_for_bay(0)):
         if i == 0:   # saltarse la primera
             continue
-        model.add_point_load(node_id, "Dead Load", fx=0.1*node_id)
+        model.add_point_load(node_id, "Dead Load", fx=0.01*node_id)
     model.solve()
     model_viewer(model)
 
@@ -118,4 +145,4 @@ def portal_parametric(n_bahias: int, n_pisos: int, l_bahia: float, h_piso: float
 
 
 if __name__ == "__main__":
-    portal_parametric(3, 7, 10, 10, [2])
+    portal_parametric(7, 17, 10, 10, [1, 3, 5, 7], EleType.TRUSS, True)

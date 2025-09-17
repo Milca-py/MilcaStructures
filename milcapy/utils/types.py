@@ -22,7 +22,7 @@ class MemberType(Enum):
     MEMBRANE_3DOF = 'MEMBRANE_3DOF'
 
 class BeamTheoriesType(Enum):
-    """Tipos de teorías de miembros."""
+    """Tipos de teorías de vigas."""
     TIMOSHENKO = 'TIMOSHENKO'
     EULER_BERNOULLI = 'EULER_BERNOULLI'
 

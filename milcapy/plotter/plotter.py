@@ -1990,6 +1990,15 @@ class Plotter:
                     artist.set_data(x, y)
 
 
+            for truss in self.model.trusses.values():
+                crd, disp = self.current_values.trusses[truss.id]
+                disp = np.array(disp)*escala
+                x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+                for artist in self.rigid_deformed_shape[self.current_load_pattern][truss.id]:
+                    artist.set_data(x, y)
+
+
+
             for cst in self.model.csts.values():
                 coordinates, displacements = self.current_values.cst[cst.id]
                 displacements = np.array(displacements)*escala
