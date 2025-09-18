@@ -59,6 +59,15 @@ Desarrollado por **Amilcar Machacca Mayo**
 
 ---
 
+### Estudio de convergencia para elementos finitos:
+ina viga en voladizo de 2m de longitud, sección rectangular de 0.6m de altura y 0.4m de base, materiales con E=2e6 y v=0.2 y una fuerza aplicada en el extremos libre de -20tonf.
+
+![Resultados](assets/convergencia_membranas.png)
+
+
+
+
+
 ### Instalación
 
 ```bash

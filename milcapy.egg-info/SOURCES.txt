@@ -17,6 +17,9 @@ milcapy/elements/MQ6I.py
 milcapy/elements/MQ6IMod.py
 milcapy/elements/__init__.py
 milcapy/elements/member.py
+milcapy/elements/quad4.py
+milcapy/elements/quad8 copy.py
+milcapy/elements/quad8.py
 milcapy/elements/truss.py
 milcapy/loads/__init__.py
 milcapy/loads/load.py

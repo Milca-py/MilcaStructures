@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "milcapy"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name = "Amilcar Machacca Mayo", email = "200190@unsaac.edu.pe" }
 ]
-description = "Librería para el análisis de estructuras 2D (Frame, Truss, CST, Membrana Q6, Q6i)."
+description = "Librería para el análisis de estructuras 2D (Frame, Truss, CST, Membrana: Q4, Q8, Q6, Q6i)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

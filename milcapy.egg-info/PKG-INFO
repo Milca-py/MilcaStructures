@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: milcapy
-Version: 0.1.0
-Summary: Librería para el análisis de estructuras 2D (Frame, Truss, CST, Membrana Q6, Q6i).
+Version: 0.2.0
+Summary: Librería para el análisis de estructuras 2D (Frame, Truss, CST, Membrana: Q4, Q8, Q6, Q6i).
 Author-email: Amilcar Machacca Mayo <200190@unsaac.edu.pe>
 License: MIT
 Project-URL: Homepage, https://github.com/Milca-py/MilcaStructures
@@ -16,7 +16,12 @@ Description-Content-Type: text/markdown
 
 ## milcapy
 ## <img src="assets/logo.png" alt="Logo" width="100" height="100">
-Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos **membrana Q6**, **CST** y elementos con **modos incompatibles** para evitar el bloqueo por cortante.
+Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para elementos:
+- **CST(constant strain triangle)**
+- **Q4(quadrilateral 4 nodos & 2dof por nodo)**
+- **Q6(quadrilateral 4 nodos & 3dof por nodo)**
+- **Q6i(rectangular 4 nodos & 2dof por nodo + modos incompatibles)**
+- **Q8(quadrilateral 8 nodos (los 4 nodos intermedios son condensados) & 2dof por nodo)**
 
 Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).
 Además, incorpora conceptos avanzados de **análisis matricial de estructuras**.
@@ -41,8 +46,10 @@ Desarrollado por **Amilcar Machacca Mayo**
   - Armaduras
   - Membranas
     - CST (Constant Strain Triangle)
+    - Q4 (Quadrilateral 4 nodos & 2dof por nodo)
     - Q6 (Quadrilateral 4 nodos & 3dof por nodo)
-    - Q6i (Q6 con modos incompatibles)
+    - Q6i (Rectangular 4 nodos & 2dof por nodo + modos incompatibles)
+    - Q8 (Quadrilateral 8 nodos (los 4 nodos intermedios son condensados) & 2dof por nodo)
 - **Patrones de carga**
 - **Modificadores de propiedades de sección**
 - **Condiciones de frontera**
@@ -51,7 +58,7 @@ Desarrollado por **Amilcar Machacca Mayo**
   - Definición de eje local para nodos
 - **Cargas**
   - Cargas nodales
-  - Cargas distribuidas
+  - Cargas distribuidas (Uniforme y trapezoidal)
   - Peso propio
 - **Opciones avanzadas**
   - Desfase de extremos (brazos rígidos)
@@ -84,17 +91,50 @@ from milcapy import (
   model_viewer,
   FieldTypeMembrane,
   ConstitutiveModel,
+  IntegrationType,
 )
 ```
 > - `SystemModel` → Plano de contruccion para crear el modelo
-> - `BeamTheoriesType` → Tipos de teorías de vigas
-> - `CoordinateSystemType` → Tipos de sistemas de coordenadas
-> - `DirectionType` → Tipos de direcciones
-> - `StateType` → Tipos de estados
-> - `LoadType` → Tipos de cargas
+> - `BeamTheoriesType` → Tipos de teorías de vigas 
+>   - TIMOSHENKO
+>   - EULER_BERNOULLI
+> - `CoordinateSystemType` → Tipos de sistemas de coordenadas 
+>   - LOCAL
+>   - GLOBAL
+> - `DirectionType` → Tipos de direcciones 
+>   - X
+>   - Y
+>   - X_PROJ
+>   - Y_PROJ
+>   - GRAVITY
+>   - GRAVITY_PROJ
+>   - MOMENT
+>   - LOCAL_1
+>   - LOCAL_2
+>   - LOCAL_3
+> - `StateType` → Tipos de estados 
+>   - ACTIVE
+>   - INACTIVE
+> - `LoadType` → Tipos de cargas 
+>   - FORCE
+>   - MOMENT
 > - `model_viewer` → Para visualizar el modelo
 > - `FieldTypeMembrane` → Tipos de campos para membranas
+>   - SX
+>   - SY
+>   - SXY
+>   - EX
+>   - EY
+>   - EXY
+>   - UX
+>   - UY
+>   - UMAG
 > - `ConstitutiveModel` → Tipos de estados constitutivos para membranas
+>   - PLANE_STRESS
+>   - PLANE_STRAIN
+> - `IntegrationType` → Tipos de integración para membranas
+>   - COMPLETE
+>   - REDUCED
 
 ### 1. Comandos de modelo
 
@@ -155,6 +195,7 @@ model.add_generic_section('name', 'material_name', 'area', 'inertia', 'k_factor'
 ```python
 model.add_shell_section('name', 'material_name', 'thickness')
 ```
+Este tipo de seccion se usa para modelar elementos planos (membranas)
 
 > - `name` (`str`) → Nombre de la sección
 > - `material_name` (`str`) → Nombre del material
@@ -230,56 +271,90 @@ Cada nodo posee dos grados de libertad de traslación (en `x` y `y`). La deforma
 por lo que es adecuado para geometrías simples o como base en mallados más refinados.
 
 ```python
-model.add_cst('id', 'node_i_id', 'node_j_id', 'node_k_id', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
+model.add_cst('id', 'node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
 ```
 
 > - `id` (`int`) → ID del miembro
-> - `node_i_id` (`int`) → ID del nodo inicial
-> - `node_j_id` (`int`) → ID del nodo final
-> - `node_k_id` (`int`) → ID del nodo final
+> - `node_ids` (`list[int]`) → Un lista de IDs de los 3 nodos
 > - `section_name` (`str`) → Nombre de la sección
 > - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
 
-#### 7.2. Comando de elemento de membrana Q6
-El elemento de membrana Q6 (*Quadrilateral with degrees of freedom of perforation*) es un elemento finito bidimensional de cuatro nodos.
-
-Cada nodo posee tres grados de libertad; traslacion en `x`, `y` y rotacion en `z`.
-
-```python
-model.add_membrane_q6('id', 'node_i_id', 'node_j_id', 'node_k_id', 'node_l_id', 'section_name')
-```
-
-> - `id` (`int`) → ID del miembro
-> - `node_i_id` (`int`) → ID del nodo inicial
-> - `node_j_id` (`int`) → ID del nodo final
-> - `node_k_id` (`int`) → ID del nodo final
-> - `node_l_id` (`int`) → ID del nodo final
-> - `section_name` (`str`) → Nombre de la sección
->> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.
-
-
-#### 7.3. Comando de elemento de membrana Q6I
-El elemento de membrana Q6I (*Quadrilateral with Incompatible Modes*) es un elemento finito bidimensional de cuatro nodos.
-Se utiliza para modelar membranas planas sometidas a esfuerzos en su plano.
+#### 7.2. Comando de elemento de membrana Q4
+El elemento de membrana Q4 es un elemento finito bidimensional de cuatro nodos con integracion de 4 puntos, con funciones de forma bilineales es un elemento serendipito con formulacion isoparametrica.
 
 Cada nodo posee dos grados de libertad de traslación (en `x` y `y`).
 
 ```python
-model.add_membrane_q6i('id', 'node_i_id', 'node_j_id', 'node_k_id', 'node_l_id', 'section_name')
+model.add_membrane_q4('id', '*node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
 ```
 
 > - `id` (`int`) → ID del miembro
-> - `node_i_id` (`int`) → ID del nodo inicial
-> - `node_j_id` (`int`) → ID del nodo final
-> - `node_k_id` (`int`) → ID del nodo final
-> - `node_l_id` (`int`) → ID del nodo final
+> - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
 > - `section_name` (`str`) → Nombre de la sección
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+>> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
+>> ⚠️ **Nota:** Se recomienda discretizar con el elemento Q4 ya que esta tiene una convergencia muy mala con un solo elemento.   
+>> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
+
+
+#### 7.3. Comando de elemento de membrana Q6
+El elemento de membrana Q6 (*Quadrilateral with degrees of freedom of perforation*) es un elemento finito bidimensional de cuatro nodos con integracion de 4 puntos, con funciones de forma 4 bilineales + 4 cuadradas es un elemento serendipito con formulacion isoparametrica.
+
+Cada nodo posee tres grados de libertad; traslacion en `x`, `y` y rotacion en `z`.
+
+```python
+model.add_membrane_q6('id', '*node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
+```
+
+> - `id` (`int`) → ID del miembro
+> - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
+> - `section_name` (`str`) → Nombre de la sección
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+>> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
+>> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
+
+#### 7.4. Comando de elemento de membrana Q6I
+El elemento de membrana Q6I (*Quadrilateral with Incompatible Modes*) es un elemento finito bidimensional de cuatro nodos con integracion de 4 puntos, con funciones de forma 4 bilineales + 2 cuadradas (modos incompatibles) es un elemento serendipito con formulacion isoparametrica.
+
+Cada nodo posee dos grados de libertad de traslación (en `x` y `y`).
+
+```python
+model.add_membrane_q6i('id', '*node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS')
+```
+
+> - `id` (`int`) → ID del miembro
+> - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
+> - `section_name` (`str`) → Nombre de la sección
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.
+>> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
+
+#### 7.5. Comando de elemento de membrana Q8
+El elemento de membrana Q8 es un elemento finito bidimensional de ocho nodos con integracion de 4 puntos ó 9 puntos, con funciones de forma 4 bicuadradas + 4 cuadradas es un elemento serendipito con formulacion isoparametrica.
+
+Cada nodo posee dos grados de libertad; traslacion en `x`, `y`.
+
+```python
+model.add_membrane_q8('id', '*node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_STRESS', 'integration=IntegrationType.COMPLETE')
+```
+
+> - `id` (`int`) → ID del miembro
+> - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
+> - `section_name` (`str`) → Nombre de la sección
+> - `state` (`str` ó `ConstitutiveModel`) → Estado constitutivo del elemento
+> - `integration` (`str` ó `IntegrationType`) → Tipo de integracion
+>> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
+>> ⚠️ **Nota:** El elemento Q8 tiene 8 nodos pero sin embargo los 4 faltantes son calculado en el medio de los lados del cuadrilatero y estas a su vez son condensados en los 4 nodos originales del cuadrilatero.  
+>> ⚠️ **Nota:** Se recomienda no discritizar con el elemento Q8 ya que esta con un solo elemento da una convergencia muy buena. debido a su que su implementacion es muy robusta. caso que si se discretiza esta se vuelve muy flexible y se aleja de la solucion exacta.  
+>> ⚠️ **Nota:** La integracion reducida evita de cierta manera el efecto de bloqueo por cortante.  
+>> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'  
+>> **INTEGRACION DISPONIBLE:** 'REDUCED' (4 puntos), 'COMPLETE' (9 puntos)
 
 
 ### 8. Comando de patron de carga
+El patron de carga es un conjunto de cargas que se aplican a los miembros del modelo, el modelo puede tener varios patrones de carga y analizarlos por separado.
 
 ```python
 model.add_load_pattern('name', 'self_weight_multiplier=0', 'state=StateType.ACTIVE')
@@ -297,7 +372,6 @@ model.set_state_load_pattern('name', 'state=StateType.ACTIVE')
 > - `name` (`str`) → Nombre del patron de carga
 > - `state` (`str` ó `StateType`) → Estado del patron de carga
 >> **ESTADOS DISPONIBLES:** 'ACTIVE', 'INACTIVE'
-
 
 
 
