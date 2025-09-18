@@ -6,6 +6,15 @@ if TYPE_CHECKING:
     from milcapy.utils.types import Restraints
     from milcapy.utils.geometry import Vertex
 
+class NodeArbitrary:
+    def __init__(
+        self,
+        id: int,
+        vertex: "Vertex"
+    ) -> None:
+        self.id: int = id
+        self.vertex: "Vertex" = vertex
+
 class Node:
     """
     Representa un nodo en el modelo estructural.

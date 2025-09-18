@@ -7,6 +7,7 @@ from .utils.types import (
     LoadType,
     FieldTypeMembrane,
     ConstitutiveModel,
+    IntegrationType,
     )
 
 class SystemModel(SystemMilcaModel):

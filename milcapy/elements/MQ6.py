@@ -1,9 +1,11 @@
 import numpy as np
 from milcapy.core.node import Node
 from milcapy.section.section import ShellSection
+from milcapy.utils.types import ConstitutiveModel
 
 class MembraneQuad6:
     """Elemento de membrana cuadrilátero de 4 nodos + grados de libertad adicionales de perforacion (para compatibilidad de rigidez e evitar la inestabilidad numerica en el ensamblaje)
+    Nota: Este elemento converge a la solucion excata de la viga de Euler-Bernoulli (sin considerar deformaciones por cortante)
     
     Args:
         id (int): Identificador del elemento.
@@ -12,6 +14,7 @@ class MembraneQuad6:
         node3 (Node): Tercer nodo.
         node4 (Node): Cuarto nodo.
         section (ShellSection): Sección del elemento tipo area (shell).
+        state (ConstitutiveModel): Modelo constitutivo del elemento.
     
     Notas:
         Se recomienda usar este elemento por encima de los elementos MembraneQuad6I y MembraneQuad6IModificado.
@@ -23,7 +26,8 @@ class MembraneQuad6:
         node2: Node,
         node3: Node,
         node4: Node,
-        section: ShellSection
+        section: ShellSection,
+        state: ConstitutiveModel,
     ) -> None:
         """
         Inicializa el elemento de membrana cuadrilátero de 4 nodos y 3 dof por nodo.
@@ -34,6 +38,7 @@ class MembraneQuad6:
         self.node3 = node3
         self.node4 = node4
         self.section = section
+        self.state = state
         self.E = self.section.E()
         self.v = self.section.v()
         self.t = self.section.t
@@ -222,19 +227,33 @@ class MembraneQuad6:
 
         return B
 
-    def D(self):
+    def D(self) -> np.ndarray:
         """
         Matriz constitutiva de esfuerzo plano.
         """
-        return (self.E/(1-self.v**2))*np.array([
-            [1, self.v, 0],
-            [self.v, 1, 0],
-            [0, 0, (1-self.v)/2],
-        ])
+        v = self.section.v()
+        E = self.section.E()
+        # ! T E N S I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRESS:
+            k = E/(1-v**2)
+            return k*np.array([
+                            [1, v, 0],
+                            [v, 1, 0],
+                            [0, 0, (1-v)/2],
+                            ])
+
+        # ! D E F O R M A C I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRAIN:
+            k = (E*(1-v))/((1 + v)*(1 - 2*v))
+            return k * np.array([
+                [1,                 v/(1-v), 0],
+                [v/(1-v),           1,       0],
+                [0,                 0,       (1-2*v)/(2*(1-v))],
+            ])
 
     def phiKi(self, xi: float, eta: float):
         """
-        Matriz de rigidez local.
+        Matriz funcional de rigidez.
         """
         detJ = np.linalg.det(self.J(xi, eta))
         B = self.B(xi, eta)
@@ -290,9 +309,10 @@ class MembraneQuad6:
         """
         Calcula la matriz rigidez global.
         """
-        T = self.get_transformation_matrix()
+        # T = self.get_transformation_matrix()
         Ki = self.Ki()
-        K_GLOBAL = T @ Ki @ T.T
+        # K_GLOBAL = T @ Ki @ T.T
+        K_GLOBAL = Ki
         return K_GLOBAL
 
 
@@ -306,6 +326,7 @@ if __name__ == "__main__":
     t = 400  # mm
     l = 2000  # mm
     h = 600  # mm
+    state = ConstitutiveModel.PLANE_STRESS
     from milcapy.utils.geometry import Vertex
     from milcapy.section.section import ShellSection
     from milcapy.material.material import Material
@@ -316,7 +337,7 @@ if __name__ == "__main__":
     nd2 = Node(2, Vertex(l, 0))
     nd3 = Node(3, Vertex(l, h))
     nd4 = Node(4, Vertex(0, h))
-    el = MembraneQuad6(1, nd1, nd2, nd3, nd4, section)
+    el = MembraneQuad6(1, nd1, nd2, nd3, nd4, section, state)
     k = el.global_stiffness_matrix()
     f = 20
     # q = np.array([0, -0.5*f, 0,-0.5*f, 0, 0, 0, 0])

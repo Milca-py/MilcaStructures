@@ -90,8 +90,8 @@ class PlotterValues:
         self.prescribed_dofs   = {} # {node_id: PrescribedDOF}
         self.elastic_supports  = {} # {node_id: ElasticSupport}
         self.cst               = {} # {cst_id: (coords, displacements)}
-        self.membrane_q6       = {} # {membrane_q6_id: (coords, displacements)}
-        self.membrane_q6i      = {} # {membrane_q6i_id: (coords, displacements)}
+        self.membrane_q3dof       = {} # {membrane_q3dof_id: (coords, displacements)}
+        self.membrane_q2dof      = {} # {membrane_q2dof_id: (coords, displacements)}
         self.trusses           = {} # {truss_id: (coords, displacements)}
 
         if not self.load_pattern:
@@ -103,8 +103,8 @@ class PlotterValues:
         self._process_prescribed_dofs()
         self._process_elastic_supports()
         self._process_cst_element()
-        self._process_membrane_q6()
-        self._process_membrane_q6i()
+        self._process_membrane_q3dof()
+        self._process_membrane_q2dof()
         self._process_trusses()
 
     def _process_load_data(self) -> None:
@@ -191,23 +191,23 @@ class PlotterValues:
             displacements = self.model.results[self.current_load_pattern].get_cst_displacements(cst.id)
             self.cst[cst.id] = (coordinates, displacements)
 
-    def _process_membrane_q6(self) -> None:
+    def _process_membrane_q3dof(self) -> None:
         """
         Obtiene la coordenadas y desplazamientos de un MembraneQ6 en coordenadas globales.
         """
-        for membrane_q6 in self.model.membrane_q6.values():
-            coordinates =  np.concatenate(([membrane_q6.node1.vertex.coordinates, membrane_q6.node2.vertex.coordinates, membrane_q6.node3.vertex.coordinates, membrane_q6.node4.vertex.coordinates]))
-            displacements = self.model.results[self.current_load_pattern].get_membrane_q6_displacements(membrane_q6.id)
-            self.membrane_q6[membrane_q6.id] = (coordinates, displacements)
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            coordinates =  np.concatenate(([membrane_q3dof.node1.vertex.coordinates, membrane_q3dof.node2.vertex.coordinates, membrane_q3dof.node3.vertex.coordinates, membrane_q3dof.node4.vertex.coordinates]))
+            displacements = self.model.results[self.current_load_pattern].get_membrane_q3dof_displacements(membrane_q3dof.id)
+            self.membrane_q3dof[membrane_q3dof.id] = (coordinates, displacements)
 
-    def _process_membrane_q6i(self) -> None:
+    def _process_membrane_q2dof(self) -> None:
         """
         Obtiene la coordenadas y desplazamientos de un MembraneQ6i en coordenadas globales.
         """
-        for membrane_q6i in self.model.membrane_q6i.values():
-            coordinates =  np.concatenate(([membrane_q6i.node1.vertex.coordinates, membrane_q6i.node2.vertex.coordinates, membrane_q6i.node3.vertex.coordinates, membrane_q6i.node4.vertex.coordinates]))
-            displacements = self.model.results[self.current_load_pattern].get_membrane_q6i_displacements(membrane_q6i.id)
-            self.membrane_q6i[membrane_q6i.id] = (coordinates, displacements)
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            coordinates =  np.concatenate(([membrane_q2dof.node1.vertex.coordinates, membrane_q2dof.node2.vertex.coordinates, membrane_q2dof.node3.vertex.coordinates, membrane_q2dof.node4.vertex.coordinates]))
+            displacements = self.model.results[self.current_load_pattern].get_membrane_q2dof_displacements(membrane_q2dof.id)
+            self.membrane_q2dof[membrane_q2dof.id] = (coordinates, displacements)
 
     def _process_trusses(self) -> None:
         """

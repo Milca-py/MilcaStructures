@@ -1,10 +1,11 @@
 from milcapy.core.node import Node
-from milcapy.section.section import Section
+from milcapy.section.section import ShellSection
+from milcapy.utils.types import ConstitutiveModel
 import numpy as np
 
 """
 ==============================================
-        ELEMENTO CUADRILATERO MEMBRANA
+        ELEMENTO RECTANGULAR MEMBRANA
         CON MODOS INCOMPATIBLES (Q4I)
 ==============================================
 || Nodos                 || 4               ||
@@ -18,7 +19,8 @@ import numpy as np
 """
 
 class MembraneQuad6I:
-    """Elemento de membrana cuadrilátero de 4 nodos + 2 modos incompatibles adicionales para evitar el shear locking."""
+    """Elemento de membrana Rectangular de 4 nodos + 2 modos incompatibles adicionales para evitar el shear locking.
+    NOTA ESTE ELEMENTO coverge a la solucion excata de la viga de Timoshenko (considerando deformaciones por cortante)"""
     def __init__(
         self,
         id: int,
@@ -26,10 +28,11 @@ class MembraneQuad6I:
         node2: Node,
         node3: Node,
         node4: Node,
-        section: Section
+        section: ShellSection,
+        state: ConstitutiveModel,
     ) -> None:
         """
-        Inicializa el elemento de membrana cuadrilátero de 4 nodos + 2 modos incompatibles adicionales para evitar el shear locking.
+        Inicializa el elemento de membrana Rectangular de 4 nodos + 2 modos incompatibles adicionales para evitar el shear locking.
 
         Args:
             id (int): Identificador del elemento.
@@ -37,7 +40,7 @@ class MembraneQuad6I:
             node2 (Node): Segundo nodo.
             node3 (Node): Tercer nodo.
             node4 (Node): Cuarto nodo.
-            section (Section): Sección del elemento tipo area (shell).
+            section (ShellSection): Sección del elemento tipo area (shell).
         """
         self.id = id
         self.node1 = node1
@@ -48,6 +51,7 @@ class MembraneQuad6I:
         self.v = section.v()
         self.t = section.t
         self.section = section
+        self.state = state
         self.dofs = np.concatenate((node1.dofs[:2], node2.dofs[:2], node3.dofs[:2], node4.dofs[:2]))
 
         r3 = np.sqrt(3)
@@ -151,19 +155,33 @@ class MembraneQuad6I:
         B = Ia @ Gamma @ dN
         return B
 
-    def D(self):
+    def D(self) -> np.ndarray:
         """
         Matriz constitutiva de esfuerzo plano.
         """
-        return (self.E/(1-self.v**2))*np.array([
-            [1, self.v, 0],
-            [self.v, 1, 0],
-            [0, 0, (1-self.v)/2],
-        ])
+        v = self.section.v()
+        E = self.section.E()
+        # ! T E N S I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRESS:
+            k = E/(1-v**2)
+            return k*np.array([
+                            [1, v, 0],
+                            [v, 1, 0],
+                            [0, 0, (1-v)/2],
+                            ])
+
+        # ! D E F O R M A C I O N    C O N S T A N T E
+        if self.state == ConstitutiveModel.PLANE_STRAIN:
+            k = (E*(1-v))/((1 + v)*(1 - 2*v))
+            return k * np.array([
+                [1,                 v/(1-v), 0],
+                [v/(1-v),           1,       0],
+                [0,                 0,       (1-2*v)/(2*(1-v))],
+            ])
 
     def phiKi(self, xi: float, eta: float) -> np.ndarray:
         """
-        Matriz de rigidez local.
+        Matriz funcional de rigidez.
         """
         detJ = np.linalg.det(self.J(xi, eta))
         B = self.B(xi, eta)
@@ -213,9 +231,10 @@ class MembraneQuad6I:
         """
         Matriz de rigidez global.
         """
-        T = self.get_transformation_matrix()
+        # T = self.get_transformation_matrix()
         Ki = self.Ki()
-        return T @ Ki @ T.T
+        # return T @ Ki @ T.T
+        return Ki
 
 
 if __name__ == "__main__":
@@ -226,6 +245,7 @@ if __name__ == "__main__":
     E = 2.53456e6
     v = 0.2
     t = 0.25
+    state = ConstitutiveModel.PLANE_STRESS
     # nd1 = Node(1, Vertex(0.0, 0.0))
     # nd2 = Node(2, Vertex(0.6, 0.0))
     # nd3 = Node(3, Vertex(0.6, 3.0))
@@ -234,7 +254,7 @@ if __name__ == "__main__":
     nd2 = Node(2, Vertex(3.0, 0.0))
     nd3 = Node(3, Vertex(3.0, 0.6))
     nd4 = Node(4, Vertex(0.0, 0.6))
-    el = MembraneQuad6I(1, nd1, nd2, nd3, nd4, E, v, t)
+    el = MembraneQuad6I(1, nd1, nd2, nd3, nd4, E, v, t, state)
     p = 6
     # Q = np.array([-p/2, 0, -p/2, 0])
     Q = np.array([0, -p/2, 0, -p/2])

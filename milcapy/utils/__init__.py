@@ -10,7 +10,8 @@ from .types import (
     LoadType,
     BeamTheoriesType,
     InternalForceType,
-    to_enum
+    to_enum,
+    IntegrationType
 )
 
 from ..utils.geometry import (

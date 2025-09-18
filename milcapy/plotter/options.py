@@ -159,31 +159,31 @@ class PlotterOptions:        # ✅✅✅
         self.cst_undeformed_color_face = '#e3eaf3'
 
 
-        #! ELEMENTO MEMBRANA Q6:
-        self.membrane_q6_alpha = 0.7
-        self.membrane_q6_element_line_width = 0.7
-        self.membrane_q6_element_label_color = 'black'
-        self.membrane_q6_element_label_font_size = 8
+        #! ELEMENTO MEMBRANA Q3DOF:
+        self.membrane_q3dof_alpha = 0.7
+        self.membrane_q3dof_element_line_width = 0.7
+        self.membrane_q3dof_element_label_color = 'black'
+        self.membrane_q3dof_element_label_font_size = 8
 
-        self.membrane_q6_edge_color = '#800000'
-        self.membrane_q6_face_color = "#ff7f7f"
-        self.membrane_q6_deformed_color_edge = '#800000'
-        self.membrane_q6_deformed_color_face = '#ff7f7f'
-        self.membrane_q6_undeformed_color_edge = '#b6f9ff'
-        self.membrane_q6_undeformed_color_face = '#e3eaf3'
+        self.membrane_q3dof_edge_color = '#800000'
+        self.membrane_q3dof_face_color = "#ff7f7f"
+        self.membrane_q3dof_deformed_color_edge = '#800000'
+        self.membrane_q3dof_deformed_color_face = '#ff7f7f'
+        self.membrane_q3dof_undeformed_color_edge = '#b6f9ff'
+        self.membrane_q3dof_undeformed_color_face = '#e3eaf3'
 
-        #! ELEMENTO MEMBRANA Q6I:
-        self.membrane_q6i_alpha = 0.7
-        self.membrane_q6i_element_line_width = 0.7
-        self.membrane_q6i_element_label_color = 'black'
-        self.membrane_q6i_element_label_font_size = 8
+        #! ELEMENTO MEMBRANA Q2DOF:
+        self.membrane_q2dof_alpha = 0.7
+        self.membrane_q2dof_element_line_width = 0.7
+        self.membrane_q2dof_element_label_color = 'black'
+        self.membrane_q2dof_element_label_font_size = 8
 
-        self.membrane_q6i_edge_color = '#800000'
-        self.membrane_q6i_face_color = "#ff7f7f"
-        self.membrane_q6i_deformed_color_edge = '#800000'
-        self.membrane_q6i_deformed_color_face = '#ff7f7f'
-        self.membrane_q6i_undeformed_color_edge = '#b6f9ff'
-        self.membrane_q6i_undeformed_color_face = '#e3eaf3'
+        self.membrane_q2dof_edge_color = '#800000'
+        self.membrane_q2dof_face_color = "#ff7f7f"
+        self.membrane_q2dof_deformed_color_edge = '#800000'
+        self.membrane_q2dof_deformed_color_face = '#ff7f7f'
+        self.membrane_q2dof_undeformed_color_edge = '#b6f9ff'
+        self.membrane_q2dof_undeformed_color_face = '#e3eaf3'
 
 
         #! ELEMENTO ARMADURA:
@@ -232,7 +232,7 @@ class PlotterOptions:        # ✅✅✅
         Calcula y asigna la media de los resultados para un patrón.
         """
         from numpy import nan, inf
-        if self.model.membrane_q6 != {} or self.model.membrane_q6i != {} or self.model.csts != {}:
+        if self.model.membrane_q3dof != {} or self.model.membrane_q2dof != {} or self.model.csts != {}:
             fact = 0.1
         else:
             fact = 0.7
@@ -249,7 +249,7 @@ class PlotterOptions:        # ✅✅✅
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
         self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100
 
-        if self.model.members == {} and self.model.membrane_q6 == {} and self.model.membrane_q6i == {} and self.model.csts == {}:
+        if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
             for member in self.model.trusses.values():
                 axial_max = max(self.model.results[pattern_name].get_truss_axial_force(member.id)) if max(self.model.results[pattern_name].get_truss_axial_force(member.id)) > axial_max else axial_max
@@ -266,7 +266,7 @@ class PlotterOptions:        # ✅✅✅
         Calcula y asigna el máximo de los resultados para un patrón.
         """
         from numpy import nan, inf
-        if self.model.membrane_q6 != {} or self.model.membrane_q6i != {} or self.model.csts != {}: # Si hay elementos de membrana
+        if self.model.membrane_q3dof != {} or self.model.membrane_q2dof != {} or self.model.csts != {}: # Si hay elementos de membrana
             fact = 0.3
         else:
             fact = 1
@@ -304,7 +304,7 @@ class PlotterOptions:        # ✅✅✅
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
         self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100
 
-        if self.model.members == {} and self.model.membrane_q6 == {} and self.model.membrane_q6i == {} and self.model.csts == {}:
+        if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
             for member in self.model.trusses.values():
                 axial_max = max(self.model.results[pattern_name].get_truss_axial_force(member.id)) if max(self.model.results[pattern_name].get_truss_axial_force(member.id)) > axial_max else axial_max
@@ -321,8 +321,8 @@ class PlotterOptions:        # ✅✅✅
         Calcula el máximo de los resultados para un patrón.
         """
         length_max = 0
-        length_max_mq6 = 0
-        length_max_mq6i = 0
+        length_max_mq3dof = 0
+        length_max_mq2dof = 0
         length_max_cst = 0
         length_max_truss = 0
         length_min = 100000000000000
@@ -353,16 +353,16 @@ class PlotterOptions:        # ✅✅✅
             shear_max = shear_m if shear_m > shear_max else shear_max
             axial_max = axial_m if axial_m > axial_max else axial_max
 
-        for membrane_q6 in self.model.membrane_q6.values():
-            minxx = min(membrane_q6.node1.vertex.distance_to(membrane_q6.node3.vertex), membrane_q6.node2.vertex.distance_to(membrane_q6.node4.vertex))
-            maxxx = max(membrane_q6.node1.vertex.distance_to(membrane_q6.node3.vertex), membrane_q6.node2.vertex.distance_to(membrane_q6.node4.vertex))
-            length_max_mq6 = maxxx if maxxx > length_max_mq6 else length_max_mq6
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            minxx = min(membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex))
+            maxxx = max(membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex))
+            length_max_mq3dof = maxxx if maxxx > length_max_mq3dof else length_max_mq3dof
             length_min = minxx if minxx < length_min else length_min
 
-        for membrane_q6i in self.model.membrane_q6i.values():
-            maxxx = max(membrane_q6i.node1.vertex.distance_to(membrane_q6i.node3.vertex), membrane_q6i.node2.vertex.distance_to(membrane_q6i.node4.vertex))
-            minxx = min(membrane_q6i.node1.vertex.distance_to(membrane_q6i.node3.vertex), membrane_q6i.node2.vertex.distance_to(membrane_q6i.node4.vertex))
-            length_max_mq6i = maxxx if maxxx > length_max_mq6i else length_max_mq6i
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            maxxx = max(membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex))
+            minxx = min(membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex))
+            length_max_mq2dof = maxxx if maxxx > length_max_mq2dof else length_max_mq2dof
             length_min = minxx if minxx < length_min else length_min
 
         for cst in self.model.csts.values():
@@ -377,7 +377,7 @@ class PlotterOptions:        # ✅✅✅
             length_min = length if length < length_min else length_min
 
         return {
-            "length_max": max(length_max, length_max_mq6, length_max_mq6i, length_max_cst, length_max_truss),
+            "length_max": max(length_max, length_max_mq3dof, length_max_mq2dof, length_max_cst, length_max_truss),
             "length_min": length_min,
             "q_max": q_max,
             "p_max": p_max,
@@ -393,8 +393,8 @@ class PlotterOptions:        # ✅✅✅
         Calcula la media de los resultados para un patrón.
         """
         length_mean = 0
-        length_mean_mq6 = 0
-        length_mean_mq6i = 0
+        length_mean_mq3dof = 0
+        length_mean_mq2dof = 0
         length_mean_cst = 0
         length_mean_truss = 0
         q_mean = 0
@@ -404,7 +404,7 @@ class PlotterOptions:        # ✅✅✅
         bending_mean = 0
         shear_mean = 0
         axial_mean = 0
-        n = len(self.model.members) + len(self.model.membrane_q6) + len(self.model.membrane_q6i) + len(self.model.csts) + len(self.model.trusses)
+        n = len(self.model.members) + len(self.model.membrane_q3dof) + len(self.model.membrane_q2dof) + len(self.model.csts) + len(self.model.trusses)
         for member, results in zip(self.model.members.values(), self.model.results[pattern_name].members.values()):
             dist_load = member.get_distributed_load(pattern_name)
             length_mean += member.length()
@@ -416,11 +416,11 @@ class PlotterOptions:        # ✅✅✅
             shear_mean += abs(results["shear_forces"]).max()
             axial_mean += abs(results["axial_forces"]).max()
 
-        for membrane_q6 in self.model.membrane_q6.values():
-            length_mean_mq6 += mean([membrane_q6.node1.vertex.distance_to(membrane_q6.node3.vertex), membrane_q6.node2.vertex.distance_to(membrane_q6.node4.vertex)])
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            length_mean_mq3dof += mean([membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex)])
 
-        for membrane_q6i in self.model.membrane_q6i.values():
-            length_mean_mq6i += mean([membrane_q6i.node1.vertex.distance_to(membrane_q6i.node3.vertex), membrane_q6i.node2.vertex.distance_to(membrane_q6i.node4.vertex)])
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            length_mean_mq2dof += mean([membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex)])
 
         for cst in self.model.csts.values():
             length_mean_cst += mean([cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex)])
@@ -428,7 +428,7 @@ class PlotterOptions:        # ✅✅✅
         for truss in self.model.trusses.values():
             length_mean_truss += truss.length()
         return {
-            "length_mean": (length_mean + length_mean_mq6 + length_mean_mq6i + length_mean_cst + length_mean_truss)/n,
+            "length_mean": (length_mean + length_mean_mq3dof + length_mean_mq2dof + length_mean_cst + length_mean_truss)/n,
             "q_mean": q_mean/n,
             "p_mean": p_mean/n,
             "deflection_mean": deflection_mean/n,

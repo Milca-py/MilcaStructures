@@ -58,26 +58,26 @@ class LoadType(Enum):
 
 class InternalForceType(Enum):
     """Enumeración de tipos de Fuerzas Internas."""
-    AXIAL_FORCE = "axial_force"
-    SHEAR_FORCE = "shear_force"
-    BENDING_MOMENT = "bending_moment"
-    SLOPE = "slope"
-    DEFLECTION = "deflection"
-    DEFORMED = "deformed"
-    RIGID_DEFORMED = "rigid_deformed"
+    AXIAL_FORCE = "AXIAL_FORCE"
+    SHEAR_FORCE = "SHEAR_FORCE"
+    BENDING_MOMENT = "BENDING_MOMENT"
+    SLOPE = "SLOPE"
+    DEFLECTION = "DEFLECTION"
+    DEFORMED = "DEFORMED"
+    RIGID_DEFORMED = "RIGID_DEFORMED"
 
 
 
 class FieldTypeMembrane(Enum):
-    SX = "sx"
-    SY = "sy"
-    SXY = "sxy"
-    EX = "ex"
-    EY = "ey"
-    EXY = "exy"
-    UX = "ux"
-    UY = "uy"
-    UMAG = "umag"
+    SX = "SX"
+    SY = "SY"
+    SXY = "SXY"
+    EX = "EX"
+    EY = "EY"
+    EXY = "EXY"
+    UX = "UX"
+    UY = "UY"
+    UMAG = "UMAG"
 
 
 
@@ -94,3 +94,19 @@ def to_enum(key: str, enum: Enum) -> Enum:
 class ConstitutiveModel(Enum):
     PLANE_STRESS = 'PLANE_STRESS'     # Esfuerzo plano
     PLANE_STRAIN = 'PLANE_STRAIN'     # Deformación plana
+
+
+
+class IntegrationType(Enum):
+    """Tipos de integración."""
+    COMPLETE = 'COMPLETE'
+    REDUCED = 'REDUCED'
+
+
+class MembraneQuadElementType(Enum):
+    """Tipos de elementos de membrana."""
+    MQ4 = auto()
+    MQ6 = auto()
+    MQ6I = auto()
+    MQ8Reduced = auto()
+    MQ8Complete = auto()

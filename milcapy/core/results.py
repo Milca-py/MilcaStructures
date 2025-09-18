@@ -38,13 +38,13 @@ class Results:
         "stresses": np.ndarray,
         }
 
-    self.membrane_q6: {
+    self.membrane_q3dof: {
         "displacements": np.ndarray,
         "strains": np.ndarray,
         "stresses": np.ndarray,
         }
 
-    self.membrane_q6i: {
+    self.membrane_q2dof: {
         "displacements": np.ndarray,
         "strains": np.ndarray,
         "stresses": np.ndarray,
@@ -62,8 +62,8 @@ class Results:
         self.nodes: Dict[int, Dict[str, np.ndarray]] = {}
         self.members: Dict[int, Dict[str, np.ndarray]] = {}
         self.CST: Dict[int, np.ndarray] = {}
-        self.membrane_q6: Dict[int, np.ndarray] = {}
-        self.membrane_q6i: Dict[int, np.ndarray] = {}
+        self.membrane_q3dof: Dict[int, np.ndarray] = {}
+        self.membrane_q2dof: Dict[int, np.ndarray] = {}
         self.trusses: Dict[int, Dict[str, np.ndarray]] = {}
         self.model: Dict[str, np.ndarray] = {}
 
@@ -185,44 +185,44 @@ class Results:
     def get_cst_stresses(self, cst_id: int) -> None:
         return self.CST[cst_id]["stresses"]
 
-    def set_membrane_q6_displacements(self, membrane_q6_id: int, displacement: np.ndarray) -> None:
-        if membrane_q6_id not in self.membrane_q6:
-            self.membrane_q6[membrane_q6_id] = {"displacements": np.zeros(6)}
-        self.membrane_q6[membrane_q6_id]["displacements"] = displacement
+    def set_membrane_q3dof_displacements(self, membrane_q3dof_id: int, displacement: np.ndarray) -> None:
+        if membrane_q3dof_id not in self.membrane_q3dof:
+            self.membrane_q3dof[membrane_q3dof_id] = {"displacements": np.zeros(6)}
+        self.membrane_q3dof[membrane_q3dof_id]["displacements"] = displacement
 
-    def get_membrane_q6_displacements(self, membrane_q6_id: int) -> np.ndarray:
-        return self.membrane_q6[membrane_q6_id]["displacements"]
+    def get_membrane_q3dof_displacements(self, membrane_q3dof_id: int) -> np.ndarray:
+        return self.membrane_q3dof[membrane_q3dof_id]["displacements"]
 
-    def set_membrane_q6_strains(self, membrane_q6_id: int, strains: np.ndarray) -> None:
+    def set_membrane_q3dof_strains(self, membrane_q3dof_id: int, strains: np.ndarray) -> None:
         pass
 
-    def set_membrane_q6_stresses(self, membrane_q6_id: int, stresses: np.ndarray) -> None:
+    def set_membrane_q3dof_stresses(self, membrane_q3dof_id: int, stresses: np.ndarray) -> None:
         pass
 
-    def get_membrane_q6_strains(self, membrane_q6_id: int) -> None:
+    def get_membrane_q3dof_strains(self, membrane_q3dof_id: int) -> None:
         pass
 
-    def get_membrane_q6_stresses(self, membrane_q6_id: int) -> None:
+    def get_membrane_q3dof_stresses(self, membrane_q3dof_id: int) -> None:
         pass
 
-    def set_membrane_q6i_displacements(self, membrane_q6i_id: int, displacement: np.ndarray) -> None:
-        if membrane_q6i_id not in self.membrane_q6i:
-            self.membrane_q6i[membrane_q6i_id] = {"displacements": np.zeros(6)}
-        self.membrane_q6i[membrane_q6i_id]["displacements"] = displacement
+    def set_membrane_q2dof_displacements(self, membrane_q2dof_id: int, displacement: np.ndarray) -> None:
+        if membrane_q2dof_id not in self.membrane_q2dof:
+            self.membrane_q2dof[membrane_q2dof_id] = {"displacements": np.zeros(6)}
+        self.membrane_q2dof[membrane_q2dof_id]["displacements"] = displacement
 
-    def get_membrane_q6i_displacements(self, membrane_q6i_id: int) -> np.ndarray:
-        return self.membrane_q6i[membrane_q6i_id]["displacements"]
+    def get_membrane_q2dof_displacements(self, membrane_q2dof_id: int) -> np.ndarray:
+        return self.membrane_q2dof[membrane_q2dof_id]["displacements"]
 
-    def set_membrane_q6i_strains(self, membrane_q6i_id: int, strains: np.ndarray) -> None:
+    def set_membrane_q2dof_strains(self, membrane_q2dof_id: int, strains: np.ndarray) -> None:
         pass
 
-    def set_membrane_q6i_stresses(self, membrane_q6i_id: int, stresses: np.ndarray) -> None:
+    def set_membrane_q2dof_stresses(self, membrane_q2dof_id: int, stresses: np.ndarray) -> None:
         pass
 
-    def get_membrane_q6i_strains(self, membrane_q6i_id: int) -> None:
+    def get_membrane_q2dof_strains(self, membrane_q2dof_id: int) -> None:
         pass
 
-    def get_membrane_q6i_stresses(self, membrane_q6i_id: int) -> None:
+    def get_membrane_q2dof_stresses(self, membrane_q2dof_id: int) -> None:
         pass
 
     def set_truss_displacements(self, truss_id: int, displacement: np.ndarray) -> None:

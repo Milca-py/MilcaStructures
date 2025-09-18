@@ -138,10 +138,10 @@ class LinearStaticAnalysis:
             for i, j, val in zip(rows, cols, values):
                 K[i, j] += val
 
-        # Rigidez de los elementos Membrane Quad 6
-        for membQ6 in self.model.membrane_q6.values():
-            k = membQ6.global_stiffness_matrix()
-            dofs = membQ6.dofs
+        # Rigidez de los elementos Membrane de 3 grados de libertad por nodo
+        for membQ3dof in self.model.membrane_q3dof.values():
+            k = membQ3dof.global_stiffness_matrix()
+            dofs = membQ3dof.dofs
 
             rows = np.repeat(dofs - 1, 12)
             cols = np.tile(dofs - 1, 12)
@@ -151,10 +151,10 @@ class LinearStaticAnalysis:
                 K[i, j] += val
 
 
-        # Rigidez de los elementos Membrana Quad6I
-        for membQ6I in self.model.membrane_q6i.values():
-            k = membQ6I.global_stiffness_matrix()
-            dofs = membQ6I.dofs
+        # Rigidez de los elementos Membrana de 2 grados de libertad por nodo
+        for membQ2dof in self.model.membrane_q2dof.values():
+            k = membQ2dof.global_stiffness_matrix()
+            dofs = membQ2dof.dofs
 
             rows = np.repeat(dofs - 1, 8) # 8 es el numero de grados de libertad del elemento
             cols = np.tile(dofs - 1, 8)

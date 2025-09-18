@@ -9,6 +9,8 @@ from milcapy.elements.CST import MembraneTriangle
 from milcapy.elements.MQ6 import MembraneQuad6
 from milcapy.elements.MQ6I import MembraneQuad6I
 from milcapy.elements.MQ6IMod import MembraneQuad6IMod
+from milcapy.elements.quad4 import MembraneQuad4
+from milcapy.elements.quad8 import MembraneQuad8
 from milcapy.plotter.plotter import Plotter, PlotterOptions
 from milcapy.analysis.manager import AnalysisManager
 from milcapy.postprocess.post_processing import PostProcessingOptions
@@ -24,7 +26,7 @@ from milcapy.utils.types import (
     LoadType,
     to_enum,
 )
-from milcapy.utils.types import FieldTypeMembrane, InternalForceType, ConstitutiveModel
+from milcapy.utils.types import FieldTypeMembrane, InternalForceType, ConstitutiveModel, IntegrationType, MembraneQuadElementType
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -61,8 +63,8 @@ class SystemMilcaModel:
         self.nodes: Dict[int, Node] = {}
         self.members: Dict[int, Member] = {}
         self.csts: Dict[int, MembraneTriangle] = {}
-        self.membrane_q6: Dict[int, MembraneQuad6] = {}
-        self.membrane_q6i: Dict[int, MembraneQuad6I] = {}
+        self.membrane_q3dof: Dict[int, Union[MembraneQuad6, MembraneQuad6IMod]] = {}
+        self.membrane_q2dof: Dict[int, Union[MembraneQuad6I, MembraneQuad4, MembraneQuad8]] = {}
         self.trusses: Dict[int, TrussElement] = {}
         # self.membrane_q6imod: Dict[int, MembraneQuad6IMod] = {} $ POR MIENTRAS SE AGREGARA A Q6
         # Patrones de carga con las asiganciones de carga en los miembros y nodos
@@ -515,11 +517,17 @@ class SystemMilcaModel:
 
         Raises:
             ValueError: Si ya existe un elemento con el mismo ID, o si no existen los nodos o el material.
+            ValueError: Si el estado constitutivo no es 'PLANE_STRESS' o 'PLANE_STRAIN'.
+            ValueError: Si los nodos no forman un polígono en sentido antihorario.
+
         Notes:
             El elemento agregado es un CONSTANT STRAIN TRIANGLE (CST).
             La enumeracion (orden) de los nodos debe ser en sentido antihorario.
         """
         self.__id_verifier(id, node_i_id, node_j_id, node_k_id)
+
+        if self.__is_counterclockwise(node_i_id, node_j_id, node_k_id):
+            raise ValueError("Los nodos no forman un triángulo en sentido antihorario")
 
         if section_name not in self.sections:
             raise ValueError(
@@ -527,6 +535,9 @@ class SystemMilcaModel:
 
         if isinstance(state, str):
             state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
         cst = MembraneTriangle(
             id=id,
@@ -546,7 +557,8 @@ class SystemMilcaModel:
         node_j_id: int,
         node_k_id: int,
         node_l_id: int,
-        section_name: str
+        section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
     ) -> MembraneQuad6:
         """
         Agrega un cuadrilátero de membrana de 6 nodos al modelo con rigidez a la perforación (3dof/nodo).
@@ -558,12 +570,15 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
 
         Returns:
             MembraneQuad6: El cuadrilátero creado.
 
         Raises:
             ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si el estado constitutivo no es 'PLANE_STRESS' o 'PLANE_STRAIN'.
+            ValueError: Si los nodos no forman un cuadrilátero en sentido antihorario.
 
         Notes:
             El elemento agregado es un Q6 el mismo elemento que platea el dr. wilson en su libro "analisis estatico y dinamico de estructuras" membranas con grados de libertad de perforación.
@@ -571,9 +586,18 @@ class SystemMilcaModel:
         """
         self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
 
+        if self.__is_counterclockwise(node_i_id, node_j_id, node_k_id, node_l_id):
+            raise ValueError("Los nodos no forman un cuadrilátero en sentido antihorario")
+
         if section_name not in self.sections:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
+
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
         MQ6 = MembraneQuad6(
             id=id,
@@ -582,8 +606,9 @@ class SystemMilcaModel:
             node3=self.nodes[node_k_id],
             node4=self.nodes[node_l_id],
             section=self.sections[section_name],
+            state=state,
         )
-        self.membrane_q6[id] = MQ6
+        self.membrane_q3dof[id] = MQ6
         return MQ6
 
     def add_membrane_q6i(
@@ -593,10 +618,11 @@ class SystemMilcaModel:
         node_j_id: int,
         node_k_id: int,
         node_l_id: int,
-        section_name: str
+        section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
     ) -> MembraneQuad6I:
         """
-        Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, sin rigidez a la perforación.
+        Agrega un rectangular de membrana de 4 nodos y con modos incompatibles al modelo, sin rigidez a la perforación.
 
         Args:
             id (int): Identificador del cuadrilátero.
@@ -605,23 +631,41 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
 
         Returns:
             MembraneQuad6I: El cuadrilátero creado.
 
         Raises:
             ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si el estado constitutivo no es 'PLANE_STRESS' o 'PLANE_STRAIN'.
+            ValueError: Si los nodos no forman un cuadrilátero en sentido antihorario.
 
         Notes:
-            El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
+            El elemento agregado es un Q4I el mismo modelo que usa ETABS, SAP2000.
             La enumeracion (orden) de los nodos debe ser en sentido antihorario.
         """
 
         self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
 
+        # # verificar si es rectangular
+        # if not self.__is_rectangular(node_i_id, node_j_id, node_k_id, node_l_id):
+        #     raise ValueError(
+        #         "Los nodos no forman un rectángulo en sentido antihorario")
+
+        if self.__is_counterclockwise(node_i_id, node_j_id, node_k_id, node_l_id):
+            raise ValueError(
+                "Los nodos no forman un rectángulo en sentido antihorario")
+
         if section_name not in self.sections:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
+
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
         MQ6I = MembraneQuad6I(
             id=id,
@@ -630,8 +674,9 @@ class SystemMilcaModel:
             node3=self.nodes[node_k_id],
             node4=self.nodes[node_l_id],
             section=self.sections[section_name],
+            state=state,
         )
-        self.membrane_q6i[id] = MQ6I
+        self.membrane_q2dof[id] = MQ6I
         return MQ6I
 
     def add_membrane_q6i_mod(
@@ -641,7 +686,9 @@ class SystemMilcaModel:
         node_j_id: int,
         node_k_id: int,
         node_l_id: int,
-        section_name: str
+        section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        ele_type: Union[MembraneQuadElementType, str] = MembraneQuadElementType.MQ6I,
     ) -> MembraneQuad6IMod:
         """
         Agrega un cuadrilátero de membrana de 4 nodos y con modos incompatibles al modelo, con rigidez a la perforación.
@@ -653,12 +700,16 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            ele_type (Union[MembraneQuadElementType, str]): Tipo de elemento de membrana.
 
         Returns:
-            MembraneQuad6I: El cuadrilátero creado.
+            MembraneQuad6IMod: El cuadrilátero creado.
 
         Raises:
             ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si los nodos no forman un cuadrilátero en sentido antihorario.
+            ValueError: Si los nodos no forman un rectángulo.
 
         Notes:
             El elemento agregado es un QUAD6I el mismo modelo que usa ETABS, SAP2000.
@@ -667,10 +718,29 @@ class SystemMilcaModel:
         """
 
         self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+        # if not self.__is_counterclockwise(node_i_id, node_j_id, node_k_id, node_l_id):
+        #     raise ValueError(
+        #         "Los nodos no forman un rectángulo en sentido antihorario")
+
+        # if not self.__is_rectangular(node_i_id, node_j_id, node_k_id, node_l_id):
+        #     raise ValueError(
+        #         "Los nodos no forman un rectángulo")
 
         if section_name not in self.sections:
             raise ValueError(
                 f"No existe una sección con el nombre '{section_name}'")
+
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
+
+        if isinstance(ele_type, str):
+            ele_type = to_enum(ele_type, MembraneQuadElementType)
+        if ele_type not in [MembraneQuadElementType.MQ4, MembraneQuadElementType.MQ6, MembraneQuadElementType.MQ6I, MembraneQuadElementType.MQ8Reduced, MembraneQuadElementType.MQ8Complete]:
+            raise ValueError(
+                f"El tipo de elemento debe ser 'MQ4', 'MQ6', 'MQ6I', 'MQ8Reduced' o 'MQ8Complete'")
 
         MQ6IMod = MembraneQuad6IMod(
             id=id,
@@ -679,9 +749,142 @@ class SystemMilcaModel:
             node3=self.nodes[node_k_id],
             node4=self.nodes[node_l_id],
             section=self.sections[section_name],
+            state=state,
+            ele_type=ele_type,
         )
-        self.membrane_q6[id] = MQ6IMod
+        self.membrane_q3dof[id] = MQ6IMod
         return MQ6IMod
+
+    def add_membrane_q4(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        node_l_id: int,
+        section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+    ) -> MembraneQuad4:
+        """
+        Agrega un cuadrilátero de membrana de 4 nodos al modelo (2dof/nodo).
+
+        Args:
+            id (int): Identificador del cuadrilátero.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            node_l_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str], optional): Estado constitutivo del cuadrilátero. Defaults to ConstitutiveModel.PLANE_STRESS.
+
+        Raises:
+            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si los nodos no forman un cuadrilátero en sentido antihorario.
+            ValueError: Si los nodos no forman un rectángulo.
+
+        Returns:
+            MembraneQuad4: El cuadrilátero creado.
+
+        Notes:
+            El elemento agregado es un Q4.
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+            Tiene muy poca convergencia, recomiendo usar Q8.
+        """
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+
+        if self.__is_counterclockwise(node_i_id, node_j_id, node_k_id, node_l_id):
+            raise ValueError("Los nodos no forman un cuadrilátero en sentido antihorario")
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
+
+        MQ4 = MembraneQuad4(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            node4=self.nodes[node_l_id],
+            section=self.sections[section_name],
+            state=state,
+        )
+        self.membrane_q2dof[id] = MQ4
+        return MQ4
+
+    def add_membrane_q8(
+        self,
+        id: int,
+        node_i_id: int,
+        node_j_id: int,
+        node_k_id: int,
+        node_l_id: int,
+        section_name: str,
+        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        integration: Union[IntegrationType, str] = IntegrationType.COMPLETE,
+    ) -> MembraneQuad8:
+        """
+        Agrega un cuadrilátero de membrana de 8 nodos al modelo con rigidez a la perforación (2dof/nodo).
+
+        Args:
+            id (int): Identificador del cuadrilátero.
+            node_i_id (int): ID del nodo inicial.
+            node_j_id (int): ID del nodo final.
+            node_k_id (int): ID del nodo final.
+            node_l_id (int): ID del nodo final.
+            section_name (str): Nombre de la sección asociada.
+            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            integration (Union[IntegrationType, str]): Tipo de integración.
+
+        Returns:
+            MembraneQuad6: El cuadrilátero creado.
+
+        Raises:
+            ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
+            ValueError: Si el estado constitutivo no es 'PLANE_STRESS' o 'PLANE_STRAIN'.
+            ValueError: Si los nodos no forman un cuadrilátero en sentido antihorario.
+
+        Notes:
+            La enumeracion (orden) de los nodos debe ser en sentido antihorario.
+        """
+        self.__id_verifier(id, node_i_id, node_j_id, node_k_id, node_l_id)
+
+        if self.__is_counterclockwise(node_i_id, node_j_id, node_k_id, node_l_id):
+            raise ValueError("Los nodos no forman un cuadrilátero en sentido antihorario")
+
+        if section_name not in self.sections:
+            raise ValueError(
+                f"No existe una sección con el nombre '{section_name}'")
+
+        if isinstance(state, str):
+            state = to_enum(state, ConstitutiveModel)
+        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            raise ValueError(
+                f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
+
+        if isinstance(integration, str):
+            integration = to_enum(integration, IntegrationType)
+        if integration not in [IntegrationType.COMPLETE, IntegrationType.REDUCED]:
+            raise ValueError(
+                f"El tipo de integración debe ser 'COMPLETE' o 'REDUCED'")
+
+        MQ8 = MembraneQuad8(
+            id=id,
+            node1=self.nodes[node_i_id],
+            node2=self.nodes[node_j_id],
+            node3=self.nodes[node_k_id],
+            node4=self.nodes[node_l_id],
+            section=self.sections[section_name],
+            state=state,
+            integration=integration,
+        )
+        self.membrane_q2dof[id] = MQ8
+        return MQ8
 
     #! CONDICIONES DE FRONTERA #############################################
 
@@ -1473,10 +1676,77 @@ class SystemMilcaModel:
         """
         if (ele_id in self.members
             or ele_id in self.csts
-            or ele_id in self.membrane_q6
-                or ele_id in self.membrane_q6i):
+            or ele_id in self.membrane_q3dof
+                or ele_id in self.membrane_q2dof
+                    or ele_id in self.trusses):
             raise ValueError(f"Ya existe un elemento con el ID {ele_id}")
 
         for node_id in id_nodes:
             if node_id not in self.nodes:
                 raise ValueError(f"No existe un nodo con el ID {node_id}")
+
+    def __get_vector(self, nA: Node, nB: Node) -> np.ndarray:
+        """Vector de A hacia B."""
+        return np.array([nB.x - nA.x, nB.y - nA.y], dtype=float)
+
+    def __is_right_angle(self, v1: np.ndarray, v2: np.ndarray, tol: float = 1e-8) -> bool:
+        """Verifica si dos vectores son ortogonales (producto punto ≈ 0)."""
+        return abs(np.dot(v1, v2)) < tol
+
+    def __is_same_length(self, v1: np.ndarray, v2: np.ndarray, tol: float = 1e-8) -> bool:
+        """Verifica si dos vectores tienen la misma longitud."""
+        return abs(np.linalg.norm(v1) - np.linalg.norm(v2)) < tol
+
+    def __is_rectangular(self, n1_id: int, n2_id: int, n3_id: int, n4_id: int) -> bool:
+        # """
+        # Verifica si los nodos forman un rectángulo en sentido antihorario.
+        # Orden esperado: n1 → n2 → n3 → n4.
+        # """
+        # try:
+        #     n1, n2, n3, n4 = self.nodes[n1_id], self.nodes[n2_id], self.nodes[n3_id], self.nodes[n4_id]
+        # except KeyError as e:
+        #     raise ValueError(f"Nodo no encontrado: {e}")
+
+        # # Vectores de lados
+        # v12 = self.__get_vector(n1, n2)
+        # v23 = self.__get_vector(n2, n3)
+        # v34 = self.__get_vector(n3, n4)
+        # v41 = self.__get_vector(n4, n1)
+
+        # # Condiciones:
+        # cond1 = self.__is_right_angle(v12, v23) and self.__is_right_angle(v23, v34) \
+        #         and self.__is_right_angle(v34, v41) and self.__is_right_angle(v41, v12)
+
+        # cond2 = self.__is_same_length(v12, v34) and self.__is_same_length(v23, v41)
+
+        # return cond1 and cond2
+        pass
+
+    def __is_counterclockwise(self, *node_ids: int) -> bool:
+        # """
+        # Verifica si los nodos dados están en sentido antihorario (CCW).
+        # Args:
+        #     *node_ids: IDs de nodos en el orden del polígono.
+        # Returns:
+        #     bool: True si el polígono definido por los nodos está en sentido CCW.
+        # """
+        # if len(node_ids) < 3:
+        #     raise ValueError("Se requieren al menos 3 nodos para definir un polígono.")
+
+        # try:
+        #     coords = [self.nodes[nid].vertex.coordinates for nid in node_ids]
+        # except KeyError as e:
+        #     raise ValueError(f"Nodo no encontrado: {e}")
+
+        # area_signed = 0.0
+        # n = len(coords)
+        # for i in range(n):
+        #     x1, y1 = coords[i]
+        #     x2, y2 = coords[(i + 1) % n]  # siguiente nodo (cierra el polígono)
+        #     area_signed += (x2 - x1) * (y2 + y1)  # variante del shoelace para orientación
+
+        # # Otra opción equivalente:
+        # # area_signed = sum(coords[i][0]*coords[(i+1)%n][1] - coords[(i+1)%n][0]*coords[i][1] for i in range(n))
+
+        # return area_signed < 0  # <0 CCW, >0 CW (depende de convención)
+        pass

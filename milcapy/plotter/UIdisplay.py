@@ -545,14 +545,14 @@ class GraphicOptionsDialog(QDialog):
         self.model.plotter.update_members()                 # actualiza los miembros
         self.model.plotter.update_trusses()                 # actualiza los trusses
         self.model.plotter.update_cst()                     # actualiza los CSTs
-        self.model.plotter.update_membrane_q6()             # actualiza los MQ6
-        self.model.plotter.update_membrane_q6i()            # actualiza los MQ6I
+        self.model.plotter.update_membrane_q3dof()          # actualiza los Membranas de 3 dof / nodo
+        self.model.plotter.update_membrane_q2dof()          # actualiza los Membranas de 2 dof / nodo
         self.model.plotter.update_node_labels()             # actualiza los labels de los nodos
         self.model.plotter.update_member_labels()           # actualiza los labels de los miembros
         self.model.plotter.update_trusses_labels()          # actualiza los labels de los trusses
         self.model.plotter.update_cst_labels()              # actualiza los labels de los CSTs
-        self.model.plotter.update_membrane_q6_labels()      # actualiza los labels de los MQ6
-        self.model.plotter.update_membrane_q6i_labels()     # actualiza los labels de los MQ6I
+        self.model.plotter.update_membrane_q3dof_labels()   # actualiza los labels de los Membranas de 3 dof / nodo
+        self.model.plotter.update_membrane_q2dof_labels()   # actualiza los labels de los Membranas de 2 dof / nodo
         self.model.plotter.update_end_length_offset()       # actualiza los labels de los miembros
         self.model.plotter.update_frame_release()           # actualiza los labels de los miembros
         self.model.plotter.update_point_load()              # actualiza las cargas
@@ -867,8 +867,8 @@ class MainWindow(QMainWindow):
                     self.model.plotter.update_members(color=self.model.plotter_options.undeformed_color) # COLOR DE LA NO DEFORMADA CUANDO LA DEFORMADA SE MUESTRA
                     self.model.plotter.update_trusses(color=self.model.plotter_options.undeformed_color)
                     self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_undeformed_color_edge, color_face=self.model.plotter_options.cst_undeformed_color_face)
-                    self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q6_undeformed_color_face)
-                    self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q6i_undeformed_color_face)
+                    self.model.plotter.update_membrane_q3dof(color_edge=self.model.plotter_options.membrane_q3dof_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q3dof_undeformed_color_face)
+                    self.model.plotter.update_membrane_q2dof(color_edge=self.model.plotter_options.membrane_q2dof_undeformed_color_edge, color_face=self.model.plotter_options.membrane_q2dof_undeformed_color_face)
                     self.model.plotter.update_end_length_offset(color=self.model.plotter_options.undeformed_color)
                     self.model.plotter.update_frame_release(color=self.model.plotter_options.undeformed_color)
                 else: # si no se muestra la NO DEFORMADA
@@ -877,8 +877,8 @@ class MainWindow(QMainWindow):
                     self.model.plotter.update_members()
                     self.model.plotter.update_trusses()
                     self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_edge_color, color_face=self.model.plotter_options.cst_face_color)
-                    self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_edge_color, color_face=self.model.plotter_options.membrane_q6_face_color)
-                    self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_edge_color, color_face=self.model.plotter_options.membrane_q6i_face_color)
+                    self.model.plotter.update_membrane_q3dof(color_edge=self.model.plotter_options.membrane_q3dof_edge_color, color_face=self.model.plotter_options.membrane_q3dof_face_color)
+                    self.model.plotter.update_membrane_q2dof(color_edge=self.model.plotter_options.membrane_q2dof_edge_color, color_face=self.model.plotter_options.membrane_q2dof_face_color)
                     self.model.plotter.update_end_length_offset()
                     self.model.plotter.update_frame_release()
                     self.model.plotter_options.UI_show_members = True
@@ -890,8 +890,8 @@ class MainWindow(QMainWindow):
                 self.model.plotter.update_members(color=self.model.plotter_options.element_color)
                 self.model.plotter.update_trusses(color=self.model.plotter_options.truss_color)
                 self.model.plotter.update_cst(color_edge=self.model.plotter_options.cst_edge_color, color_face=self.model.plotter_options.cst_face_color)
-                self.model.plotter.update_membrane_q6(color_edge=self.model.plotter_options.membrane_q6_edge_color, color_face=self.model.plotter_options.membrane_q6_face_color)
-                self.model.plotter.update_membrane_q6i(color_edge=self.model.plotter_options.membrane_q6i_edge_color, color_face=self.model.plotter_options.membrane_q6i_face_color)
+                self.model.plotter.update_membrane_q3dof(color_edge=self.model.plotter_options.membrane_q3dof_edge_color, color_face=self.model.plotter_options.membrane_q3dof_face_color)
+                self.model.plotter.update_membrane_q2dof(color_edge=self.model.plotter_options.membrane_q2dof_edge_color, color_face=self.model.plotter_options.membrane_q2dof_face_color)
                 self.model.plotter.update_end_length_offset(color=self.model.plotter_options.end_length_offset_color)
                 self.model.plotter.update_frame_release(color=self.model.plotter_options.frame_release_color)
                 self.options_values["UI_show_members"] = True
@@ -908,8 +908,8 @@ class MainWindow(QMainWindow):
 
         #! AJUSTES FORZADOS:
         self.model.plotter.update_cst_labels()
-        self.model.plotter.update_membrane_q6_labels()
-        self.model.plotter.update_membrane_q6i_labels()
+        self.model.plotter.update_membrane_q3dof_labels()
+        self.model.plotter.update_membrane_q2dof_labels()
         self.model.plotter.update_trusses_labels()
 
 

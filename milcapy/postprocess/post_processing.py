@@ -94,15 +94,15 @@ class PostProcessing:   # para un solo load pattern
             global_displacements = np.hstack((self.results.get_node_displacements(cst.node1.id)[:2], self.results.get_node_displacements(cst.node2.id)[:2], self.results.get_node_displacements(cst.node3.id)[:2]))
             self.results.set_cst_displacements(id, global_displacements)
 
-    def process_displacements_for_membrane_q6(self) -> None:
-        for id, membrane_q6 in self.model.membrane_q6.items():
-            global_displacements = np.hstack((self.results.get_node_displacements(membrane_q6.node1.id), self.results.get_node_displacements(membrane_q6.node2.id), self.results.get_node_displacements(membrane_q6.node3.id), self.results.get_node_displacements(membrane_q6.node4.id)))
-            self.results.set_membrane_q6_displacements(id, global_displacements)
+    def process_displacements_for_membrane_q3dof(self) -> None:
+        for id, membrane_q3dof in self.model.membrane_q3dof.items():
+            global_displacements = np.hstack((self.results.get_node_displacements(membrane_q3dof.node1.id), self.results.get_node_displacements(membrane_q3dof.node2.id), self.results.get_node_displacements(membrane_q3dof.node3.id), self.results.get_node_displacements(membrane_q3dof.node4.id)))
+            self.results.set_membrane_q3dof_displacements(id, global_displacements)
 
-    def process_displacements_for_membrane_q6i(self) -> None:
-        for id, membrane_q6i in self.model.membrane_q6i.items():
-            global_displacements = np.hstack((self.results.get_node_displacements(membrane_q6i.node1.id)[:2], self.results.get_node_displacements(membrane_q6i.node2.id)[:2], self.results.get_node_displacements(membrane_q6i.node3.id)[:2], self.results.get_node_displacements(membrane_q6i.node4.id)[:2]))
-            self.results.set_membrane_q6i_displacements(id, global_displacements)
+    def process_displacements_for_membrane_q2dof(self) -> None:
+        for id, membrane_q2dof in self.model.membrane_q2dof.items():
+            global_displacements = np.hstack((self.results.get_node_displacements(membrane_q2dof.node1.id)[:2], self.results.get_node_displacements(membrane_q2dof.node2.id)[:2], self.results.get_node_displacements(membrane_q2dof.node3.id)[:2], self.results.get_node_displacements(membrane_q2dof.node4.id)[:2]))
+            self.results.set_membrane_q2dof_displacements(id, global_displacements)
 
     def process_displacements_for_trusses(self) -> None:
         for id, truss in self.model.trusses.items():
@@ -192,10 +192,10 @@ class PostProcessing:   # para un solo load pattern
             self.results.set_cst_strains(id, strains)
             self.results.set_cst_stresses(id, stresses)
 
-    def post_process_for_membrane_q6(self) -> None:
+    def post_process_for_membrane_q3dof(self) -> None:
         pass
 
-    def post_process_for_membrane_q6i(self) -> None:
+    def post_process_for_membrane_q2dof(self) -> None:
         pass
 
     def post_process_for_trusses(self) -> None:

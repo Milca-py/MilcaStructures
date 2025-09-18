@@ -116,10 +116,10 @@ class Plotter:
         self.csts = {} # {cst_id: [Line2D, Polygon2D, Text]}
 
         #! MEMBRANE Q6 ELEMENT:
-        self.membrane_q6 = {} # {membrane_q6_id: [Line2D, Polygon2D, Text]}
+        self.membrane_q3dof = {} # {membrane_q3dof_id: [Line2D, Polygon2D, Text]}
 
         #! MEMBRANE Q6I ELEMENT:
-        self.membrane_q6i = {} # {membrane_q6i_id: [Line2D, Polygon2D, Text]}
+        self.membrane_q2dof = {} # {membrane_q2dof_id: [Line2D, Polygon2D, Text]}
 
         #! TRUSS ELEMENT:
         self.trusses = {} # {truss_id: [Line2D]}
@@ -216,16 +216,16 @@ class Plotter:
         self.plot_members()
         self.plot_trusses()
         self.plot_cst()
-        self.plot_membrane_q6()
-        self.plot_membrane_q6i()
+        self.plot_membrane_q3dof()
+        self.plot_membrane_q2dof()
         self.plot_supports()
         self.plot_elastic_supports()
         self.plot_node_labels()
         self.plot_member_labels()
         self.plot_trusses_labels()
         self.plot_cst_labels()
-        self.plot_membrane_q6_labels()
-        self.plot_membrane_q6i_labels()
+        self.plot_membrane_q3dof_labels()
+        self.plot_membrane_q2dof_labels()
         self.plot_end_length_offset()
         self.plot_frame_release()
         for load_pattern_name in self.model.results.keys():
@@ -1563,26 +1563,26 @@ class Plotter:
 
 
 
-    def plot_membrane_q6(self):
+    def plot_membrane_q3dof(self):
         """
-        Dibuja los Membrane Q6 de la estructura.
+        Dibuja los Membrane Q3DOF de la estructura.
         """
-        for id, (coord, disp) in self.current_values.membrane_q6.items():
+        for id, (coord, disp) in self.current_values.membrane_q3dof.items():
             x_coords = coord[[0, 2, 4, 6, 0]]
             y_coords = coord[[1, 3, 5, 7, 1]]
             artists = []
 
             line, = self.axes.plot(x_coords, y_coords,
-                                color=self.plotter_options.membrane_q6_edge_color,
-                                linewidth=self.plotter_options.membrane_q6_element_line_width)
+                                color=self.plotter_options.membrane_q3dof_edge_color,
+                                linewidth=self.plotter_options.membrane_q3dof_element_line_width)
 
             polygon = self.axes.fill(x_coords, y_coords,
-                                    color=self.plotter_options.membrane_q6_face_color,
-                                    alpha=self.plotter_options.membrane_q6_alpha)[0]
+                                    color=self.plotter_options.membrane_q3dof_face_color,
+                                    alpha=self.plotter_options.membrane_q3dof_alpha)[0]
 
             artists.append(line)
             artists.append(polygon)
-            self.membrane_q6[id] = artists
+            self.membrane_q3dof[id] = artists
 
             for artist in artists:
                 artist.set_visible(self.plotter_options.UI_show_members)
@@ -1590,14 +1590,14 @@ class Plotter:
         self.figure.canvas.draw_idle()
 
 
-    def update_membrane_q6(self, color_edge: str | None = None, color_face: str | None = None):
+    def update_membrane_q3dof(self, color_edge: str | None = None, color_face: str | None = None):
         """
-        Actualiza la visibilidad de los Membrane Q6 de la estructura.
+        Actualiza la visibilidad de los Membrane Q3DOF de la estructura.
         """
-        color_edge = self.plotter_options.membrane_q6_edge_color if color_edge is None else color_edge
-        color_face = self.plotter_options.membrane_q6_face_color if color_face is None else color_face
-        for membrane_q6 in self.membrane_q6.values():
-            for artist in membrane_q6:
+        color_edge = self.plotter_options.membrane_q3dof_edge_color if color_edge is None else color_edge
+        color_face = self.plotter_options.membrane_q3dof_face_color if color_face is None else color_face
+        for membrane_q3dof in self.membrane_q3dof.values():
+            for artist in membrane_q3dof:
                 artist.set_visible(self.plotter_options.UI_show_members)
                 if isinstance(artist, plt.Line2D):
                     artist.set_color(color_edge)
@@ -1606,28 +1606,28 @@ class Plotter:
         self.figure.canvas.draw_idle()
 
 
-    def plot_membrane_q6_labels(self):
+    def plot_membrane_q3dof_labels(self):
         """
-        Dibuja las etiquetas de los Membrane Q6 de la estructura.
+        Dibuja las etiquetas de los Membrane Q3DOF de la estructura.
         """
-        for membrane_q6_id, (coords, disp) in self.current_values.membrane_q6.items():
+        for membrane_q3dof_id, (coords, disp) in self.current_values.membrane_q3dof.items():
             x_val = np.mean(coords[[0, 2, 4]])
             y_val = np.mean(coords[[1, 3, 5]])
 
-            text = self.axes.text(x_val, y_val, f"MEMBRANA Q6: {membrane_q6_id}",
+            text = self.axes.text(x_val, y_val, f"MEMBRANA Q3DOF: {membrane_q3dof_id}",
                                   fontsize=self.plotter_options.label_font_size,
                                   ha='left', va='bottom', color="blue", #bbox=bbox,
                                   clip_on=True)
-            self.membrane_q6[membrane_q6_id].append(text)
+            self.membrane_q3dof[membrane_q3dof_id].append(text)
             text.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
 
-    def update_membrane_q6_labels(self):
+    def update_membrane_q3dof_labels(self):
         """
-        Actualiza la visibilidad de las etiquetas de los Membrane Q6 de la estructura.
+        Actualiza la visibilidad de las etiquetas de los Membrane Q3DOF de la estructura.
         """
-        for membrane_q6 in self.membrane_q6.values():
-            for artist in membrane_q6:
+        for membrane_q3dof in self.membrane_q3dof.values():
+            for artist in membrane_q3dof:
                 if isinstance(artist, plt.Text):
                     artist.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
@@ -1641,26 +1641,26 @@ class Plotter:
 
 
 
-    def plot_membrane_q6i(self):
+    def plot_membrane_q2dof(self):
         """
-        Dibuja los Membrane Q6I de la estructura.
+        Dibuja los Membrane Q2DOF de la estructura.
         """
-        for id, (coord, disp) in self.current_values.membrane_q6i.items():
+        for id, (coord, disp) in self.current_values.membrane_q2dof.items():
             x_coords = coord[[0, 2, 4, 6, 0]]
             y_coords = coord[[1, 3, 5, 7, 1]]
             artists = []
 
             line, = self.axes.plot(x_coords, y_coords,
-                                color=self.plotter_options.membrane_q6i_edge_color,
-                                linewidth=self.plotter_options.membrane_q6i_element_line_width)
+                                color=self.plotter_options.membrane_q2dof_edge_color,
+                                linewidth=self.plotter_options.membrane_q2dof_element_line_width)
 
             polygon = self.axes.fill(x_coords, y_coords,
-                                    color=self.plotter_options.membrane_q6i_face_color,
-                                    alpha=self.plotter_options.membrane_q6i_alpha)[0]
+                                    color=self.plotter_options.membrane_q2dof_face_color,
+                                    alpha=self.plotter_options.membrane_q2dof_alpha)[0]
 
             artists.append(line)
             artists.append(polygon)
-            self.membrane_q6i[id] = artists
+            self.membrane_q2dof[id] = artists
 
             for artist in artists:
                 artist.set_visible(self.plotter_options.UI_show_members)
@@ -1668,14 +1668,14 @@ class Plotter:
         self.figure.canvas.draw_idle()
 
 
-    def update_membrane_q6i(self, color_edge: str | None = None, color_face: str | None = None):
+    def update_membrane_q2dof(self, color_edge: str | None = None, color_face: str | None = None):
         """
-        Actualiza la visibilidad de los Membrane Q6I de la estructura.
+        Actualiza la visibilidad de los Membrane Q2DOF de la estructura.
         """
-        color_edge = self.plotter_options.membrane_q6i_edge_color if color_edge is None else color_edge
-        color_face = self.plotter_options.membrane_q6i_face_color if color_face is None else color_face
-        for membrane_q6i in self.membrane_q6i.values():
-            for artist in membrane_q6i:
+        color_edge = self.plotter_options.membrane_q2dof_edge_color if color_edge is None else color_edge
+        color_face = self.plotter_options.membrane_q2dof_face_color if color_face is None else color_face
+        for membrane_q2dof in self.membrane_q2dof.values():
+            for artist in membrane_q2dof:
                 artist.set_visible(self.plotter_options.UI_show_members)
                 if isinstance(artist, plt.Line2D):
                     artist.set_color(color_edge)
@@ -1684,28 +1684,28 @@ class Plotter:
         self.figure.canvas.draw_idle()
 
 
-    def plot_membrane_q6i_labels(self):
+    def plot_membrane_q2dof_labels(self):
         """
-        Dibuja las etiquetas de los Membrane Q6I de la estructura.
+        Dibuja las etiquetas de los Membrane Q2DOF de la estructura.
         """
-        for membrane_q6i_id, (coords, disp) in self.current_values.membrane_q6i.items():
+        for membrane_q2dof_id, (coords, disp) in self.current_values.membrane_q2dof.items():
             x_val = np.mean(coords[[0, 2, 4]])
             y_val = np.mean(coords[[1, 3, 5]])
 
-            text = self.axes.text(x_val, y_val, f"MEMBRANA Q6I: {membrane_q6i_id}",
+            text = self.axes.text(x_val, y_val, f"MEMBRANA Q2DOF: {membrane_q2dof_id}",
                                   fontsize=self.plotter_options.label_font_size,
                                   ha='left', va='bottom', color="blue", #bbox=bbox,
                                   clip_on=True)
-            self.membrane_q6i[membrane_q6i_id].append(text)
+            self.membrane_q2dof[membrane_q2dof_id].append(text)
             text.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
 
-    def update_membrane_q6i_labels(self):
+    def update_membrane_q2dof_labels(self):
         """
-        Actualiza la visibilidad de las etiquetas de los Membrane Q6I de la estructura.
+        Actualiza la visibilidad de las etiquetas de los Membrane Q2DOF de la estructura.
         """
-        for membrane_q6i in self.membrane_q6i.values():
-            for artist in membrane_q6i:
+        for membrane_q2dof in self.membrane_q2dof.values():
+            for artist in membrane_q2dof:
                 if isinstance(artist, plt.Text):
                     artist.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
@@ -1755,8 +1755,8 @@ class Plotter:
                 member_id: [line2D]
                 truss_id: [line2D]
                 cst_id: [Line2D, Polygon2D]
-                membrane_q6_id: [Line2D, Polygon2D]
-                membrane_q6i_id: [Line2D, Polygon2D]
+                membrane_q3dof_id: [Line2D, Polygon2D]
+                membrane_q2dof_id: [Line2D, Polygon2D]
                         }
             }
         """
@@ -1804,34 +1804,34 @@ class Plotter:
 
 
 
-        for membrane_q6 in self.model.membrane_q6.values():
-            self.deformed_shape[self.current_load_pattern][membrane_q6.id] = []
-            coordinates, displacements = self.current_values.membrane_q6[membrane_q6.id]
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id] = []
+            coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
-            line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q6_element_line_width,
-                                    color=self.plotter_options.membrane_q6_deformed_color_edge, zorder=70)
-            polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q6_deformed_color_face,
-                                      alpha=self.plotter_options.membrane_q6_alpha, zorder=70)
-            self.deformed_shape[self.current_load_pattern][membrane_q6.id].append(line)
-            self.deformed_shape[self.current_load_pattern][membrane_q6.id].append(polygon)
+            line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q3dof_element_line_width,
+                                    color=self.plotter_options.membrane_q3dof_deformed_color_edge, zorder=70)
+            polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q3dof_deformed_color_face,
+                                      alpha=self.plotter_options.membrane_q3dof_alpha, zorder=70)
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(line)
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(polygon)
 
             line.set_visible(self.plotter_options.UI_deformed)
             polygon.set_visible(self.plotter_options.UI_deformed)
 
 
 
-        for membrane_q6i in self.model.membrane_q6i.values():
-            self.deformed_shape[self.current_load_pattern][membrane_q6i.id] = []
-            coordinates, displacements = self.current_values.membrane_q6i[membrane_q6i.id]
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id] = []
+            coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
-            line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q6i_element_line_width,
-                                    color=self.plotter_options.membrane_q6i_deformed_color_edge, zorder=70)
-            polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q6i_deformed_color_face,
-                                      alpha=self.plotter_options.membrane_q6i_alpha, zorder=70)
-            self.deformed_shape[self.current_load_pattern][membrane_q6i.id].append(line)
-            self.deformed_shape[self.current_load_pattern][membrane_q6i.id].append(polygon)
+            line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q2dof_element_line_width,
+                                    color=self.plotter_options.membrane_q2dof_deformed_color_edge, zorder=70)
+            polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q2dof_deformed_color_face,
+                                      alpha=self.plotter_options.membrane_q2dof_alpha, zorder=70)
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(line)
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(polygon)
 
             line.set_visible(self.plotter_options.UI_deformed)
             polygon.set_visible(self.plotter_options.UI_deformed)
@@ -1849,8 +1849,8 @@ class Plotter:
                 member_id: [line2D]
                 truss_id: [line2D]
                 cst_id: [Line2D, Polygon2D]
-                membrane_q6_id: [Line2D, Polygon2D]
-                membrane_q6i_id: [Line2D, Polygon2D]
+                membrane_q3dof_id: [Line2D, Polygon2D]
+                membrane_q2dof_id: [Line2D, Polygon2D]
                         }
             }
         """
@@ -1884,24 +1884,24 @@ class Plotter:
                 self.deformed_shape[self.current_load_pattern][cst.id][1].set_xy(coords)
 
 
-            for membrane_q6 in self.model.membrane_q6.values():
-                coordinates, displacements = self.current_values.membrane_q6[membrane_q6.id]
+            for membrane_q3dof in self.model.membrane_q3dof.values():
+                coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
                 displacements = np.array(displacements)*escala
                 x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
                 coords = np.column_stack((x, y))  # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
 
-                self.deformed_shape[self.current_load_pattern][membrane_q6.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-                self.deformed_shape[self.current_load_pattern][membrane_q6.id][1].set_xy(coords)
+                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][1].set_xy(coords)
 
 
-            for membrane_q6i in self.model.membrane_q6i.values():
-                coordinates, displacements = self.current_values.membrane_q6i[membrane_q6i.id]
+            for membrane_q2dof in self.model.membrane_q2dof.values():
+                coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
                 displacements = np.array(displacements)*escala
                 x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
                 coords = np.column_stack((x, y))  # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
 
-                self.deformed_shape[self.current_load_pattern][membrane_q6i.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-                self.deformed_shape[self.current_load_pattern][membrane_q6i.id][1].set_xy(coords)
+                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][1].set_xy(coords)
 
         self.figure.canvas.draw_idle()
 
@@ -1946,26 +1946,26 @@ class Plotter:
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
 
-        for membrane_q6 in self.model.membrane_q6.values():
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q6.id] = []
-            coordinates, displacements = self.current_values.membrane_q6[membrane_q6.id]
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id] = []
+            coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
                                     color=self.plotter_options.rigid_deformed_color, zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q6.id].append(line)
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
 
 
-        for membrane_q6i in self.model.membrane_q6i.values():
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q6i.id] = []
-            coordinates, displacements = self.current_values.membrane_q6i[membrane_q6i.id]
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id] = []
+            coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
             displacements = np.array(displacements)*escala
             x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
                                     color=self.plotter_options.rigid_deformed_color, zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q6i.id].append(line)
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
 
 
@@ -2007,20 +2007,20 @@ class Plotter:
                 self.rigid_deformed_shape[self.current_load_pattern][cst.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
 
-            for membrane_q6 in self.model.membrane_q6.values():
-                coordinates, displacements = self.current_values.membrane_q6[membrane_q6.id]
+            for membrane_q3dof in self.model.membrane_q3dof.values():
+                coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
                 displacements = np.array(displacements)*escala
                 x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
 
-                self.rigid_deformed_shape[self.current_load_pattern][membrane_q6.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
 
-            for membrane_q6i in self.model.membrane_q6i.values():
-                coordinates, displacements = self.current_values.membrane_q6i[membrane_q6i.id]
+            for membrane_q2dof in self.model.membrane_q2dof.values():
+                coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
                 displacements = np.array(displacements)*escala
                 x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
 
-                self.rigid_deformed_shape[self.current_load_pattern][membrane_q6i.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
 
 
