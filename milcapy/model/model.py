@@ -86,6 +86,9 @@ class SystemMilcaModel:
         self.postprocessing_options: "PostProcessingOptions" = PostProcessingOptions(
             factor=1, n=17)
 
+        self.global_stiffness_matrix: Optional[np.ndarray] = None
+        self.global_load_vector: Optional[Dict[str, np.ndarray]] = {}
+
     #! MATERIALES ##########################################################
     def add_material(
         self,
@@ -1512,6 +1515,21 @@ class SystemMilcaModel:
         """
         return self.results.get(load_pattern_name)
 
+    def get_results_excel(self, load_pattern_name: str) -> object:
+        """
+        Obtiene los resultados del análisis en formato .xlsx.
+
+        Returns:
+            Object: Resultados del análisis en formato .xlsx.
+        """
+        import pandas as pd
+        import os
+        nodedf, memberdf = self.results.get(load_pattern_name).get_dataframes()
+
+        # Crear el archivo Excel
+        with pd.ExcelWriter(f'{load_pattern_name}.xlsx') as writer:
+            nodedf.to_excel(writer, sheet_name='Nodos', index=False)
+            memberdf.to_excel(writer, sheet_name='Miembros', index=False)
 
     #! PLOT DE ELEMENTOS FINITOS #############################################
 

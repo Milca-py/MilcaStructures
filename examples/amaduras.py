@@ -4,14 +4,14 @@ cercha = SystemModel()
 
 dx = 1
 dy = 1
-nt = 7
+nt = 70
 cercha.add_material("concreto", 2.1e6, 0.2)
 cercha.add_rectangular_section("truss", "concreto", 0.3, 0.5)
 for i in range(nt):
     cercha.add_node(i+1, i*dx, 0)
     cercha.add_node(i+nt+1, i*dx, dy)
 
-modelType = "member"
+modelType = "truss"
 disPath = {"truss": cercha.add_truss, "member": cercha.add_member}
 
 for i in range(nt-1):
@@ -35,7 +35,5 @@ for member in cercha.members.keys():
 
 cercha.solve()
 
-momento = cercha.results["Live Load"].get_member_bending_moment(1)
-print(momento)
-
+cercha.get_results_excel("Live Load")
 cercha.show()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict
 import numpy as np
+import pandas as pd
 
 class Results:
     """Clase que almacena los resultados de un análisis de un Load Pattern.
@@ -66,6 +67,71 @@ class Results:
         self.membrane_q2dof: Dict[int, np.ndarray] = {}
         self.trusses: Dict[int, Dict[str, np.ndarray]] = {}
         self.model: Dict[str, np.ndarray] = {}
+
+    def get_dataframes(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Construye dos DataFrames:
+        - Object 1: Resultados por nodo (desplazamientos y reacciones).
+        - Object 2: Resultados por elemento (desplazamientos y fuerzas internas).
+        """
+
+        # ============ OBJECT 1 (NODOS) ============
+        displacements = self.get_model_displacements()  # vector largo múltiplo de 3
+        reactions = self.get_model_reactions()          # vector largo múltiplo de 3
+
+        n_nodes = len(displacements) // 3
+        rows_nodes = []
+
+        for i in range(n_nodes):
+            node_id = i + 1
+            Ux, Uy, Rz = displacements[i*3:(i+1)*3]
+            ReacFx, ReacFy, ReacMz = reactions[i*3:(i+1)*3]
+            rows_nodes.append([node_id, Ux, Uy, Rz, ReacFx, ReacFy, ReacMz])
+
+        df_nodes = pd.DataFrame(
+            rows_nodes,
+            columns=["node_id", "Ux", "Uy", "Rz", "ReacFx", "ReacFy", "ReacMz"]
+        )
+
+        # ============ OBJECT 2 (ELEMENTOS) ============
+        rows_elements = []
+
+        idEle = list(self.members.keys()) + list(self.trusses.keys())
+        for ele_id in idEle:
+            if ele_id in self.trusses:
+                disp = self.get_truss_displacements(ele_id)       # [Uxi, Uxj]
+                int_forces = self.get_truss_internal_forces(ele_id)  # [Ni, Nj]
+
+                # completar con 0
+                row = [ele_id,
+                    disp[0], 0.0, 0.0,   # Uxi, Uyi=0, Rzi=0
+                    disp[1], 0.0, 0.0,   # Uxj, Uyj=0, Rzj=0
+                    int_forces[0], 0.0, 0.0,   # Ni, Vi=0, Mi=0
+                    int_forces[1], 0.0, 0.0]   # Nj, Vj=0, Mj=0
+
+            else:
+                disp = self.get_member_displacements(ele_id)       # 6 elementos
+                int_forces = self.get_member_internal_forces(ele_id)  # 6 elementos
+
+                row = [ele_id,
+                    disp[0], disp[1], disp[2],   # Uxi, Uyi, Rzi
+                    disp[3], disp[4], disp[5],   # Uxj, Uyj, Rzj
+                    int_forces[0], int_forces[1], int_forces[2],   # Ni, Vi, Mi
+                    int_forces[3], int_forces[4], int_forces[5]]   # Nj, Vj, Mj
+
+            rows_elements.append(row)
+
+        df_elements = pd.DataFrame(
+            rows_elements,
+            columns=[
+                "ele_id",
+                "Uxi", "Uyi", "Rzi", "Uxj", "Uyj", "Rzj",
+                "Ni", "Vi", "Mi", "Nj", "Vj", "Mj"
+            ]
+        )
+
+        return df_nodes, df_elements
+
 
     def set_model_displacements(self, displacements: np.ndarray) -> None:
         self.model["displacements"] = displacements

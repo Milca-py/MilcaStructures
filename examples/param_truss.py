@@ -105,11 +105,11 @@ class ParametricTruss3D:
 if __name__ == "__main__":
     from milcatrusspy import Model
 
-    nt = 3
+    nt = 7
     b, p, h = 1, 1, 1
     matsec = [2.1e6, 0.3*0.4]
 
-    pt = ParametricTruss3D(nt, b, p, h, R=-20)
+    pt = ParametricTruss3D(nt, b, p, h, R=30)
     model = Model(ndm=3)
     for idn, coord in pt.nodes().items():
         model.add_node(idn, *coord)

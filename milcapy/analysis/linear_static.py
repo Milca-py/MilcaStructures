@@ -335,7 +335,6 @@ class LinearStaticAnalysis:
         K = self.assemble_global_stiffness_matrix()
         F = self.assemble_global_load_vector()
         self.model.global_stiffness_matrix = K
-        self.model.global_load_vector = {}
         self.model.global_load_vector[self.model.current_load_pattern] = F
 
         # Aplicar las condiciones de frontera

@@ -279,6 +279,7 @@ print(f"FUERZAS INTERNAS EN LOS EXTREMOS DEL ELEMENTO FLEXIBLE: \n {fi_flex}")
 print(model.results["Live Load"].get_member_displacements(45))
 # print(model.results["Live Load"].get_member_internal_forces(44))
 # print(model.results["Live Load"].get_member_internal_forces(53))
+# model.get_results_excel("Live Load")
 model.show()
 
 
