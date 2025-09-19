@@ -4,7 +4,7 @@ from milcapy.section.section import ShellSection
 import numpy as np
 from milcapy.loads.load import CSTLoad
 from typing import Optional
-from milcapy.utils.types import ConstitutiveModel
+from milcapy.utils.types import ConstitutiveModelType
 
 class MembraneTriangle:
     """
@@ -17,7 +17,7 @@ class MembraneTriangle:
         node2: Node,
         node3: Node,
         section: ShellSection,
-        state: ConstitutiveModel,
+        state: ConstitutiveModelType,
         ) -> None:
         """
         Inicializa el elemento de membrana triangular.
@@ -28,7 +28,7 @@ class MembraneTriangle:
             node2 (Node): Segundo nodo.
             node3 (Node): Tercer nodo.
             section (ShellSection): Sección del elemento tipo area (shell).
-            state (ConstitutiveModel): Estado constitutivo del elemento.
+            state (ConstitutiveModelType): Estado constitutivo del elemento.
         """
         self.id = id
         self.node1 = node1
@@ -94,7 +94,7 @@ class MembraneTriangle:
         v = self.section.v()
         E = self.section.E()
         # ! T E N S I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRESS:
+        if self.state == ConstitutiveModelType.PLANE_STRESS:
             k = E/(1-v**2)
             return k*np.array([
                             [1, v, 0],
@@ -103,7 +103,7 @@ class MembraneTriangle:
                             ])
 
         # ! D E F O R M A C I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRAIN:
+        if self.state == ConstitutiveModelType.PLANE_STRAIN:
             k = (E*(1-v))/((1 + v)*(1 - 2*v))
             return k * np.array([
                 [1,                 v/(1-v), 0],

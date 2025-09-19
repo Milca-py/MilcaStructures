@@ -10,10 +10,12 @@ Biblioteca para el análisis estructural de **marcos en 2D**, con soporte para e
 - **Q6i(rectangular 4 nodos & 2dof por nodo + modos incompatibles)**
 - **Q8(quadrilateral 8 nodos (los 4 nodos intermedios son condensados) & 2dof por nodo)**
 
-Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D).
+Implementa el **método de rigidez directa** y el **método de los elementos finitos** para membranas, con **solución cerrada** en elementos unidimensionales (1D: marcos y armaduras).
 Además, incorpora conceptos avanzados de **análisis matricial de estructuras**.
 
-Desarrollado por **Amilcar Machacca Mayo**
+Desarrollado por **Amilcar Machacca Mayo**  
+GitHub: [Milca-py](https://github.com/Milca-py)  
+Repositorio: [MilcaStructures](https://github.com/Milca-py/MilcaStructures)
 
 ---
 
@@ -79,18 +81,19 @@ pip install milcapy
 ```python
 from milcapy import (
   SystemModel,
+  model_viewer,
   BeamTheoriesType,
   CoordinateSystemType,
   DirectionType,
   StateType,
   LoadType,
-  model_viewer,
-  FieldTypeMembrane,
-  ConstitutiveModel,
+  FieldType,
+  ConstitutiveModelType,
   IntegrationType,
 )
 ```
-> - `SystemModel` → Plano de contruccion para crear el modelo
+> - `SystemModel` → Plano de contruccion para crear el modelo  
+> - `model_viewer` → Para visualizar el modelo  
 > - `BeamTheoriesType` → Tipos de teorías de vigas 
 >   - TIMOSHENKO
 >   - EULER_BERNOULLI
@@ -114,8 +117,7 @@ from milcapy import (
 > - `LoadType` → Tipos de cargas 
 >   - FORCE
 >   - MOMENT
-> - `model_viewer` → Para visualizar el modelo
-> - `FieldTypeMembrane` → Tipos de campos para membranas
+> - `FieldType` → Tipos de campos para membranas
 >   - SX
 >   - SY
 >   - SXY
@@ -125,7 +127,7 @@ from milcapy import (
 >   - UX
 >   - UY
 >   - UMAG
-> - `ConstitutiveModel` → Tipos de estados constitutivos para membranas
+> - `ConstitutiveModelType` → Tipos de estados constitutivos para membranas
 >   - PLANE_STRESS
 >   - PLANE_STRAIN
 > - `IntegrationType` → Tipos de integración para membranas
@@ -273,7 +275,7 @@ model.add_cst('id', 'node_ids', 'section_name', 'state=ConstitutiveModel.PLANE_S
 > - `id` (`int`) → ID del miembro
 > - `node_ids` (`list[int]`) → Un lista de IDs de los 3 nodos
 > - `section_name` (`str`) → Nombre de la sección
-> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento (opcional)
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
 
@@ -289,7 +291,7 @@ model.add_membrane_q4('id', '*node_ids', 'section_name', 'state=ConstitutiveMode
 > - `id` (`int`) → ID del miembro
 > - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
 > - `section_name` (`str`) → Nombre de la sección
-> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento (opcional)
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> ⚠️ **Nota:** Se recomienda discretizar con el elemento Q4 ya que esta tiene una convergencia muy mala con un solo elemento.   
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
@@ -307,7 +309,7 @@ model.add_membrane_q6('id', '*node_ids', 'section_name', 'state=ConstitutiveMode
 > - `id` (`int`) → ID del miembro
 > - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
 > - `section_name` (`str`) → Nombre de la sección
-> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento (opcional)
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
 
@@ -323,7 +325,7 @@ model.add_membrane_q6i('id', '*node_ids', 'section_name', 'state=ConstitutiveMod
 > - `id` (`int`) → ID del miembro
 > - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
 > - `section_name` (`str`) → Nombre de la sección
-> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento
+> - `state` (`ConstitutiveModel`) → Estado constitutivo del elemento (opcional)
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'
 
@@ -339,8 +341,8 @@ model.add_membrane_q8('id', '*node_ids', 'section_name', 'state=ConstitutiveMode
 > - `id` (`int`) → ID del miembro
 > - `node_ids` (`list[int]`) → Una lista de IDs de los 4 nodos
 > - `section_name` (`str`) → Nombre de la sección
-> - `state` (`str` ó `ConstitutiveModel`) → Estado constitutivo del elemento
-> - `integration` (`str` ó `IntegrationType`) → Tipo de integracion
+> - `state` (`str` ó `ConstitutiveModel`) → Estado constitutivo del elemento (opcional)
+> - `integration` (`str` ó `IntegrationType`) → Tipo de integracion (opcional)
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> ⚠️ **Nota:** El elemento Q8 tiene 8 nodos pero sin embargo los 4 faltantes son calculado en el medio de los lados del cuadrilatero y estas a su vez son condensados en los 4 nodos originales del cuadrilatero.  
 >> ⚠️ **Nota:** Se recomienda no discritizar con el elemento Q8 ya que esta con un solo elemento da una convergencia muy buena. debido a su que su implementacion es muy robusta. caso que si se discretiza esta se vuelve muy flexible y se aleja de la solucion exacta.  
@@ -695,3 +697,20 @@ model_viewer(model)
 
 ##### Diagramas de fuerzas cortantes
 ![Resultados](assets/diag_momentos.png)
+
+
+### Otros ejemplos
+![Resultados](assets/img/%20(21).png)
+![Resultados](assets/img/%20(6).png)
+![Resultados](assets/img/%20(4).png)
+![Resultados](assets/img/%20(2).png)
+![Resultados](assets/img/%20(5).png)
+![Resultados](assets/img/%20(3).png)
+![Resultados](assets/img/%20(8).png)
+![Resultados](assets/img/%20(1).png)
+![Resultados](assets/img/%20(11).png)
+![Resultados](assets/img/%20(14).png)
+![Resultados](assets/img/%20(15).png)
+![Resultados](assets/img/%20(19).png)
+![Resultados](assets/img/%20(16).png)
+![Resultados](assets/img/%20(18).png)

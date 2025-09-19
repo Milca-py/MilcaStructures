@@ -1,6 +1,6 @@
 from milcapy.core.node import Node
 from milcapy.section.section import ShellSection
-from milcapy.utils.types import ConstitutiveModel
+from milcapy.utils.types import ConstitutiveModelType
 import numpy as np
 
 """
@@ -29,7 +29,7 @@ class MembraneQuad6I:
         node3: Node,
         node4: Node,
         section: ShellSection,
-        state: ConstitutiveModel,
+        state: ConstitutiveModelType,
     ) -> None:
         """
         Inicializa el elemento de membrana Rectangular de 4 nodos + 2 modos incompatibles adicionales para evitar el shear locking.
@@ -41,6 +41,7 @@ class MembraneQuad6I:
             node3 (Node): Tercer nodo.
             node4 (Node): Cuarto nodo.
             section (ShellSection): Sección del elemento tipo area (shell).
+            state (ConstitutiveModelType): Modelo constitutivo del elemento.
         """
         self.id = id
         self.node1 = node1
@@ -162,7 +163,7 @@ class MembraneQuad6I:
         v = self.section.v()
         E = self.section.E()
         # ! T E N S I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRESS:
+        if self.state == ConstitutiveModelType.PLANE_STRESS:
             k = E/(1-v**2)
             return k*np.array([
                             [1, v, 0],
@@ -171,7 +172,7 @@ class MembraneQuad6I:
                             ])
 
         # ! D E F O R M A C I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRAIN:
+        if self.state == ConstitutiveModelType.PLANE_STRAIN:
             k = (E*(1-v))/((1 + v)*(1 - 2*v))
             return k * np.array([
                 [1,                 v/(1-v), 0],

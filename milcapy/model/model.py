@@ -26,7 +26,7 @@ from milcapy.utils.types import (
     LoadType,
     to_enum,
 )
-from milcapy.utils.types import FieldTypeMembrane, InternalForceType, ConstitutiveModel, IntegrationType, MembraneQuadElementType
+from milcapy.utils.types import FieldType, InternalForceType, ConstitutiveModelType, IntegrationType, MembraneQuadElementType
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -502,7 +502,7 @@ class SystemMilcaModel:
         node_j_id: int,
         node_k_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
     ) -> MembraneTriangle:
         """
         Agrega un triángulo de membrana al modelo.
@@ -513,7 +513,7 @@ class SystemMilcaModel:
             node_j_id (int): ID del nodo final.
             node_k_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str]): Estado constitutivo del triángulo.
+            state (Union[ConstitutiveModelType, str]): Estado constitutivo del triángulo.
 
         Returns:
             MembraneTriangle: El triángulo creado.
@@ -537,8 +537,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -561,7 +561,7 @@ class SystemMilcaModel:
         node_k_id: int,
         node_l_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
     ) -> MembraneQuad6:
         """
         Agrega un cuadrilátero de membrana de 6 nodos al modelo con rigidez a la perforación (3dof/nodo).
@@ -573,7 +573,7 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            state (Union[ConstitutiveModelType, str]): Estado constitutivo del cuadrilátero.
 
         Returns:
             MembraneQuad6: El cuadrilátero creado.
@@ -597,8 +597,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -622,7 +622,7 @@ class SystemMilcaModel:
         node_k_id: int,
         node_l_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
     ) -> MembraneQuad6I:
         """
         Agrega un rectangular de membrana de 4 nodos y con modos incompatibles al modelo, sin rigidez a la perforación.
@@ -634,7 +634,7 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            state (Union[ConstitutiveModelType, str]): Estado constitutivo del cuadrilátero.
 
         Returns:
             MembraneQuad6I: El cuadrilátero creado.
@@ -665,8 +665,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -690,7 +690,7 @@ class SystemMilcaModel:
         node_k_id: int,
         node_l_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
         ele_type: Union[MembraneQuadElementType, str] = MembraneQuadElementType.MQ6I,
     ) -> MembraneQuad6IMod:
         """
@@ -703,7 +703,7 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            state (Union[ConstitutiveModelType, str]): Estado constitutivo del cuadrilátero.
             ele_type (Union[MembraneQuadElementType, str]): Tipo de elemento de membrana.
 
         Returns:
@@ -734,8 +734,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -766,7 +766,7 @@ class SystemMilcaModel:
         node_k_id: int,
         node_l_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
     ) -> MembraneQuad4:
         """
         Agrega un cuadrilátero de membrana de 4 nodos al modelo (2dof/nodo).
@@ -778,7 +778,7 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str], optional): Estado constitutivo del cuadrilátero. Defaults to ConstitutiveModel.PLANE_STRESS.
+            state (Union[ConstitutiveModelType, str], optional): Estado constitutivo del cuadrilátero. Defaults to ConstitutiveModelType.PLANE_STRESS.
 
         Raises:
             ValueError: Si ya existe un cuadrilátero con el mismo ID, o si no existen los nodos o la sección.
@@ -803,8 +803,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -828,7 +828,7 @@ class SystemMilcaModel:
         node_k_id: int,
         node_l_id: int,
         section_name: str,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
         integration: Union[IntegrationType, str] = IntegrationType.COMPLETE,
     ) -> MembraneQuad8:
         """
@@ -841,7 +841,7 @@ class SystemMilcaModel:
             node_k_id (int): ID del nodo final.
             node_l_id (int): ID del nodo final.
             section_name (str): Nombre de la sección asociada.
-            state (Union[ConstitutiveModel, str]): Estado constitutivo del cuadrilátero.
+            state (Union[ConstitutiveModelType, str]): Estado constitutivo del cuadrilátero.
             integration (Union[IntegrationType, str]): Tipo de integración.
 
         Returns:
@@ -865,8 +865,8 @@ class SystemMilcaModel:
                 f"No existe una sección con el nombre '{section_name}'")
 
         if isinstance(state, str):
-            state = to_enum(state, ConstitutiveModel)
-        if state not in [ConstitutiveModel.PLANE_STRESS, ConstitutiveModel.PLANE_STRAIN]:
+            state = to_enum(state, ConstitutiveModelType)
+        if state not in [ConstitutiveModelType.PLANE_STRESS, ConstitutiveModelType.PLANE_STRAIN]:
             raise ValueError(
                 f"El estado constitutivo debe ser 'PLANE_STRESS' o 'PLANE_STRAIN'")
 
@@ -1114,16 +1114,8 @@ class SystemMilcaModel:
         if load_pattern_name not in self.load_patterns:
             raise ValueError(
                 f"No existe un patrón de carga con el nombre '{load_pattern_name}'")
-        for member in self.members.values():
-            self.add_distributed_load(
-                member_id=member.id,
-                load_pattern_name=load_pattern_name,
-                load_start=member.section.A()/member.section.kA * member.section.g() * factor,
-                load_end=member.section.A()/member.section.kA * member.section.g() * factor,
-                CSys="GLOBAL",
-                direction="GRAVITY",
-                load_type="FORCE",
-            )
+
+        self.load_patterns[load_pattern_name].self_weight.multiplier = factor
 
     def add_cst_uniform_temperature_load(
             self,
@@ -1562,7 +1554,7 @@ class SystemMilcaModel:
 
     def plot_field(
         self,
-        field: Union[FieldTypeMembrane, str],
+        field: Union[FieldType, str],
         cmap: str = "jet"
     ):
         """
@@ -1593,17 +1585,17 @@ class SystemMilcaModel:
                 strains = self.results[self.current_load_pattern].get_cst_strains(
                     cst.id)
 
-                if field == FieldTypeMembrane.SX:
+                if field == FieldType.SX:
                     val = stresses[0]
-                elif field == FieldTypeMembrane.SY:
+                elif field == FieldType.SY:
                     val = stresses[1]
-                elif field == FieldTypeMembrane.SXY:
+                elif field == FieldType.SXY:
                     val = stresses[2]
-                elif field == FieldTypeMembrane.EX:
+                elif field == FieldType.EX:
                     val = strains[0]
-                elif field == FieldTypeMembrane.EY:
+                elif field == FieldType.EY:
                     val = strains[1]
-                elif field == FieldTypeMembrane.EXY:
+                elif field == FieldType.EXY:
                     val = strains[2]
                 else:
                     val = None
@@ -1614,15 +1606,15 @@ class SystemMilcaModel:
                         node_values[n.id].append(val)
 
         # --- NUEVO: desplazamientos nodales ---
-        if field in [FieldTypeMembrane.UX, FieldTypeMembrane.UY, FieldTypeMembrane.UMAG]:
+        if field in [FieldType.UX, FieldType.UY, FieldType.UMAG]:
             for nid, node in self.nodes.items():
                 ux, uy = self.results[self.current_load_pattern].get_node_displacements(nid)[
                     :2]
-                if field == FieldTypeMembrane.UX:
+                if field == FieldType.UX:
                     node_values[nid] = [ux]
-                elif field == FieldTypeMembrane.UY:
+                elif field == FieldType.UY:
                     node_values[nid] = [uy]
-                elif field == FieldTypeMembrane.UMAG:
+                elif field == FieldType.UMAG:
                     node_values[nid] = [np.sqrt(ux**2 + uy**2)]
 
         # promediar valores en los nodos
@@ -1653,31 +1645,31 @@ class SystemMilcaModel:
         plt.show()
 
     def _plot_ux(self):
-        self.plot_field(FieldTypeMembrane.UX)
+        self.plot_field(FieldType.UX)
 
     def _plot_uy(self):
-        self.plot_field(FieldTypeMembrane.UY)
+        self.plot_field(FieldType.UY)
 
     def _plot_umag(self):
-        self.plot_field(FieldTypeMembrane.UMAG)
+        self.plot_field(FieldType.UMAG)
 
     def _plot_sx(self):
-        self.plot_field(FieldTypeMembrane.SX)
+        self.plot_field(FieldType.SX)
 
     def _plot_sy(self):
-        self.plot_field(FieldTypeMembrane.SY)
+        self.plot_field(FieldType.SY)
 
     def _plot_sxy(self):
-        self.plot_field(FieldTypeMembrane.SXY)
+        self.plot_field(FieldType.SXY)
 
     def _plot_ex(self):
-        self.plot_field(FieldTypeMembrane.EX)
+        self.plot_field(FieldType.EX)
 
     def _plot_ey(self):
-        self.plot_field(FieldTypeMembrane.EY)
+        self.plot_field(FieldType.EY)
 
     def _plot_exy(self):
-        self.plot_field(FieldTypeMembrane.EXY)
+        self.plot_field(FieldType.EXY)
 
 
     #! METODOS PRIVADOS ######################################################
@@ -1768,3 +1760,8 @@ class SystemMilcaModel:
 
         # return area_signed < 0  # <0 CCW, >0 CW (depende de convención)
         pass
+
+    # ! HELPERS #####################################################################################################
+    def set_no_weight(self, load_pattern_name, ele_id)->None:
+        """Setea el peso propio de un elemento a cero."""
+        self.load_patterns[load_pattern_name].set_no_weight(ele_id)

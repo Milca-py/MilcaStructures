@@ -68,6 +68,7 @@ class AnalysisManager:
             self.notify_all()
 
             # Asignar las cargas a los nodos y miembros almacenados en el patrón de carga
+            load_pattern.add_self_weight()
             load_pattern.assign_loads_to_nodes()
             load_pattern.assign_loads_to_members()
             load_pattern.assign_prescribed_dofs_to_nodes()

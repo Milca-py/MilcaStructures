@@ -5,26 +5,54 @@ from .utils.types import (
     DirectionType,
     StateType,
     LoadType,
-    FieldTypeMembrane,
-    ConstitutiveModel,
+    FieldType,
+    ConstitutiveModelType,
     IntegrationType,
     )
+from typing_extensions import Self
+
 
 class SystemModel(SystemMilcaModel):
     """
-    Class to create a model for the MILCA software.
-
-    Attributes:
-        model (SystemMilcaModel): Instance of the SystemMilcaModel class.
+    Clase que representa el modelo estructural.
+    Colecciona:
+    - Materiales
+    - Secciones
+    - Nodos
+    - Modelos de elementos finitos
+    - Patrones de Carga
+    - Resultados
     """
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-def model_viewer(
-    model: SystemMilcaModel
-):
+    def reset(self) -> Self:
+        super().__init__()
+        return self
+
+
+def model_viewer(model: SystemModel) -> None:
     """
     Muestra la interfaz gráfica para visualizar el modelo.
+
+    Parameters
+    ----------
+    model : SystemModel
+        Modelo estructural a visualizar.
     """
     model.show()
+
+
+
+__all__ = [
+    "SystemModel",
+    "model_viewer",
+    "BeamTheoriesType",
+    "CoordinateSystemType",
+    "DirectionType",
+    "StateType",
+    "LoadType",
+    "FieldType",
+    "ConstitutiveModelType",
+    "IntegrationType",
+]

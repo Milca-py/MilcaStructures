@@ -1,3 +1,4 @@
+from typing import Type, TypeVar
 from typing import Tuple
 from enum import Enum, auto
 
@@ -21,15 +22,18 @@ class MemberType(Enum):
     MEMBRANE_2DOF = 'MEMBRANE_2DOF'
     MEMBRANE_3DOF = 'MEMBRANE_3DOF'
 
+
 class BeamTheoriesType(Enum):
     """Tipos de teorías de vigas."""
     TIMOSHENKO = 'TIMOSHENKO'
     EULER_BERNOULLI = 'EULER_BERNOULLI'
 
+
 class CoordinateSystemType(Enum):
     """Tipos de sistemas de coordenadas."""
     GLOBAL = 'GLOBAL'
     LOCAL = 'LOCAL'
+
 
 class DirectionType(Enum):
     """Direcciones en el sistema global y local."""
@@ -40,9 +44,10 @@ class DirectionType(Enum):
     GRAVITY = 'GRAVITY'
     GRAVITY_PROJ = 'GRAVITY_PROJ'
     MOMENT = 'MOMENT'
-    LOCAL_1 = 'LOCAL_1' # AXIAL
-    LOCAL_2 = 'LOCAL_2' # SHEAR
-    LOCAL_3 = 'LOCAL_3' # MOMENT
+    LOCAL_1 = 'LOCAL_1'  # AXIAL
+    LOCAL_2 = 'LOCAL_2'  # SHEAR
+    LOCAL_3 = 'LOCAL_3'  # MOMENT
+
 
 class StateType(Enum):
     """Estado de los elementos o componentes."""
@@ -67,8 +72,7 @@ class InternalForceType(Enum):
     RIGID_DEFORMED = "RIGID_DEFORMED"
 
 
-
-class FieldTypeMembrane(Enum):
+class FieldType(Enum):
     SX = "SX"
     SY = "SY"
     SXY = "SXY"
@@ -80,21 +84,23 @@ class FieldTypeMembrane(Enum):
     UMAG = "UMAG"
 
 
-
-def to_enum(key: str, enum: Enum) -> Enum:
+ENUM = TypeVar("ENUM", bound=Enum)
+def to_enum(key: str, enum: Type[ENUM]) -> ENUM:
+    # def to_enum(key: str, enum: Enum) -> Enum:
     """Convierte un string a un miembro de un Enum."""
     assert isinstance(key, str), 'La clave debe ser un string.'
-    assert issubclass(enum, Enum), 'El segundo argumento debe ser una clase Enum.'
+    assert issubclass(
+        enum, Enum), 'El segundo argumento debe ser una clase Enum.'
     try:
         return enum(key)
     except ValueError:
-        raise ValueError(f'La clave "{key}" no se encuentra en el Enum "{enum.__name__}".')
+        raise ValueError(
+            f'La clave "{key}" no se encuentra en el Enum "{enum.__name__}".')
 
 
-class ConstitutiveModel(Enum):
+class ConstitutiveModelType(Enum):
     PLANE_STRESS = 'PLANE_STRESS'     # Esfuerzo plano
     PLANE_STRAIN = 'PLANE_STRAIN'     # Deformación plana
-
 
 
 class IntegrationType(Enum):

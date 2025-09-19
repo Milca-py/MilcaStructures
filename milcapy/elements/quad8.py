@@ -17,7 +17,7 @@ from milcapy.core.node import Node, NodeArbitrary
 from milcapy.section.section import ShellSection
 import numpy as np
 import uuid
-from milcapy.utils.types import ConstitutiveModel, IntegrationType
+from milcapy.utils.types import ConstitutiveModelType, IntegrationType
 from milcapy.utils.geometry import Vertex
 
 class MembraneQuad8:
@@ -29,7 +29,7 @@ class MembraneQuad8:
         node3: Node,
         node4: Node,
         section: ShellSection,
-        state: ConstitutiveModel,
+        state: ConstitutiveModelType,
         integration: IntegrationType
     ) -> None:
         self.id = id
@@ -202,7 +202,7 @@ class MembraneQuad8:
         v = self.section.v()
         E = self.section.E()
         # ! T E N S I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRESS:
+        if self.state == ConstitutiveModelType.PLANE_STRESS:
             k = E/(1-v**2)
             return k*np.array([
                             [1, v, 0],
@@ -211,7 +211,7 @@ class MembraneQuad8:
                             ])
 
         # ! D E F O R M A C I O N    C O N S T A N T E
-        if self.state == ConstitutiveModel.PLANE_STRAIN:
+        if self.state == ConstitutiveModelType.PLANE_STRAIN:
             k = (E*(1-v))/((1 + v)*(1 - 2*v))
             return k * np.array([
                 [1,                 v/(1-v), 0],

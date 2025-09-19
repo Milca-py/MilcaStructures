@@ -1,6 +1,13 @@
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    List,
+    Tuple,
+    Sequence,
+    Union,
+    Dict
+)
 
-from numpy import True_, mean
+from numpy import mean
 if TYPE_CHECKING:
     from milcapy.model.model import SystemMilcaModel
 class PlotterOptions:        # ✅✅✅
@@ -92,8 +99,8 @@ class PlotterOptions:        # ✅✅✅
 
         # FUERZAS INTERNAS
         self.moment_on_tension_side = True     # (C| ---|Ɔ)
-        self.fi_label = False                                                        ############################################################################### LABEL FI
-        self.fi_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
+        self.internal_forces_label = False                                                        ############################################################################### LABEL FI
+        self.internal_forces_line_width = 1.0           # Ancho de línea de contorno para diagramas de esfuerzos
         self.UI_axial = False
         self.axial_scale = {}
         self.UI_shear = False
@@ -106,7 +113,7 @@ class PlotterOptions:        # ✅✅✅
         self.deflection_scale = {}
 
         colorOption = 2 # 2 = color, 1 = blanco
-        self.fi_ratio_scale = 0.2
+        self.internal_forces_ratio_scale = 0.2
         self.positive_fill_color = '#7f7fff' if colorOption == 2 else 'white'
         self.positive_fill_alpha = 1
         self.negative_fill_color = '#ff7f7f' if colorOption == 2 else 'white'
@@ -138,7 +145,6 @@ class PlotterOptions:        # ✅✅✅
         self.end_length_offset_line_width = 3.0  # Ancho de línea para brazos en los elementos
 
         # DESPLAMIENTOS PRESCRITOS:
-        self.disp_pre_length_arrow = 1
         self.disp_pre_color = 'red'
         self.disp_pre_label_color = 'black'
         self.disp_pre_label_font_size = 8
@@ -210,6 +216,20 @@ class PlotterOptions:        # ✅✅✅
         self.tol = 1e-5
         self.decimals = 6
 
+
+
+        #! MODIFICADORES
+        self.mod_support_size = 1.0
+        self.mod_scale_internal_forces = 1.0
+        self.mod_scale_deformation = 1.0
+        self.mod_scale_dist_qload = 1.0
+        self.mod_krz_rotation_angle: Union[float, int, Tuple, List, Sequence, Dict] = 135 # Grados | si es lista [cada soporte creado en el orden idn se girará]
+        self.mod_rotation_angle_conventional_supports: Dict = {} # Grados
+        self.mod_scale_point_load = 1.0
+
+
+
+
     def reset(self, pattern_name: str):
         """
         Reinicia todas las opciones a sus valores predeterminados.
@@ -237,17 +257,17 @@ class PlotterOptions:        # ✅✅✅
         else:
             fact = 0.7
         val = self._calculate_mean(pattern_name)
-        self.support_size = 0.10 * val["length_mean"] if round(val["length_mean"], 2) not in [0, None, nan, inf] else 0.4
-        self.scale_dist_qload[pattern_name] = 0.07 * val["length_mean"] / val["q_mean"] if val["q_mean"] not in [0, None, nan, inf] else 0
+        self.support_size = self.mod_support_size*0.10 * val["length_mean"] if round(val["length_mean"], 2) not in [0, None, nan, inf] else 0.4
+        self.scale_dist_qload[pattern_name] = self.mod_scale_dist_qload * 0.07 * val["length_mean"] / val["q_mean"] if val["q_mean"] not in [0, None, nan, inf] else 0
         self.scale_dist_pload[pattern_name] = 0.02 * val["length_mean"] / val["p_mean"] if val["p_mean"] not in [0, None, nan, inf] else 0
-        self.point_load_length_arrow = 0.15 * val["length_mean"]
-        self.point_moment_length_arrow = 0.075 * val["length_mean"]
-        self.axial_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan, inf] else 1
-        self.shear_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan, inf] else 1
-        self.moment_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan, inf] else 1
-        self.slope_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan, inf] else 100
+        self.point_load_length_arrow = self.mod_scale_point_load * 0.15 * val["length_mean"]
+        self.point_moment_length_arrow = self.mod_scale_point_load  * 0.075 * val["length_mean"]
+        self.axial_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan, inf] else 1
+        self.shear_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan, inf] else 1
+        self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan, inf] else 1
+        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan, inf] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
@@ -292,17 +312,17 @@ class PlotterOptions:        # ✅✅✅
                 val["length_max"] = 1.7 * (lmax + lmin) / 2
             else:
                 val["length_max"] = lmax
-        self.support_size = 0.10 * val["length_max"] if round(val["length_max"], 2) not in [0, None, nan, inf] else 0.4
-        self.scale_dist_qload[pattern_name] = 0.15 * val["length_max"] / val["q_max"] if val["q_max"] not in [0, None, nan, inf] else 1
+        self.support_size = self.mod_support_size*0.10 * val["length_max"] if round(val["length_max"], 2) not in [0, None, nan, inf] else 0.4
+        self.scale_dist_qload[pattern_name] = self.mod_scale_dist_qload * 0.15 * val["length_max"] / val["q_max"] if val["q_max"] not in [0, None, nan, inf] else 1
         self.scale_dist_pload[pattern_name] = 0.1 * val["length_max"] if val["length_max"] not in [0, None, nan, inf] else 1
-        self.point_load_length_arrow = 0.15 * val["length_max"]
-        self.point_moment_length_arrow = 0.075 * val["length_max"]
-        self.axial_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan, inf] else 1
-        self.shear_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan, inf] else 1
-        self.moment_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan, inf] else 1
-        self.slope_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan, inf] else 100
+        self.point_load_length_arrow = self.mod_scale_point_load  * 0.15 * val["length_max"]
+        self.point_moment_length_arrow = self.mod_scale_point_load  * 0.075 * val["length_max"]
+        self.axial_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan, inf] else 1
+        self.shear_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan, inf] else 1
+        self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan, inf] else 1
+        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan, inf] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
-        self.UI_deformation_scale[pattern_name] = fact * self.fi_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0

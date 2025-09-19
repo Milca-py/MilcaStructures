@@ -1,4 +1,4 @@
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING, List, Tuple
 import numpy as np
 import warnings
 
@@ -136,6 +136,15 @@ def distributed_load_to_local_system(
             raise ValueError(f"Combinación no válida de tipo de carga y dirección: {load_type}, {direction}")
 
 
+from dataclasses import dataclass, field
+
+@dataclass
+class SelfWeightControl:
+    multiplier: int = None
+    excluded_elements: list[int] = field(default_factory=list)
+
+
+
 class LoadPattern:
     """
     Representa un patrón de carga en un modelo estructural.
@@ -171,7 +180,10 @@ class LoadPattern:
         self._system = system
 
         self.name = name
-        self.self_weight_multiplier = self_weight_multiplier
+        # self.self_weight_multiplier: Tuple[int, List[int]] = (self_weight_multiplier, list([]))
+        self.self_weight = SelfWeightControl(self_weight_multiplier)
+
+
         self.state = state
         self.analyzed = False
 
@@ -392,6 +404,7 @@ class LoadPattern:
         """
         Asigna las cargas distribuidas a los miembros correspondientes del sistema.
         """
+
         for member_id, load in self.distributed_loads.items():
             members = self._system.members | self._system.trusses
             member = members.get(member_id)
@@ -417,3 +430,21 @@ class LoadPattern:
                 node.set_prescribed_dof(dof)
             else:
                 warnings.warn(f"Nodo {node_id} no encontrado en el sistema")
+
+
+    def add_self_weight(self) -> None:
+        if self.self_weight.multiplier:
+            for member in self._system.members.values():
+                if member.id not in self.self_weight.excluded_elements:
+                    self._system.add_distributed_load(
+                        member_id=member.id,
+                        load_pattern_name=self.name,
+                        load_start=member.section.A()/member.section.kA * member.section.g() * self.self_weight.multiplier,
+                        load_end=member.section.A()/member.section.kA * member.section.g() * self.self_weight.multiplier,
+                        CSys="GLOBAL",
+                        direction="GRAVITY",
+                        load_type="FORCE",
+                    )
+
+    def set_no_weight(self, ele_id: int) -> None:
+        self.self_weight.excluded_elements.append(ele_id)

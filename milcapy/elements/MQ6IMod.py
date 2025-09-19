@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union
 from milcapy.core.node import Node
 from milcapy.section.section import ShellSection
-from milcapy.utils.types import ConstitutiveModel
+from milcapy.utils.types import ConstitutiveModelType
 from milcapy.elements.quad4 import MembraneQuad4
 from milcapy.elements.MQ6   import MembraneQuad6
 from milcapy.elements.MQ6I  import MembraneQuad6I
@@ -19,7 +19,7 @@ class MembraneQuad6IMod(MembraneQuad6):
         node3: Node,
         node4: Node,
         section: ShellSection,
-        state: Union[ConstitutiveModel, str] = ConstitutiveModel.PLANE_STRESS,
+        state: Union[ConstitutiveModelType, str] = ConstitutiveModelType.PLANE_STRESS,
         ele_type: Union[MembraneQuadElementType, str] = MembraneQuadElementType.MQ6,
     ):
         super().__init__(id, node1, node2, node3, node4, section, state=state)

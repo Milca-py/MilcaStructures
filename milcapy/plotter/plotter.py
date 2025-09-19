@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+import itertools
 from typing import TYPE_CHECKING, Optional, Dict
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,9 +61,11 @@ class Plotter:
                 cst_id: [Line2D, Polygon2D]
             }
         }"""
-        self.deformed_shape = {}        # {load_pattern: {ele_id: [line2D, Line2D, Polygon2D]}}    ✅🐍 visibilidad, setdata, setType: colorbar
+        self.deformed_shape = {
+        }        # {load_pattern: {ele_id: [line2D, Line2D, Polygon2D]}}    ✅🐍 visibilidad, setdata, setType: colorbar
         # forma regida de la deformada
-        self.rigid_deformed_shape = {}  # {load_pattern: {ele_id: [line2D, Line2D, Polygon2D]}}    ✅🐍 visibilidad, setdata, setType: colorbar
+        # {load_pattern: {ele_id: [line2D, Line2D, Polygon2D]}}    ✅🐍 visibilidad, setdata, setType: colorbar
+        self.rigid_deformed_shape = {}
         # cargas puntuales
         self.point_loads = {}       # ✅🐍 visibilidad
         # cargas distribuidas
@@ -95,36 +99,37 @@ class Plotter:
         self.model.current_load_pattern = list(self.model.results.keys())[0]
 
         # end length offset {id_element: [line1, line2]}
-        self.end_length_offset = {} # ✅🐍 visibilidad, color
+        self.end_length_offset = {}  # ✅🐍 visibilidad, color
 
         # prescipcion en los DOFs
-        self.prescribed_dofs = {} # ✅🐍 visibilidad, color
-        self.prescribed_dofs_labels = {} # ✅🐍 visibilidad, setdata
+        self.prescribed_dofs = {}  # ✅🐍 visibilidad, color
+        self.prescribed_dofs_labels = {}  # ✅🐍 visibilidad, setdata
 
         # elastic supports
-        self.elastic_supports = {} # ✅🐍 visibilidad, color
+        self.elastic_supports = {}  # ✅🐍 visibilidad, color
 
         # Support data cache
-        self.static_support_data_cache = {} # {node_id: [x, y, node_coords, theta]}
-        self.elastic_support_data_cache = {} # {node_id: [{"ki": (x, y, theta, Line2D)}, node_coords, TextPosition]}
+        # {node_id: [x, y, node_coords, theta]}
+        self.static_support_data_cache = {}
+        # {node_id: [{"ki": (x, y, theta, Line2D)}, node_coords, TextPosition]}
+        self.elastic_support_data_cache = {}
 
         # frame release data cache
-        self.frame_release_data_cache = {} # {member_id: [plt.Scatter, ...]}
-
+        self.frame_release_data_cache = {}  # {member_id: [plt.Scatter, ...]}
 
         #! CST ELEMENT:
-        self.csts = {} # {cst_id: [Line2D, Polygon2D, Text]}
+        self.csts = {}  # {cst_id: [Line2D, Polygon2D, Text]}
 
         #! MEMBRANE Q6 ELEMENT:
-        self.membrane_q3dof = {} # {membrane_q3dof_id: [Line2D, Polygon2D, Text]}
+        # {membrane_q3dof_id: [Line2D, Polygon2D, Text]}
+        self.membrane_q3dof = {}
 
         #! MEMBRANE Q6I ELEMENT:
-        self.membrane_q2dof = {} # {membrane_q2dof_id: [Line2D, Polygon2D, Text]}
+        # {membrane_q2dof_id: [Line2D, Polygon2D, Text]}
+        self.membrane_q2dof = {}
 
         #! TRUSS ELEMENT:
-        self.trusses = {} # {truss_id: [Line2D]}
-
-
+        self.trusses = {}  # {truss_id: [Line2D]}
 
     @property
     def plotter_options(self) -> 'PlotterOptions':
@@ -149,17 +154,17 @@ class Plotter:
 
         if self.selected_member in self.trusses:
             return {
-                    'N(x)': DiagramConfig(
-                        name='Diagrama de Fuerza Normal',
-                        values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_forces"],
-                        precision=4,
-                    ),
-                    'y(x)': DiagramConfig(
-                        name='Diagrama de desplazamiento axial',
-                        values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_displacements"],
-                        precision=6,
-                    )
-                }
+                'N(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Normal',
+                    values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_forces"],
+                    precision=4,
+                ),
+                'y(x)': DiagramConfig(
+                    name='Diagrama de desplazamiento axial',
+                    values=self.model.results[self.current_load_pattern].trusses[self.selected_member]["axial_displacements"],
+                    precision=6,
+                )
+            }
         else:
             axial_forces = self.model.results[self.current_load_pattern].members[self.selected_member]["axial_forces"]
             shear_forces = self.model.results[self.current_load_pattern].members[self.selected_member]["shear_forces"]
@@ -177,32 +182,32 @@ class Plotter:
             if np.all(np.abs(np.round(deflections, DECIMALS)) < tol):
                 deflections = np.zeros(deflections.shape, dtype=int)
             return {
-                    'N(x)': DiagramConfig(
-                        name='Diagrama de Fuerza Normal',
-                        values=axial_forces,
-                        precision=4,
-                    ),
-                    'V(x)': DiagramConfig(
-                        name='Diagrama de Fuerza Cortante',
-                        values=shear_forces,
-                        precision=4,
-                    ),
-                    'M(x)': DiagramConfig(
-                        name='Diagrama de Momento Flector',
-                        values=bending_moments,
-                        precision=4,
-                    ),
-                    'θ(x)': DiagramConfig(
-                        name='Diagrama de Rotación',
-                        values=slopes,
-                        precision=6,
-                    ),
-                    'y(x)': DiagramConfig(
-                        name='Diagrama de Deflexión',
-                        values=deflections,
-                        precision=6,
-                    )
-                }
+                'N(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Normal',
+                    values=axial_forces,
+                    precision=4,
+                ),
+                'V(x)': DiagramConfig(
+                    name='Diagrama de Fuerza Cortante',
+                    values=shear_forces,
+                    precision=4,
+                ),
+                'M(x)': DiagramConfig(
+                    name='Diagrama de Momento Flector',
+                    values=bending_moments,
+                    precision=4,
+                ),
+                'θ(x)': DiagramConfig(
+                    name='Diagrama de Rotación',
+                    values=slopes,
+                    precision=6,
+                ),
+                'y(x)': DiagramConfig(
+                    name='Diagrama de Deflexión',
+                    values=deflections,
+                    precision=6,
+                )
+            }
 
     def initialize_plot(self):
         """Plotea por primera y unica vez (crea los objetos artist)"""
@@ -211,7 +216,8 @@ class Plotter:
         elif self.plotter_options.optCargaOP == "mean":
             self.plotter_options.load_mean(list(self.model.results.keys())[0])
         elif self.plotter_options.optCargaOP == "prom":
-            self.plotter_options.load_max(list(self.model.results.keys())[0], prom=True)
+            self.plotter_options.load_max(
+                list(self.model.results.keys())[0], prom=True)
         self.plot_nodes()
         self.plot_members()
         self.plot_trusses()
@@ -449,7 +455,7 @@ class Plotter:
 
     def plot_end_length_offset(self):
         """Plotea los brazos en los elemntos si es que hubiere"""
-        
+
         for ele_id, coord in self.current_values.members.items():
             brazos = []
             la = self.model.members[ele_id].la or 0
@@ -458,19 +464,20 @@ class Plotter:
             length = length - la - lb
             ((xi, yi), (xj, yj)) = self.current_values.members[ele_id]
             angle_rotation = self.model.members[ele_id].angle_x()
-            coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)), (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
-            ((xa, ya), (xb, yb))=coords
+            coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)),
+                      (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
+            ((xa, ya), (xb, yb)) = coords
             coords_a = [[xi, xa], [yi, ya]]
             coords_b = [[xb, xj], [yb, yj]]
 
             if self.model.members[ele_id].la:
                 line, = self.axes.plot(coords_a[0], coords_a[1], color=self.plotter_options.end_length_offset_color,
-                                    linewidth=self.plotter_options.end_length_offset_line_width)
+                                       linewidth=self.plotter_options.end_length_offset_line_width)
                 brazos.append(line)
                 line.set_visible(self.plotter_options.UI_show_members)
             if self.model.members[ele_id].lb:
                 line, = self.axes.plot(coords_b[0], coords_b[1], color=self.plotter_options.end_length_offset_color,
-                                    linewidth=self.plotter_options.end_length_offset_line_width)
+                                       linewidth=self.plotter_options.end_length_offset_line_width)
                 brazos.append(line)
                 line.set_visible(self.plotter_options.UI_show_members)
             self.end_length_offset[ele_id] = brazos
@@ -508,7 +515,7 @@ class Plotter:
             if self.model.nodes[id].local_axis:
                 theta = self.model.nodes[id].local_axis.angle
             else:
-                theta = 0
+                theta = self.plotter_options.mod_rotation_angle_conventional_supports.get(id, 0)*3.141592653589793/180.
             if support_func:
                 line = support_func(
                     ax=self.axes,
@@ -521,7 +528,8 @@ class Plotter:
                 )
                 self.supports[id] = line
                 x_data, y_data = line.get_data()
-                self.static_support_data_cache[id] = [x_data, y_data, node_coords, None]
+                self.static_support_data_cache[id] = [
+                    x_data, y_data, node_coords, None]
         self.figure.canvas.draw_idle()
 
     def update_supports(self, visibility: bool | None = None, scale: float | None = None):
@@ -532,10 +540,14 @@ class Plotter:
         for node_id, support in self.supports.items():
             support.set_visible(visibility)
             if scale is not None:
-                dx = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*scale
-                dy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*scale
-                x_new = np.array(self.static_support_data_cache[node_id][0]) + dx
-                y_new = np.array(self.static_support_data_cache[node_id][1]) + dy
+                dx = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                    0]*scale
+                dy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                    1]*scale
+                x_new = np.array(
+                    self.static_support_data_cache[node_id][0]) + dx
+                y_new = np.array(
+                    self.static_support_data_cache[node_id][1]) + dy
                 support.set_xdata(x_new)
                 support.set_ydata(y_new)
         self.figure.canvas.draw_idle()
@@ -565,7 +577,7 @@ class Plotter:
             # }
             text = self.axes.text(coord[0], coord[1], str(id),
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.node_labels[id] = text
             text.set_visible(self.plotter_options.UI_node_labels)
@@ -597,7 +609,7 @@ class Plotter:
             # }
             text = self.axes.text(x_val, y_val, str(element_id),
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.member_labels[element_id] = text
             text.set_visible(self.plotter_options.UI_member_labels)
@@ -714,7 +726,6 @@ class Plotter:
             arrowslist = []
             textslist = []
 
-
             # Calcular longitud y ángulo de rotación del elemento
             if id_element in self.model.trusses:
                 element = self.model.trusses[id_element]
@@ -724,18 +735,22 @@ class Plotter:
             length = element.length()
             angle_rotation = element.angle_x()
 
-            if not (element.qla and element.qlb): # Si no hay cargas en el brazo rigido
+            if not (element.qla and element.qlb):  # Si no hay cargas en el brazo rigido
                 la = element.la or 0
                 lb = element.lb or 0
                 length = length - la - lb
                 if id_element in self.model.trusses:
-                    ((xi, yi, xj, yj), disp) = self.current_values.trusses[id_element]
+                    ((xi, yi, xj, yj),
+                     disp) = self.current_values.trusses[id_element]
                 else:
-                    ((xi, yi), (xj, yj)) = self.current_values.members[id_element]
-                coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)), (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
+                    ((xi, yi), (xj, yj)
+                     ) = self.current_values.members[id_element]
+                coords = ((xi + la*np.cos(angle_rotation), yi + la*np.sin(angle_rotation)),
+                          (xj - lb*np.cos(angle_rotation), yj - lb*np.sin(angle_rotation)))
             else:
                 if id_element in self.model.trusses:
-                    ((xi, yi, xj, yj), disp) = self.current_values.trusses[id_element]
+                    ((xi, yi, xj, yj),
+                     disp) = self.current_values.trusses[id_element]
                 else:
                     coords = self.current_values.members[id_element]
 
@@ -866,9 +881,11 @@ class Plotter:
             # Obtener valores del diagrama
             if type == InternalForceType.AXIAL_FORCE:
                 if member_id in self.model.trusses:
-                    y_val = self.model.results[self.current_load_pattern].get_truss_axial_force(member_id)
+                    y_val = self.model.results[self.current_load_pattern].get_truss_axial_force(
+                        member_id)
                 else:
-                    y_val = self.model.results[self.current_load_pattern].get_member_axial_force(member_id)
+                    y_val = self.model.results[self.current_load_pattern].get_member_axial_force(
+                        member_id)
                 y_val = np.round(y_val, DECIMALS)
 
                 if np.all(np.abs(y_val) < tol):
@@ -880,7 +897,8 @@ class Plotter:
                 if member_id in self.model.trusses:
                     y_val = np.zeros(self.model.postprocessing_options.n)
                 else:
-                    y_val = self.model.results[self.current_load_pattern].get_member_shear_force(member_id)
+                    y_val = self.model.results[self.current_load_pattern].get_member_shear_force(
+                        member_id)
                 y_val = np.round(y_val, DECIMALS)
 
                 if np.all(np.abs(y_val) < tol):
@@ -892,7 +910,8 @@ class Plotter:
                 if member_id in self.model.trusses:
                     y_val = np.zeros(self.model.postprocessing_options.n)
                 else:
-                    y_val = self.model.results[self.current_load_pattern].get_member_bending_moment(member_id)
+                    y_val = self.model.results[self.current_load_pattern].get_member_bending_moment(
+                        member_id)
                 y_val = np.round(y_val, DECIMALS)
 
                 if np.all(np.abs(y_val) < tol):
@@ -902,10 +921,10 @@ class Plotter:
 
             # x_val = np.linspace(0, member.length(), len(y_val))
             try:
-                x_val = self.model.results[self.current_load_pattern].get_member_x_val(member_id)
+                x_val = self.model.results[self.current_load_pattern].get_member_x_val(
+                    member_id)
             except:
                 x_val = np.linspace(0, member.length(), len(y_val))
-
 
             # Configuración inicial
             L = member.length()
@@ -930,13 +949,17 @@ class Plotter:
             if member.la or member.lb:
                 la = member.la or 0
                 lb = member.lb or 0
-                lab_coord = np.array([[la, y3], [iv/len(y)*L, yv], [L-lb, yneg3], [L/2, y3]])
+                lab_coord = np.array(
+                    [[la, y3], [iv/len(y)*L, yv], [L-lb, yneg3], [L/2, y3]])
                 lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
-                lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
+                lab_coord = traslate_xy(
+                    lab_coord, *member.node_i.vertex.coordinates)
             else:
-                lab_coord = np.array([[0, yo], [iv/len(y)*L, yv], [L, yf], [L/2, yo]])
+                lab_coord = np.array(
+                    [[0, yo], [iv/len(y)*L, yv], [L, yf], [L/2, yo]])
                 lab_coord = rotate_xy(lab_coord, member.angle_x(), 0, 0)
-                lab_coord = traslate_xy(lab_coord, *member.node_i.vertex.coordinates)
+                lab_coord = traslate_xy(
+                    lab_coord, *member.node_i.vertex.coordinates)
 
             # Separar y procesar áreas
             positive, negative = separate_areas(y, L, x_val)
@@ -955,44 +978,54 @@ class Plotter:
                 area = rotate_xy(area, member.angle_x(), 0, 0)
                 area = traslate_xy(area, *member.node_i.vertex.coordinates)
                 if len(area) > 2:
-                    polygon, = self.axes.fill(*zip(*area), color=self.plotter_options.positive_fill_color, alpha=self.plotter_options.positive_fill_alpha)
+                    polygon, = self.axes.fill(
+                        *zip(*area), color=self.plotter_options.positive_fill_color, alpha=self.plotter_options.positive_fill_alpha)
                     artist.append(polygon)
             for area in negative_processed:
                 area = rotate_xy(area, member.angle_x(), 0, 0)
                 area = traslate_xy(area, *member.node_i.vertex.coordinates)
                 if len(area) > 2:
-                    polygon, = self.axes.fill(*zip(*area), color=self.plotter_options.negative_fill_color, alpha=self.plotter_options.negative_fill_alpha)
+                    polygon, = self.axes.fill(
+                        *zip(*area), color=self.plotter_options.negative_fill_color, alpha=self.plotter_options.negative_fill_alpha)
                     artist.append(polygon)
 
             # PLOTEO DE LAS ETIQUETAS: o, med, f
-            if self.plotter_options.fi_label:
+            if self.plotter_options.internal_forces_label:
                 if ((round(yo, 7) == round(yf, 7)) and (round(y3, 7) == round(yneg3, 7))) or ((round(yo, 7) == 0) and (round(yf, 7) == round(y3, 7)) or (round(yf, 7) == 0) and (round(yo, 7) == round(yneg3, 7))):    # constante
-                    text = self.axes.text(lab_coord[3][0], lab_coord[3][1], f'{y3/escala:.2f}', fontsize=8,)
+                    text = self.axes.text(
+                        lab_coord[3][0], lab_coord[3][1], f'{y3/escala:.2f}', fontsize=8,)
                     artist.append(text)
-                elif (round(yo, 7) == round(yf, 7) == 0) and (round(y3, 7) != round(yneg3, 7)) or ((round(yo, 7) == 0) and (round(y3, 7) != 0)    or     (round(yf, 7) == 0) and (round(yneg3, 7) != 0)):    # con brazos y polinomio no constante
+                # con brazos y polinomio no constante
+                elif (round(yo, 7) == round(yf, 7) == 0) and (round(y3, 7) != round(yneg3, 7)) or ((round(yo, 7) == 0) and (round(y3, 7) != 0) or (round(yf, 7) == 0) and (round(yneg3, 7) != 0)):
                     if round(y3, 7) != 0:
-                        text = self.axes.text(lab_coord[0][0], lab_coord[0][1], f'{y3/escala:.2f}', fontsize=8,)
+                        text = self.axes.text(
+                            lab_coord[0][0], lab_coord[0][1], f'{y3/escala:.2f}', fontsize=8,)
                         artist.append(text)
                     if round(yneg3, 7) != 0:
-                        text = self.axes.text(lab_coord[2][0], lab_coord[2][1], f'{yneg3/escala:.2f}', fontsize=8,)
+                        text = self.axes.text(
+                            lab_coord[2][0], lab_coord[2][1], f'{yneg3/escala:.2f}', fontsize=8,)
                         artist.append(text)
 
-                elif (round(yo, 7) != 0) and (round(yv, 7) != 0) and (round(yf, 7) != 0):           # sin brazos en ningun endframe
+                # sin brazos en ningun endframe
+                elif (round(yo, 7) != 0) and (round(yv, 7) != 0) and (round(yf, 7) != 0):
                     if round(yo, 7) != 0:
-                        text = self.axes.text(lab_coord[0][0], lab_coord[0][1], f'{yo/escala:.2f}', fontsize=8)
+                        text = self.axes.text(
+                            lab_coord[0][0], lab_coord[0][1], f'{yo/escala:.2f}', fontsize=8)
                         artist.append(text)
                     if round(yv, 7) != 0 and (abs(round(yv, 7)) > abs(round(yo, 7)) and abs(round(yv, 7)) > abs(round(yf, 7))):
-                        text = self.axes.text(lab_coord[1][0], lab_coord[1][1], f'{yv/escala:.2f}', fontsize=8)
+                        text = self.axes.text(
+                            lab_coord[1][0], lab_coord[1][1], f'{yv/escala:.2f}', fontsize=8)
                         artist.append(text)
                     if round(yf, 7) != 0:
-                        text = self.axes.text(lab_coord[2][0], lab_coord[2][1], f'{yf/escala:.2f}', fontsize=8)
+                        text = self.axes.text(
+                            lab_coord[2][0], lab_coord[2][1], f'{yf/escala:.2f}', fontsize=8)
                         artist.append(text)
-
 
             val = rotate_xy(val, member.angle_x(), 0, 0)
             val = traslate_xy(val, *member.node_i.vertex.coordinates)
 
-            line, = self.axes.plot(*zip(*val), color='#424242', lw=0.5)  # Línea de la curva
+            line, = self.axes.plot(
+                *zip(*val), color='#424242', lw=0.5)  # Línea de la curva
             artist.append(line)
 
             if type == InternalForceType.AXIAL_FORCE:
@@ -1039,7 +1072,8 @@ class Plotter:
 
         def if_scale(ele_id, artist, scale):
             sx, sy = scale, scale
-            listGlobalElements = list(self.members.values()) + list(self.trusses.values())
+            listGlobalElements = list(
+                self.members.values()) + list(self.trusses.values())
             origin = listGlobalElements[ele_id].node_i.vertex.coordinates
             if isinstance(artist, Text):
                 scale_text(artist, sx, sy, origin)
@@ -1070,7 +1104,6 @@ class Plotter:
                     if scale:
                         if_scale(ele_id, artist, scale)
         self.figure.canvas.draw_idle()
-
 
     def plot_axial_force(self, escala: float | None = None) -> None:
         """
@@ -1116,26 +1149,30 @@ class Plotter:
         self.reactions[self.current_load_pattern] = {}
         artists = []
         for node in self.model.nodes.values():
-            reactions = self.model.results[self.current_load_pattern].get_node_reactions(node.id)
+            reactions = self.model.results[self.current_load_pattern].get_node_reactions(
+                node.id)
             length_arrow = self.plotter_options.point_load_length_arrow
             moment_length_arrow = 0.70 * self.plotter_options.point_moment_length_arrow
             if reactions[0] != 0:
                 arrowRX, textRX = graphic_one_arrow(
-                    node.vertex.x, node.vertex.y, round(reactions[0], 2), length_arrow,
+                    node.vertex.x, node.vertex.y, round(
+                        reactions[0], 2), length_arrow,
                     0 if reactions[0] < 0 else np.pi, self.axes,
                     self.plotter_options.reactions_color, True, "blue", 8)
                 artists.append(arrowRX)
                 artists.append(textRX)
             if reactions[1] != 0:
                 arrowRY, textRY = graphic_one_arrow(
-                    node.vertex.x, node.vertex.y, round(reactions[1], 2), length_arrow,
+                    node.vertex.x, node.vertex.y, round(
+                        reactions[1], 2), length_arrow,
                     np.pi/2 if reactions[1] < 0 else 3*np.pi/2, self.axes,
                     self.plotter_options.reactions_color, True, "blue", 8)
                 artists.append(arrowRY)
                 artists.append(textRY)
             if reactions[2] != 0:
                 arrowMZ, textMZ = moment_fancy_arrow(
-                    self.axes, node.vertex.x, node.vertex.y, round(reactions[2], 2), moment_length_arrow,
+                    self.axes, node.vertex.x, node.vertex.y, round(
+                        reactions[2], 2), moment_length_arrow,
                     self.plotter_options.reactions_color, True, True, "blue", 8)
                 artists.append(arrowMZ)
                 artists.append(textMZ)
@@ -1161,8 +1198,10 @@ class Plotter:
         """
         self.deformed_nodes[self.current_load_pattern] = {}
         for node_id, coord in self.current_values.nodes.items():
-            ux = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
-            vy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
+            ux = self.model.results[self.current_load_pattern].get_node_displacements(
+                node_id)[0]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
+            vy = self.model.results[self.current_load_pattern].get_node_displacements(
+                node_id)[1]*self.plotter_options.UI_deformation_scale[self.current_load_pattern]
             x = [coord[0] + ux]
             y = [coord[1] + vy]
 
@@ -1178,17 +1217,18 @@ class Plotter:
         Actualiza la visibilidad de los nodos deformados.
         """
         vis = self.plotter_options.UI_deformed or self.plotter_options.UI_rigid_deformed
-        visibility = False # vis if visibility is None else visibility
+        visibility = False  # vis if visibility is None else visibility
         for node in self.deformed_nodes[self.current_load_pattern].values():
             node.set_visible(visibility)
         self.figure.canvas.draw_idle()
 
-
         # HACER UN SET_DATA(X, Y) A TODOS LOS NODOS DEL ACTUAL LOAD_PATTERN
         if scale is not None:
             for node_id, node in self.deformed_nodes[self.current_load_pattern].items():
-                ux = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*scale
-                vy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*scale
+                ux = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                    0]*scale
+                vy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                    1]*scale
                 x = self.model.nodes[node_id].vertex.x + ux
                 y = self.model.nodes[node_id].vertex.y + vy
                 node.set_offsets([x, y])
@@ -1196,6 +1236,7 @@ class Plotter:
 
 
 ################################# TOPICOS ###################################################
+
     def plot_prescribed_dofs(self) -> None:
         """
         Grafica las prescipciones en los DOFs.
@@ -1211,7 +1252,7 @@ class Plotter:
             texts = []
             arrowstyle = "-|>"
             # dezplamientos en dirección X
-            if PDOF.ux != 0 and PDOF.ux  is not None:
+            if PDOF.ux != 0 and PDOF.ux is not None:
                 if self.model.nodes[id_node].local_axis is not None:
                     if PDOF.ux > 0:
                         angle = self.model.nodes[id_node].local_axis.angle
@@ -1223,7 +1264,7 @@ class Plotter:
                     x=coords[0],
                     y=coords[1],
                     load=PDOF.ux,
-                    length_arrow= self.plotter_options.disp_pre_length_arrow,
+                    length_arrow=self.plotter_options.point_load_length_arrow,
                     angle=angle,
                     ax=self.axes,
                     color=self.plotter_options.disp_pre_color,
@@ -1237,20 +1278,22 @@ class Plotter:
                 texts.append(text)
 
             # Fuerza en dirección Y
-            if PDOF.uy != 0 and PDOF.uy  is not None:
+            if PDOF.uy != 0 and PDOF.uy is not None:
                 if self.model.nodes[id_node].local_axis is not None:
                     if PDOF.uy > 0:
-                        angle = np.pi/2 + self.model.nodes[id_node].local_axis.angle
+                        angle = np.pi/2 + \
+                            self.model.nodes[id_node].local_axis.angle
                     else:
-                        angle = 3*np.pi/2 + self.model.nodes[id_node].local_axis.angle
+                        angle = 3*np.pi/2 + \
+                            self.model.nodes[id_node].local_axis.angle
                 else:
                     angle = np.pi/2 if PDOF.uy > 0 else 3*np.pi/2
                 arrow, text = graphic_one_arrow_dof(
                     x=coords[0],
                     y=coords[1],
                     load=PDOF.uy,
-                    length_arrow=self.plotter_options.disp_pre_length_arrow,
-                    angle=angle, #np.pi/2 if PDOF.uy < 0 else 3*np.pi/2,
+                    length_arrow=self.plotter_options.point_load_length_arrow,
+                    angle=angle,  # np.pi/2 if PDOF.uy < 0 else 3*np.pi/2,
                     ax=self.axes,
                     color=self.plotter_options.disp_pre_color,
                     label=self.plotter_options.point_load_label,
@@ -1263,13 +1306,13 @@ class Plotter:
                 texts.append(text)
 
             # Momento en Z
-            if  PDOF.rz != 0 and PDOF.rz  is not None:
+            if PDOF.rz != 0 and PDOF.rz is not None:
                 arrow, text = moment_fancy_arrow(
                     ax=self.axes,
                     x=coords[0],
                     y=coords[1],
                     moment=PDOF.rz,
-                    radio=0.50 * self.plotter_options.disp_pre_length_arrow,
+                    radio=0.50 * self.plotter_options.point_moment_length_arrow,
                     color=self.plotter_options.disp_pre_color,
                     clockwise=True,
                     label=self.plotter_options.point_load_label,
@@ -1312,6 +1355,16 @@ class Plotter:
         """
         Dibuja los apoyos elásticos de la estructura.
         """
+        theta_krz = getattr(self.plotter_options, "mod_krz_rotation_angle", 135)
+        if isinstance(theta_krz, (list, tuple)):
+            theta_iter = iter(theta_krz)
+        elif isinstance(theta_krz, (int, float)):
+            theta_iter = itertools.repeat(theta_krz)
+        elif isinstance(theta_krz, dict):
+            pass  # not implemented yet
+        else:
+            theta = 135  # Default value if the input is invalid
+
         for node_id, elastic_support in self.current_values.elastic_supports.items():
             node_coords = self.current_values.nodes[node_id]
             kx, ky, krz = elastic_support.get_elastic_supports()
@@ -1324,7 +1377,7 @@ class Plotter:
             artist = []
             data_artist = {}
             if redondear_si_mas_de_3_decimales(kx) != 0:
-                theta = 0 #if kx < 0 else 180
+                theta = 0  # if kx < 0 else 180
                 line = support_kt(
                     self.axes,
                     node_coords[0],
@@ -1335,17 +1388,20 @@ class Plotter:
                 )
                 x_data, y_data = line.get_data()
                 artist.append(line)
-                coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                coord_label = [
+                    node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                coord_label = rotate_xy(
+                    coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"kx = {redondear_si_mas_de_3_decimales(kx)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"kx = {redondear_si_mas_de_3_decimales(kx)}",
+                                          fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["kx"] = (x_data, y_data, theta, line, text)
                 else:
                     data_artist["kx"] = (x_data, y_data, theta, line)
 
             if redondear_si_mas_de_3_decimales(ky) != 0:
-                theta = 90 #if ky < 0 else 270
+                theta = 90  # if ky < 0 else 270
                 line = support_kt(
                     self.axes,
                     node_coords[0],
@@ -1356,17 +1412,28 @@ class Plotter:
                 )
                 x_data, y_data = line.get_data()
                 artist.append(line)
-                coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                coord_label = [
+                    node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                coord_label = rotate_xy(
+                    coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"ky = {redondear_si_mas_de_3_decimales(ky)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"ky = {redondear_si_mas_de_3_decimales(ky)}",
+                                          fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["ky"] = (x_data, y_data, theta, line, text)
                 else:
                     data_artist["ky"] = (x_data, y_data, theta, line)
 
             if redondear_si_mas_de_3_decimales(krz) != 0:
-                theta = 135
+
+                if isinstance(theta_krz, dict):
+                    theta = theta_krz.get(node_id, 135)
+                else:
+                    try:
+                        theta = next(theta_iter)
+                    except StopIteration:
+                        theta = 135
+
                 line = support_kr(
                     self.axes,
                     node_coords[0],
@@ -1375,19 +1442,24 @@ class Plotter:
                     self.plotter_options.support_color,
                     theta=theta
                 )
+
                 x_data, y_data = line.get_data()
                 artist.append(line)
-                coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                coord_label = [
+                    node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                coord_label = rotate_xy(
+                    coord_label, theta, node_coords[0], node_coords[1])
                 if self.plotter_options.elastic_support_label:
-                    text = self.axes.text(coord_label[0], coord_label[1], f"krz = {redondear_si_mas_de_3_decimales(krz)}", fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
+                    text = self.axes.text(coord_label[0], coord_label[1], f"krz = {redondear_si_mas_de_3_decimales(krz)}",
+                                          fontsize=self.plotter_options.label_font_size, color=self.plotter_options.node_label_color)
                     artist.append(text)
                     data_artist["krz"] = (x_data, y_data, theta, line, text)
                 else:
                     data_artist["krz"] = (x_data, y_data, theta, line)
 
             self.elastic_supports[node_id] = artist
-            self.elastic_support_data_cache[node_id] = [data_artist, node_coords]
+            self.elastic_support_data_cache[node_id] = [
+                data_artist, node_coords]
         self.figure.canvas.draw_idle()
 
     def update_elastic_supports(self, visibility: bool | None = None, scale: float | None = None):
@@ -1399,47 +1471,67 @@ class Plotter:
             for artist in artists:
                 artist.set_visible(visibility)
                 if scale is not None:
-                    dx = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[0]*scale
-                    dy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[1]*scale
+                    dx = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                        0]*scale
+                    dy = self.model.results[self.current_load_pattern].get_node_displacements(node_id)[
+                        1]*scale
                     if isinstance(artist, plt.Line2D):
                         if artist is self.elastic_support_data_cache[node_id][0].get("kx", [0, 0, 0, 0, 0])[3]:
-                            x_new = np.array(self.elastic_support_data_cache[node_id][0].get("kx")[0]) + dx
-                            y_new = np.array(self.elastic_support_data_cache[node_id][0].get("kx")[1]) + dy
+                            x_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("kx")[0]) + dx
+                            y_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("kx")[1]) + dy
                             artist.set_xdata(x_new)
                             artist.set_ydata(y_new)
                         elif artist is self.elastic_support_data_cache[node_id][0].get("ky", [0, 0, 0, 0, 0])[3]:
-                            x_new = np.array(self.elastic_support_data_cache[node_id][0].get("ky")[0]) + dx
-                            y_new = np.array(self.elastic_support_data_cache[node_id][0].get("ky")[1]) + dy
+                            x_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("ky")[0]) + dx
+                            y_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("ky")[1]) + dy
                             artist.set_xdata(x_new)
                             artist.set_ydata(y_new)
                         elif artist is self.elastic_support_data_cache[node_id][0].get("krz", [0, 0, 0, 0, 0])[3]:
-                            x_new = np.array(self.elastic_support_data_cache[node_id][0].get("krz")[0]) + dx
-                            y_new = np.array(self.elastic_support_data_cache[node_id][0].get("krz")[1]) + dy
+                            x_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("krz")[0]) + dx
+                            y_new = np.array(
+                                self.elastic_support_data_cache[node_id][0].get("krz")[1]) + dy
                             artist.set_xdata(x_new)
                             artist.set_ydata(y_new)
                     elif isinstance(artist, plt.Text):
                         node_coords = self.current_values.nodes[node_id]
                         if self.elastic_support_data_cache[node_id][0].get("kx"):
-                            theta = 0 #if kx < 0 else 180
-                            coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                            coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
-                            coord_label = [coord_label[0] + dx, coord_label[1] + dy]
+                            theta = 0  # if kx < 0 else 180
+                            coord_label = [
+                                node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                            coord_label = rotate_xy(
+                                coord_label, theta, node_coords[0], node_coords[1])
+                            coord_label = [coord_label[0] +
+                                           dx, coord_label[1] + dy]
                             if artist is self.elastic_support_data_cache[node_id][0].get("kx", [0, 0, 0, 0, 0])[4]:
-                                artist.set_position((coord_label[0], coord_label[1]))
+                                artist.set_position(
+                                    (coord_label[0], coord_label[1]))
                         if self.elastic_support_data_cache[node_id][0].get("ky"):
-                            theta = 90 #if ky < 0 else 270
-                            coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                            coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
-                            coord_label = [coord_label[0] + dx, coord_label[1] + dy]
+                            theta = 90  # if ky < 0 else 270
+                            coord_label = [
+                                node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                            coord_label = rotate_xy(
+                                coord_label, theta, node_coords[0], node_coords[1])
+                            coord_label = [coord_label[0] +
+                                           dx, coord_label[1] + dy]
                             if artist is self.elastic_support_data_cache[node_id][0].get("ky", [0, 0, 0, 0, 0])[4]:
-                                artist.set_position((coord_label[0], coord_label[1]))
+                                artist.set_position(
+                                    (coord_label[0], coord_label[1]))
                         if self.elastic_support_data_cache[node_id][0].get("krz"):
                             theta = 135
-                            coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                            coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
-                            coord_label = [coord_label[0] + dx, coord_label[1] + dy]
+                            coord_label = [
+                                node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                            coord_label = rotate_xy(
+                                coord_label, theta, node_coords[0], node_coords[1])
+                            coord_label = [coord_label[0] +
+                                           dx, coord_label[1] + dy]
                             if artist is self.elastic_support_data_cache[node_id][0].get("krz", [0, 0, 0, 0, 0])[4]:
-                                artist.set_position((coord_label[0], coord_label[1]))
+                                artist.set_position(
+                                    (coord_label[0], coord_label[1]))
         self.figure.canvas.draw_idle()
 
     def reset_elastic_supports(self):
@@ -1451,40 +1543,55 @@ class Plotter:
                 artist.set_visible(self.plotter_options.UI_support)
                 if isinstance(artist, plt.Line2D):
                     if artist is self.elastic_support_data_cache[node_id][0].get("kx", [0, 0, 0, 0, []])[3]:
-                        x_new = np.array(self.elastic_support_data_cache[node_id][0].get("kx")[0])
-                        y_new = np.array(self.elastic_support_data_cache[node_id][0].get("kx")[1])
+                        x_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("kx")[0])
+                        y_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("kx")[1])
                         artist.set_xdata(x_new)
                         artist.set_ydata(y_new)
                     elif artist is self.elastic_support_data_cache[node_id][0].get("ky", [0, 0, 0, 0, []])[3]:
-                        x_new = np.array(self.elastic_support_data_cache[node_id][0].get("ky")[0])
-                        y_new = np.array(self.elastic_support_data_cache[node_id][0].get("ky")[1])
+                        x_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("ky")[0])
+                        y_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("ky")[1])
                         artist.set_xdata(x_new)
                         artist.set_ydata(y_new)
                     elif artist is self.elastic_support_data_cache[node_id][0].get("krz", [0, 0, 0, 0, []])[3]:
-                        x_new = np.array(self.elastic_support_data_cache[node_id][0].get("krz")[0])
-                        y_new = np.array(self.elastic_support_data_cache[node_id][0].get("krz")[1])
+                        x_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("krz")[0])
+                        y_new = np.array(
+                            self.elastic_support_data_cache[node_id][0].get("krz")[1])
                         artist.set_xdata(x_new)
                         artist.set_ydata(y_new)
                 elif isinstance(artist, plt.Text):
                     node_coords = self.current_values.nodes[node_id]
                     if self.elastic_support_data_cache[node_id][0].get("kx"):
-                        theta = 0 #if kx < 0 else 180
-                        coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                        coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                        theta = 0  # if kx < 0 else 180
+                        coord_label = [
+                            node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                        coord_label = rotate_xy(
+                            coord_label, theta, node_coords[0], node_coords[1])
                         if artist is self.elastic_support_data_cache[node_id][0].get("kx", [0, 0, 0, 0, 0])[4]:
-                            artist.set_position((coord_label[0], coord_label[1]))
+                            artist.set_position(
+                                (coord_label[0], coord_label[1]))
                     if self.elastic_support_data_cache[node_id][0].get("ky"):
-                        theta = 90 #if ky < 0 else 270
-                        coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                        coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                        theta = 90  # if ky < 0 else 270
+                        coord_label = [
+                            node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                        coord_label = rotate_xy(
+                            coord_label, theta, node_coords[0], node_coords[1])
                         if artist is self.elastic_support_data_cache[node_id][0].get("ky", [0, 0, 0, 0, 0])[4]:
-                            artist.set_position((coord_label[0], coord_label[1]))
+                            artist.set_position(
+                                (coord_label[0], coord_label[1]))
                     if self.elastic_support_data_cache[node_id][0].get("krz"):
                         theta = 135
-                        coord_label = [node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
-                        coord_label = rotate_xy(coord_label, theta, node_coords[0], node_coords[1])
+                        coord_label = [
+                            node_coords[0]-self.plotter_options.support_size/2, node_coords[1]]
+                        coord_label = rotate_xy(
+                            coord_label, theta, node_coords[0], node_coords[1])
                         if artist is self.elastic_support_data_cache[node_id][0].get("krz", [0, 0, 0, 0, 0])[4]:
-                            artist.set_position((coord_label[0], coord_label[1]))
+                            artist.set_position(
+                                (coord_label[0], coord_label[1]))
         self.figure.canvas.draw_idle()
 
     def plot_cst(self):
@@ -1497,12 +1604,12 @@ class Plotter:
             artists = []
 
             line, = self.axes.plot(x_coords, y_coords,
-                                color=self.plotter_options.cst_edge_color,
-                                linewidth=self.plotter_options.cst_element_line_width)
+                                   color=self.plotter_options.cst_edge_color,
+                                   linewidth=self.plotter_options.cst_element_line_width)
 
             polygon = self.axes.fill(x_coords, y_coords,
-                                    color=self.plotter_options.cst_face_color,
-                                    alpha=self.plotter_options.cst_alpha)[0]
+                                     color=self.plotter_options.cst_face_color,
+                                     alpha=self.plotter_options.cst_alpha)[0]
 
             artists.append(line)
             artists.append(polygon)
@@ -1512,8 +1619,6 @@ class Plotter:
                 artist.set_visible(self.plotter_options.UI_show_members)
 
         self.figure.canvas.draw_idle()
-
-
 
     def update_cst(self, color_edge: str | None = None, color_face: str | None = None):
         """
@@ -1530,7 +1635,6 @@ class Plotter:
                     artist.set_facecolor(color_face)
         self.figure.canvas.draw_idle()
 
-
     def plot_cst_labels(self):
         """
         Dibuja las etiquetas de los CST de la estructura.
@@ -1541,7 +1645,7 @@ class Plotter:
 
             text = self.axes.text(x_val, y_val, f"CST: {cst_id}",
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.csts[cst_id].append(text)
             text.set_visible(self.plotter_options.UI_member_labels)
@@ -1557,12 +1661,6 @@ class Plotter:
                     artist.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
 
-
-
-
-
-
-
     def plot_membrane_q3dof(self):
         """
         Dibuja los Membrane Q3DOF de la estructura.
@@ -1573,12 +1671,12 @@ class Plotter:
             artists = []
 
             line, = self.axes.plot(x_coords, y_coords,
-                                color=self.plotter_options.membrane_q3dof_edge_color,
-                                linewidth=self.plotter_options.membrane_q3dof_element_line_width)
+                                   color=self.plotter_options.membrane_q3dof_edge_color,
+                                   linewidth=self.plotter_options.membrane_q3dof_element_line_width)
 
             polygon = self.axes.fill(x_coords, y_coords,
-                                    color=self.plotter_options.membrane_q3dof_face_color,
-                                    alpha=self.plotter_options.membrane_q3dof_alpha)[0]
+                                     color=self.plotter_options.membrane_q3dof_face_color,
+                                     alpha=self.plotter_options.membrane_q3dof_alpha)[0]
 
             artists.append(line)
             artists.append(polygon)
@@ -1588,7 +1686,6 @@ class Plotter:
                 artist.set_visible(self.plotter_options.UI_show_members)
 
         self.figure.canvas.draw_idle()
-
 
     def update_membrane_q3dof(self, color_edge: str | None = None, color_face: str | None = None):
         """
@@ -1605,7 +1702,6 @@ class Plotter:
                     artist.set_facecolor(color_face)
         self.figure.canvas.draw_idle()
 
-
     def plot_membrane_q3dof_labels(self):
         """
         Dibuja las etiquetas de los Membrane Q3DOF de la estructura.
@@ -1616,7 +1712,7 @@ class Plotter:
 
             text = self.axes.text(x_val, y_val, f"MEMBRANA Q3DOF: {membrane_q3dof_id}",
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.membrane_q3dof[membrane_q3dof_id].append(text)
             text.set_visible(self.plotter_options.UI_member_labels)
@@ -1632,15 +1728,6 @@ class Plotter:
                     artist.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
 
-
-
-
-
-
-
-
-
-
     def plot_membrane_q2dof(self):
         """
         Dibuja los Membrane Q2DOF de la estructura.
@@ -1651,12 +1738,12 @@ class Plotter:
             artists = []
 
             line, = self.axes.plot(x_coords, y_coords,
-                                color=self.plotter_options.membrane_q2dof_edge_color,
-                                linewidth=self.plotter_options.membrane_q2dof_element_line_width)
+                                   color=self.plotter_options.membrane_q2dof_edge_color,
+                                   linewidth=self.plotter_options.membrane_q2dof_element_line_width)
 
             polygon = self.axes.fill(x_coords, y_coords,
-                                    color=self.plotter_options.membrane_q2dof_face_color,
-                                    alpha=self.plotter_options.membrane_q2dof_alpha)[0]
+                                     color=self.plotter_options.membrane_q2dof_face_color,
+                                     alpha=self.plotter_options.membrane_q2dof_alpha)[0]
 
             artists.append(line)
             artists.append(polygon)
@@ -1666,7 +1753,6 @@ class Plotter:
                 artist.set_visible(self.plotter_options.UI_show_members)
 
         self.figure.canvas.draw_idle()
-
 
     def update_membrane_q2dof(self, color_edge: str | None = None, color_face: str | None = None):
         """
@@ -1683,7 +1769,6 @@ class Plotter:
                     artist.set_facecolor(color_face)
         self.figure.canvas.draw_idle()
 
-
     def plot_membrane_q2dof_labels(self):
         """
         Dibuja las etiquetas de los Membrane Q2DOF de la estructura.
@@ -1694,7 +1779,7 @@ class Plotter:
 
             text = self.axes.text(x_val, y_val, f"MEMBRANA Q2DOF: {membrane_q2dof_id}",
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.membrane_q2dof[membrane_q2dof_id].append(text)
             text.set_visible(self.plotter_options.UI_member_labels)
@@ -1709,12 +1794,6 @@ class Plotter:
                 if isinstance(artist, plt.Text):
                     artist.set_visible(self.plotter_options.UI_member_labels)
         self.figure.canvas.draw_idle()
-
-
-
-
-
-
 
     def plot_trusses(self):
         """
@@ -1738,12 +1817,6 @@ class Plotter:
             for truss in self.trusses.values():
                 truss.set_color(color)
         self.figure.canvas.draw_idle()
-
-
-
-
-
-
 
     def plot_deformed(self, escala: float | None = None) -> None:
         """
@@ -1769,74 +1842,77 @@ class Plotter:
             self.deformed_shape[self.current_load_pattern][element.id] = []
             x, y = self.current_values.get_deformed_shape(element.id, escala)
             line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
-                                    color=self.plotter_options.deformation_color, zorder=70)
-            self.deformed_shape[self.current_load_pattern][element.id].append(line)
+                                   color=self.plotter_options.deformation_color, zorder=70)
+            self.deformed_shape[self.current_load_pattern][element.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_deformed)
-
-
 
         for truss in self.model.trusses.values():
             self.deformed_shape[self.current_load_pattern][truss.id] = []
             crd, disp = self.current_values.trusses[truss.id]
             disp = np.array(disp)*escala
-            x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+            x, y = [crd[0]+disp[0], crd[2]+disp[2]
+                    ], [crd[1]+disp[1], crd[3]+disp[3]]
             line, = self.axes.plot(x, y, lw=self.plotter_options.deformation_line_width,
-                                    color=self.plotter_options.truss_deformed_color, zorder=70)
-            self.deformed_shape[self.current_load_pattern][truss.id].append(line)
+                                   color=self.plotter_options.truss_deformed_color, zorder=70)
+            self.deformed_shape[self.current_load_pattern][truss.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_deformed)
-
-
 
         for cst in self.model.csts.values():
             self.deformed_shape[self.current_load_pattern][cst.id] = []
             coordinates, displacements = self.current_values.cst[cst.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
+            x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]
+                                                        ], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.cst_element_line_width,
-                                    color=self.plotter_options.cst_deformed_color_edge, zorder=70)
+                                   color=self.plotter_options.cst_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.cst_deformed_color_face,
                                       alpha=self.plotter_options.cst_alpha, zorder=70)
             self.deformed_shape[self.current_load_pattern][cst.id].append(line)
-            self.deformed_shape[self.current_load_pattern][cst.id].append(polygon)
+            self.deformed_shape[self.current_load_pattern][cst.id].append(
+                polygon)
 
             line.set_visible(self.plotter_options.UI_deformed)
             polygon.set_visible(self.plotter_options.UI_deformed)
-
-
 
         for membrane_q3dof in self.model.membrane_q3dof.values():
-            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id] = []
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id] = [
+            ]
             coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
+            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]
+                                                           ], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q3dof_element_line_width,
-                                    color=self.plotter_options.membrane_q3dof_deformed_color_edge, zorder=70)
+                                   color=self.plotter_options.membrane_q3dof_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q3dof_deformed_color_face,
                                       alpha=self.plotter_options.membrane_q3dof_alpha, zorder=70)
-            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(line)
-            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(polygon)
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(
+                line)
+            self.deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(
+                polygon)
 
             line.set_visible(self.plotter_options.UI_deformed)
             polygon.set_visible(self.plotter_options.UI_deformed)
-
-
 
         for membrane_q2dof in self.model.membrane_q2dof.values():
-            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id] = []
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id] = [
+            ]
             coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
+            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]
+                                                           ], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=self.plotter_options.membrane_q2dof_element_line_width,
-                                    color=self.plotter_options.membrane_q2dof_deformed_color_edge, zorder=70)
+                                   color=self.plotter_options.membrane_q2dof_deformed_color_edge, zorder=70)
             polygon, = self.axes.fill(x, y, color=self.plotter_options.membrane_q2dof_deformed_color_face,
                                       alpha=self.plotter_options.membrane_q2dof_alpha, zorder=70)
-            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(line)
-            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(polygon)
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(
+                line)
+            self.deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(
+                polygon)
 
             line.set_visible(self.plotter_options.UI_deformed)
             polygon.set_visible(self.plotter_options.UI_deformed)
-
-
 
         self.figure.canvas.draw_idle()
 
@@ -1861,52 +1937,62 @@ class Plotter:
 
         # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
         if escala is not None:
-            self.current_values = self.get_plotter_values(self.current_load_pattern)
+            self.current_values = self.get_plotter_values(
+                self.current_load_pattern)
             for member in self.model.members.values():
-                x, y = self.current_values.get_deformed_shape(member.id, escala)
-                self.deformed_shape[self.current_load_pattern][member.id][0].set_data(x, y)
+                x, y = self.current_values.get_deformed_shape(
+                    member.id, escala)
+                self.deformed_shape[self.current_load_pattern][member.id][0].set_data(
+                    x, y)
 
             for truss in self.model.trusses.values():
                 crd, disp = self.current_values.trusses[truss.id]
                 disp = np.array(disp)*escala
-                x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
-                self.deformed_shape[self.current_load_pattern][truss.id][0].set_data(x, y)
-
-
+                x, y = [crd[0]+disp[0], crd[2]+disp[2]
+                        ], [crd[1]+disp[1], crd[3]+disp[3]]
+                self.deformed_shape[self.current_load_pattern][truss.id][0].set_data(
+                    x, y)
 
             for cst in self.model.csts.values():
                 coordinates, displacements = self.current_values.cst[cst.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
-                coords = np.column_stack((x, y))  # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]
+                                                            ], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
+                # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                coords = np.column_stack((x, y))
 
-                self.deformed_shape[self.current_load_pattern][cst.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-                self.deformed_shape[self.current_load_pattern][cst.id][1].set_xy(coords)
-
+                self.deformed_shape[self.current_load_pattern][cst.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.deformed_shape[self.current_load_pattern][cst.id][1].set_xy(
+                    coords)
 
             for membrane_q3dof in self.model.membrane_q3dof.values():
                 coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
-                coords = np.column_stack((x, y))  # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]
+                                                               ], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
+                # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                coords = np.column_stack((x, y))
 
-                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][1].set_xy(coords)
-
+                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.deformed_shape[self.current_load_pattern][membrane_q3dof.id][1].set_xy(
+                    coords)
 
             for membrane_q2dof in self.model.membrane_q2dof.values():
                 coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
-                coords = np.column_stack((x, y))  # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]
+                                                               ], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
+                # Une x,y en pares [(x0,y0), (x1,y1), (x2,y2)]
+                coords = np.column_stack((x, y))
 
-                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][1].set_xy(coords)
+                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
+                self.deformed_shape[self.current_load_pattern][membrane_q2dof.id][1].set_xy(
+                    coords)
 
         self.figure.canvas.draw_idle()
-
-
-
 
     def plot_rigid_deformed(self, escala: float | None = None):
         """
@@ -1916,59 +2002,64 @@ class Plotter:
         escala = self.plotter_options.UI_deformation_scale[
             self.current_load_pattern] if escala is None else escala
         for member_id in self.model.members.keys():
-            self.rigid_deformed_shape[self.current_load_pattern][member_id] = []
+            self.rigid_deformed_shape[self.current_load_pattern][member_id] = [
+            ]
             x, y = self.current_values.rigid_deformed(member_id, escala)
             line, = self.axes.plot(
                 x, y, color=self.plotter_options.rigid_deformed_color, lw=0.7, ls='--', zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][member_id].append(line)
+            self.rigid_deformed_shape[self.current_load_pattern][member_id].append(
+                line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
-
 
         for truss in self.model.trusses.values():
             self.rigid_deformed_shape[self.current_load_pattern][truss.id] = []
             crd, disp = self.current_values.trusses[truss.id]
             disp = np.array(disp)*escala
-            x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
-            line, = self.axes.plot(x, y, lw=0.7, color=self.plotter_options.rigid_deformed_color, ls='--', zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][truss.id].append(line)
+            x, y = [crd[0]+disp[0], crd[2]+disp[2]
+                    ], [crd[1]+disp[1], crd[3]+disp[3]]
+            line, = self.axes.plot(
+                x, y, lw=0.7, color=self.plotter_options.rigid_deformed_color, ls='--', zorder=60)
+            self.rigid_deformed_shape[self.current_load_pattern][truss.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
-
-
 
         for cst in self.model.csts.values():
             self.rigid_deformed_shape[self.current_load_pattern][cst.id] = []
             coordinates, displacements = self.current_values.cst[cst.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
+            x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]
+                                                        ], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][cst.id].append(line)
+                                   color=self.plotter_options.rigid_deformed_color, zorder=60)
+            self.rigid_deformed_shape[self.current_load_pattern][cst.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
-
 
         for membrane_q3dof in self.model.membrane_q3dof.values():
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id] = []
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id] = [
+            ]
             coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
+            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]
+                                                           ], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(line)
+                                   color=self.plotter_options.rigid_deformed_color, zorder=60)
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
-
-
 
         for membrane_q2dof in self.model.membrane_q2dof.values():
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id] = []
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id] = [
+            ]
             coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
             displacements = np.array(displacements)*escala
-            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
+            x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]
+                                                           ], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
             line, = self.axes.plot(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])), lw=0.7,
-                                    color=self.plotter_options.rigid_deformed_color, zorder=60)
-            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(line)
+                                   color=self.plotter_options.rigid_deformed_color, zorder=60)
+            self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id].append(
+                line)
             line.set_visible(self.plotter_options.UI_rigid_deformed)
-
-
 
         self.figure.canvas.draw_idle()
 
@@ -1983,51 +2074,49 @@ class Plotter:
 
         # HACER UN SET_DATA(X, Y) A TODOS LOS MIEMBROS DEL ACTUAL LOAD_PATTERN
         if escala is not None:
-            self.current_values = self.get_plotter_values(self.current_load_pattern)
+            self.current_values = self.get_plotter_values(
+                self.current_load_pattern)
             for member in self.model.members.values():
                 x, y = self.current_values.rigid_deformed(member.id, escala)
                 for artist in self.rigid_deformed_shape[self.current_load_pattern][member.id]:
                     artist.set_data(x, y)
 
-
             for truss in self.model.trusses.values():
                 crd, disp = self.current_values.trusses[truss.id]
                 disp = np.array(disp)*escala
-                x, y = [crd[0]+disp[0], crd[2]+disp[2]], [crd[1]+disp[1], crd[3]+disp[3]]
+                x, y = [crd[0]+disp[0], crd[2]+disp[2]
+                        ], [crd[1]+disp[1], crd[3]+disp[3]]
                 for artist in self.rigid_deformed_shape[self.current_load_pattern][truss.id]:
                     artist.set_data(x, y)
-
-
 
             for cst in self.model.csts.values():
                 coordinates, displacements = self.current_values.cst[cst.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
+                x, y = coordinates[[0, 2, 4]]+displacements[[0, 2, 4]
+                                                            ], coordinates[[1, 3, 5]]+displacements[[1, 3, 5]]
 
-                self.rigid_deformed_shape[self.current_load_pattern][cst.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-
+                self.rigid_deformed_shape[self.current_load_pattern][cst.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
             for membrane_q3dof in self.model.membrane_q3dof.values():
                 coordinates, displacements = self.current_values.membrane_q3dof[membrane_q3dof.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
+                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 3, 6, 9]
+                                                               ], coordinates[[1, 3, 5, 7]]+displacements[[1, 4, 7, 10]]
 
-                self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-
+                self.rigid_deformed_shape[self.current_load_pattern][membrane_q3dof.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
             for membrane_q2dof in self.model.membrane_q2dof.values():
                 coordinates, displacements = self.current_values.membrane_q2dof[membrane_q2dof.id]
                 displacements = np.array(displacements)*escala
-                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
+                x, y = coordinates[[0, 2, 4, 6]]+displacements[[0, 2, 4, 6]
+                                                               ], coordinates[[1, 3, 5, 7]]+displacements[[1, 3, 5, 7]]
 
-                self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
-
-
+                self.rigid_deformed_shape[self.current_load_pattern][membrane_q2dof.id][0].set_data(
+                    np.hstack((x, [x[0]])), np.hstack((y, [y[0]])))
 
         self.figure.canvas.draw_idle()
-
-
-
 
     def plot_frame_release(self):
         """
@@ -2042,7 +2131,8 @@ class Plotter:
 
                 # Nodo i: liberaciones en 0, 1 o 2
                 if any(r in release for r in (0, 1, 2)):
-                    UnitVector = (member.node_j.vertex.coordinates - member.node_i.vertex.coordinates) / length
+                    UnitVector = (member.node_j.vertex.coordinates -
+                                  member.node_i.vertex.coordinates) / length
                     point = UnitVector * offset + member.node_i.vertex.coordinates
                     scatter.append(
                         self.axes.scatter(
@@ -2055,7 +2145,8 @@ class Plotter:
 
                 # Nodo j: liberaciones en 3, 4 o 5
                 if any(r in release for r in (3, 4, 5)):
-                    UnitVector = (member.node_j.vertex.coordinates - member.node_i.vertex.coordinates) / length
+                    UnitVector = (member.node_j.vertex.coordinates -
+                                  member.node_i.vertex.coordinates) / length
                     point = -UnitVector * offset + member.node_j.vertex.coordinates
                     scatter.append(
                         self.axes.scatter(
@@ -2068,7 +2159,6 @@ class Plotter:
 
                 self.frame_release_data_cache[member.id] = scatter
 
-
     def update_frame_release(self, color: Optional[str] = None):
         """
         Actualiza la visibilidad de las liberaciones de los miembros.
@@ -2080,7 +2170,6 @@ class Plotter:
                 if color:
                     artist.set_color(color)
         self.figure.canvas.draw_idle()
-
 
     def plot_trusses_labels(self):
         """
@@ -2100,7 +2189,7 @@ class Plotter:
             # }
             text = self.axes.text(x_val, y_val, str(element_id),
                                   fontsize=self.plotter_options.label_font_size,
-                                  ha='left', va='bottom', color="blue", #bbox=bbox,
+                                  ha='left', va='bottom', color="blue",  # bbox=bbox,
                                   clip_on=True)
             self.trusses_labels[element_id] = text
             text.set_visible(self.plotter_options.UI_member_labels)
