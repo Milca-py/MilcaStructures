@@ -61,22 +61,18 @@ class MembraneQuad6I:
         self.w = [1, 1, 1, 1]
 
     def shape_function(self, xi: float, eta: float):
-        """
-        Funcion de forma.
-        """
-        N1 = 1/4 * (1-xi) * (1-eta)
-        N2 = 1/4 * (1+xi) * (1-eta)
-        N3 = 1/4 * (1+xi) * (1+eta)
-        N4 = 1/4 * (1-xi) * (1+eta)
-        N5 = 1 + xi**2
-        N6 = 1 + eta**2
+        """Funciones de forma"""
+        N1 = (1-xi)*(1-eta)/4
+        N2 = (1+xi)*(1-eta)/4
+        N3 = (1+xi)*(1+eta)/4
+        N4 = (1-xi)*(1+eta)/4
+        N5 = (1-xi**2)
+        N6 = (1-eta**2)
         return N1, N2, N3, N4, N5, N6
 
     def coordinates(self, xi: float, eta: float):
-        """
-        Interpolacion de coordenadas del elemento.
-        """
-        N1,N2,N3,N4,N5,N6 = self.shape_function(xi, eta)
+        """Interpolacion de coordenadas del elemento"""
+        N1, N2, N3, N4, *_ = self.shape_function(xi, eta)
         x1, y1 = self.node1.vertex.coordinates
         x2, y2 = self.node2.vertex.coordinates
         x3, y3 = self.node3.vertex.coordinates
@@ -96,15 +92,12 @@ class MembraneQuad6I:
         ])
         return Ia
 
-    def J(self,xi: float, eta: float) -> np.ndarray:
-        """
-        Matriz de jacobiano.
-        """
+    def J(self, xi: float, eta: float) -> np.ndarray:
+        """Matriz de jacobiano"""
         x1, y1 = self.node1.vertex.coordinates
         x2, y2 = self.node2.vertex.coordinates
         x3, y3 = self.node3.vertex.coordinates
         x4, y4 = self.node4.vertex.coordinates
-
         J = np.array([
             [
                 -x1*(1 - eta)/4 + x2*(1 - eta)/4 + x3*(eta + 1)/4 - x4*(eta + 1)/4,
@@ -115,46 +108,49 @@ class MembraneQuad6I:
                 -y1*(1 - xi)/4 - y2*(xi + 1)/4 + y3*(xi + 1)/4 + y4*(1 - xi)/4
             ]
         ])
-
-
         return J
 
     def Gamma(self, xi: float, eta: float) -> np.ndarray:
-        """
-        Matriz de transformacion.
-        """
+        """Matriz de jacobiano invertida"""
         J = self.J(xi, eta)
         gamma = np.linalg.inv(J)
-        zero = np.zeros((2,2))
-        Gamma = np.vstack((
-                            np.hstack((gamma, zero)),
-                            np.hstack((zero, gamma))
-                        ))
+        zero = np.zeros((2, 2))
+        Gamma = np.concatenate(
+            (
+                np.concatenate((gamma, zero), axis=1),
+                np.concatenate((zero, gamma), axis=1)
+            ),
+            axis=0
+        )
         return Gamma
 
     def dN(self, xi: float, eta: float) -> np.ndarray:
-        """
-        Matriz de derivadas de forma.
-        """
+        """Derivada de las funciones de forma (dof: desplazamientos)"""
         dN = np.array([
-            [eta/4 - 1/4, 0, 1/4 - eta/4, 0, eta/4 + 1/4, 0, -eta/4 - 1/4, 0, 2*xi, 0, 0, 0],
-            [xi/4 - 1/4, 0, -xi/4 - 1/4, 0, xi/4 + 1/4, 0, 1/4 - xi/4, 0, 0, 0, 2*eta, 0],
-            [0, eta/4 - 1/4, 0, 1/4 - eta/4, 0, eta/4 + 1/4, 0, -eta/4 - 1/4, 0, 2*xi, 0, 0],
-            [0, xi/4 - 1/4, 0, -xi/4 - 1/4, 0, xi/4 + 1/4, 0, 1/4 - xi/4, 0, 0, 0, 2*eta]
+            [
+                eta/4 - 1/4, 0, 1/4 - eta/4, 0, eta/4 + 1/4, 0, -eta/4 - 1/4, 0, -2*xi, 0, 0, 0
+            ],
+            [
+                xi/4 - 1/4, 0, -xi/4 - 1/4, 0, xi/4 + 1/4, 0, 1/4 - xi/4, 0, 0, 0, -2*eta, 0
+            ],
+            [
+                0, eta/4 - 1/4, 0, 1/4 - eta/4, 0, eta/4 + 1/4, 0, -eta/4 - 1/4, 0, -2*xi, 0, 0
+            ],
+            [
+                0, xi/4 - 1/4, 0, -xi/4 - 1/4, 0, xi/4 + 1/4, 0, 1/4 - xi/4, 0, 0, 0, -2*eta
+            ]
         ])
-
         return dN
 
 
-    def B(self,xi: float, eta: float) -> np.ndarray:
-        """
-        Matriz de rigidez local.
-        """
-        dN = self.dN(xi, eta)
-        Gamma = self.Gamma(xi, eta)
+    def B(self, xi: float, eta: float) -> np.ndarray:
+        """Matriz de deformacion"""
         Ia = self.Ia()
+        Gamma = self.Gamma(xi, eta)
+        dN = self.dN(xi, eta)
         B = Ia @ Gamma @ dN
         return B
+
 
     def D(self) -> np.ndarray:
         """
@@ -242,11 +238,16 @@ if __name__ == "__main__":
     from milcapy.utils.geometry import Vertex
     import pandas as pd
     import numpy as np
+    from milcapy import ConstitutiveModelType
+    from milcapy.section.section import ShellSection
+    from milcapy.material.material import Material
     pd.set_option('display.float_format', '{:.3f}'.format)
     E = 2.53456e6
     v = 0.2
     t = 0.25
-    state = ConstitutiveModel.PLANE_STRESS
+    state = ConstitutiveModelType.PLANE_STRESS
+    material = Material("Acero", E, v, 0)
+    section = ShellSection(".", material, t)
     # nd1 = Node(1, Vertex(0.0, 0.0))
     # nd2 = Node(2, Vertex(0.6, 0.0))
     # nd3 = Node(3, Vertex(0.6, 3.0))
@@ -255,7 +256,7 @@ if __name__ == "__main__":
     nd2 = Node(2, Vertex(3.0, 0.0))
     nd3 = Node(3, Vertex(3.0, 0.6))
     nd4 = Node(4, Vertex(0.0, 0.6))
-    el = MembraneQuad6I(1, nd1, nd2, nd3, nd4, E, v, t, state)
+    el = MembraneQuad6I(1, nd1, nd2, nd3, nd4, section, state)
     p = 6
     # Q = np.array([-p/2, 0, -p/2, 0])
     Q = np.array([0, -p/2, 0, -p/2])

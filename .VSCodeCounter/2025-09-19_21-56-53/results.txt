@@ -1,0 +1,135 @@
+Date : 2025-09-19 21:56:53
+Directory : c:\Users\AMILCAR\Documents\GitHub\MilcaStructures
+Total : 87 files,  14120 codes, 1005 comments, 2624 blanks, all 17749 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Python   |         81 |     12,431 |        975 |      2,400 |     15,806 |
+| JSON     |          1 |        907 |          0 |          1 |        908 |
+| Markdown |          1 |        551 |          0 |        166 |        717 |
+| LaTeX    |          3 |        207 |         30 |         52 |        289 |
+| TOML     |          1 |         24 |          0 |          5 |         29 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                             | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                |         87 |     14,120 |      1,005 |      2,624 |     17,749 |
+| . (Files)                                                                                        |          2 |        575 |          0 |        171 |        746 |
+| examples                                                                                         |         36 |      2,682 |        214 |        412 |      3,308 |
+| examples\frames                                                                                  |         26 |      2,228 |        111 |        318 |      2,657 |
+| examples\membranas                                                                               |         10 |        454 |        103 |         94 |        651 |
+| milcapy                                                                                          |         48 |     10,570 |        782 |      1,992 |     13,344 |
+| milcapy (Files)                                                                                  |          1 |         49 |          0 |          9 |         58 |
+| milcapy-0.2.4                                                                                    |          1 |        293 |          9 |         49 |        351 |
+| milcapy-0.2.4\milcapy                                                                            |          1 |        293 |          9 |         49 |        351 |
+| milcapy-0.2.4\milcapy\elements                                                                   |          1 |        293 |          9 |         49 |        351 |
+| milcapy\analysis                                                                                 |          3 |        307 |         86 |        102 |        495 |
+| milcapy\core                                                                                     |          3 |        317 |          9 |        102 |        428 |
+| milcapy\elements                                                                                 |          9 |      1,554 |         52 |        233 |      1,839 |
+| milcapy\loads                                                                                    |          3 |      1,346 |          2 |        212 |      1,560 |
+| milcapy\material                                                                                 |          2 |         54 |          0 |         16 |         70 |
+| milcapy\model                                                                                    |          2 |      1,400 |         99 |        268 |      1,767 |
+| milcapy\plotter                                                                                  |          9 |      4,138 |        448 |        693 |      5,279 |
+| milcapy\postprocess                                                                              |          5 |        519 |         36 |        136 |        691 |
+| milcapy\report                                                                                   |          5 |        223 |         34 |         60 |        317 |
+| milcapy\section                                                                                  |          2 |        256 |          0 |         49 |        305 |
+| milcapy\utils                                                                                    |          4 |        407 |         16 |        112 |        535 |
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                         | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\README.md                                      | Markdown |        551 |          0 |        166 |        717 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\1_armadura_sencilla.py         | Python   |         26 |          0 |         11 |         37 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\3_portico_2_aguas.py           | Python   |         20 |          1 |          9 |         30 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\3_portico_3_niveles copy.py    | Python   |         35 |          3 |         11 |         49 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\3_portico_3_niveles.py         | Python   |         35 |          0 |         10 |         45 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\4.1_muro_alba.py               | Python   |         26 |          0 |          5 |         31 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\4.2_portico_inclinado_brazo.py | Python   |         37 |          0 |          5 |         42 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\4.3_aguas_model.py             | Python   |         22 |          0 |          9 |         31 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\4_portico_2_aguas_v2.py        | Python   |         21 |          1 |          9 |         31 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\5_asentamientos.py             | Python   |         17 |          7 |          3 |         27 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\6_elastic_suports.py           | Python   |         21 |          0 |          6 |         27 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\MODELOS.py                     | Python   |        208 |         41 |         61 |        310 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\WallPortal_Offset copy.py      | Python   |         41 |          0 |          8 |         49 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\WallPortal_Offset.py           | Python   |         41 |          0 |          8 |         49 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\amaduras.py                    | Python   |         37 |          1 |         12 |         50 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\end_length_offset.py           | Python   |        195 |         33 |         47 |        275 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\icono.py                       | Python   |         25 |          0 |         14 |         39 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\local_axis_node.py             | Python   |         28 |          7 |          0 |         35 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\param_portal.py                | Python   |        132 |          5 |         22 |        159 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\param_portal_mod.py            | Python   |         44 |          2 |          4 |         50 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\param_truss.py                 | Python   |         97 |          6 |         24 |        127 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\portal.py                      | Python   |         49 |          0 |         16 |         65 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\portal2D.py                    | Python   |         65 |          4 |          4 |         73 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\portal3_releases.py            | Python   |         37 |          0 |         11 |         48 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\releases.ipynb                 | JSON     |        907 |          0 |          1 |        908 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\suport_k.py                    | Python   |         33 |          0 |          1 |         34 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\frames\viga_elastica.py               | Python   |         29 |          0 |          7 |         36 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\WallPortal_MQ6.py           | Python   |         48 |          3 |          8 |         59 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\WallPortal_MQ6I.py          | Python   |         48 |          3 |          8 |         59 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\WallPortal_MQ6IMod.py       | Python   |         50 |          0 |          8 |         58 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\WallPortal_cst.py           | Python   |         56 |          0 |          5 |         61 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\beamCSI.py                  | Python   |         34 |          0 |         11 |         45 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\mq6i_local.py               | Python   |         37 |         61 |         14 |        112 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\muro_libro.py               | Python   |         38 |         22 |         11 |         71 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\testMembQ6 copy.py          | Python   |         22 |          0 |          5 |         27 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\testMembQ6.py               | Python   |         23 |          0 |          5 |         28 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\examples\membranas\test_conver.py              | Python   |         98 |         14 |         19 |        131 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy-0.2.4\milcapy\elements\MQ6.py          | Python   |        293 |          9 |         49 |        351 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\__init__.py                            | Python   |         49 |          0 |          9 |         58 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\analysis\__init__.py                   | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\analysis\linear_static.py              | Python   |        233 |         75 |         83 |        391 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\analysis\manager.py                    | Python   |         74 |         11 |         18 |        103 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\core\__init__.py                       | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\core\node.py                           | Python   |         79 |          6 |         19 |        104 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\core\results.py                        | Python   |        238 |          3 |         82 |        323 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\CST.py                        | Python   |        117 |          2 |         18 |        137 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\MQ6.py                        | Python   |        293 |          9 |         49 |        351 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\MQ6I.py                       | Python   |        227 |         13 |         27 |        267 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\MQ6IMod.py                    | Python   |         51 |          5 |          7 |         63 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\__init__.py                   | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\member.py                     | Python   |        319 |          9 |         62 |        390 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\quad4.py                      | Python   |        169 |          2 |         27 |        198 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\quad8.py                      | Python   |        262 |         12 |         25 |        299 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\elements\truss.py                      | Python   |        116 |          0 |         17 |        133 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\loads\__init__.py                      | Python   |          7 |          0 |          2 |          9 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\loads\load.py                          | Python   |        961 |          1 |        139 |      1,101 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\loads\load_pattern.py                  | Python   |        378 |          1 |         71 |        450 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\material\__init__.py                   | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\material\material.py                   | Python   |         54 |          0 |         15 |         69 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\model\__init__.py                      | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\model\model.py                         | Python   |      1,400 |         99 |        267 |      1,766 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\UIdisplay.py                   | Python   |        735 |         62 |        133 |        930 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\__init__.py                    | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\load.py                        | Python   |        280 |        104 |         70 |        454 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\options.py                     | Python   |        375 |         32 |         64 |        471 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\plotter.py                     | Python   |      1,817 |        164 |        224 |      2,205 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\plotter_values.py              | Python   |        174 |         11 |         34 |        219 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\suports.py                     | Python   |        282 |         10 |         31 |        323 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\utils.py                       | Python   |         78 |          6 |         20 |        104 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\plotter\widgets.py                     | Python   |        397 |         59 |        116 |        572 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\postprocess\CST_pp.py                  | Python   |         44 |          0 |         11 |         55 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\postprocess\__init__.py                | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\postprocess\membranebQ6.py             | Python   |          1 |          0 |          7 |          8 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\postprocess\post_processing.py         | Python   |        170 |          7 |         44 |        221 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\postprocess\segment_member.py          | Python   |        304 |         29 |         73 |        406 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\report\__init__.py                     | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\report\cap1.tex                        | LaTeX    |        117 |          0 |         16 |        133 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\report\cap2.tex                        | LaTeX    |         29 |          0 |         13 |         42 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\report\main.tex                        | LaTeX    |         61 |         30 |         23 |        114 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\report\report.py                       | Python   |         16 |          4 |          7 |         27 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\section\__init__.py                    | Python   |          0 |          0 |          1 |          1 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\section\section.py                     | Python   |        256 |          0 |         48 |        304 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\utils\__init__.py                      | Python   |         22 |          0 |          4 |         26 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\utils\element.py                       | Python   |        218 |         14 |         52 |        284 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\utils\geometry.py                      | Python   |         78 |          0 |         28 |        106 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\milcapy\utils\types.py                         | Python   |         89 |          2 |         28 |        119 |
+| c:\Users\AMILCAR\Documents\GitHub\MilcaStructures\pyproject.toml                                 | TOML     |         24 |          0 |          5 |         29 |
+| Total                                                                                            |          |     14,120 |      1,005 |      2,624 |     17,749 |
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

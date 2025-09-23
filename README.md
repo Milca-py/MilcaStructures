@@ -346,7 +346,7 @@ model.add_membrane_q8('id', '*node_ids', 'section_name', 'state=ConstitutiveMode
 >> ⚠️ **Nota:** La enumeración de los nodos debe realizarse en sentido antihorario para garantizar una formulación correcta.  
 >> ⚠️ **Nota:** El elemento Q8 tiene 8 nodos pero sin embargo los 4 faltantes son calculado en el medio de los lados del cuadrilatero y estas a su vez son condensados en los 4 nodos originales del cuadrilatero.  
 >> ⚠️ **Nota:** Se recomienda no discritizar con el elemento Q8 ya que esta con un solo elemento da una convergencia muy buena. debido a su que su implementacion es muy robusta. caso que si se discretiza esta se vuelve muy flexible y se aleja de la solucion exacta.  
->> ⚠️ **Nota:** La integracion reducida evita de cierta manera el efecto de bloqueo por cortante.  
+>> ⚠️ **Nota:** La integracion reducida evita de cierta manera la excesiva rigidez a cortante o tambien denominado cortante parásito.  
 >> **ESTADOS DISPONIBLES:** 'PLANE_STRESS', 'PLANE_STRAIN'  
 >> **INTEGRACION DISPONIBLE:** 'REDUCED' (4 puntos), 'COMPLETE' (9 puntos)
 

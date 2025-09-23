@@ -593,7 +593,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("MILCApy")
         self.setGeometry(800, 80, 800, 800)
-        self.setWindowIcon(QIcon("milcapy/plotter/assets/milca.ico"))
+        try:
+            self.setWindowIcon(QIcon("milcapy/plotter/assets/milca.ico"))
+        except:
+            pass
 
         self.model = model
 

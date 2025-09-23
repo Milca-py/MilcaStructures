@@ -91,7 +91,10 @@ class InternalForceDiagramWidget:
             self.root.geometry("650x300")
         self.root.title(
             f"Diagramas de esfuerzos internos, barra Nro {self.member.id} {section}, Longitud = {self.member.length():.3f}")
-        self.root.iconbitmap("milcapy/plotter/assets/milca.ico")
+        try:
+            self.root.iconbitmap("milcapy/plotter/assets/milca.ico")
+        except:
+            pass
 
         # Agregar esta instancia a la lista de instancias activas
         InternalForceDiagramWidget._active_instances.append(self)

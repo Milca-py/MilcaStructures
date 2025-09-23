@@ -267,7 +267,7 @@ class PlotterOptions:        # ✅✅✅
         self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan, inf] else 1
         self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan, inf] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100*self.mod_scale_deformation
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
@@ -322,7 +322,7 @@ class PlotterOptions:        # ✅✅✅
         self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan, inf] else 1
         self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan, inf] else 100
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
-        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100*self.mod_scale_deformation
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0

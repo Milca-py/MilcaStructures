@@ -1,9 +1,9 @@
-from milcapy import SystemModel, FieldTypeMembrane, ConstitutiveModel
+from milcapy import SystemModel, FieldType, ConstitutiveModelType
 
-# Units: kg, m
-E = 219498.39 * (1 / (1e-2)**2)  # Young's Modulus
+# Units: kg, cm
+E = 219498.39                    # Young's Modulus
 v = 0.167                        # Poisson's Ratio
-t = 1                            # Thickness
+t = 100                          # Thickness
 # Create a new model instance for Plane Stress
 new_model = SystemModel()
 new_model.add_material('concreto', E, v)
@@ -18,7 +18,7 @@ nodes_data = {
 }
 
 for node_id, (x_coord, y_coord) in nodes_data.items():
-    new_model.add_node(node_id, x_coord, y_coord)
+    new_model.add_node(node_id, x_coord*100, y_coord*100)
     # new_model.add_restraint(node_id, False, False, True)
 
 # Add elements from the "Tabla de sentido antihorario de numeración de los nodos"
@@ -31,7 +31,7 @@ elements_data = [
 ]
 
 for elem_id, node_i, node_j, node_k in elements_data:
-    new_model.add_cst(elem_id, node_i, node_j, node_k, 'muro', ConstitutiveModel.PLANE_STRAIN)
+    new_model.add_cst(elem_id, node_i, node_j, node_k, 'muro', ConstitutiveModelType.PLANE_STRAIN)
 # Add restraints based on the image (nodes 1, 2, and 3 are fixed)
 new_model.add_restraint(1, True, True, False)
 new_model.add_restraint(2, True, True, False)
@@ -59,12 +59,12 @@ new_model.show()
 # new_model.plot_model()
 # # new_model.plot_deformed(100, 10000, undeformed=True, label=True)
 
-# new_model.plot_field(FieldTypeMembrane.EX)
-# new_model.plot_field(FieldTypeMembrane.EY)
-# new_model.plot_field(FieldTypeMembrane.EXY)
-# new_model.plot_field(FieldTypeMembrane.SX)
-# new_model.plot_field(FieldTypeMembrane.SY)
-# new_model.plot_field(FieldTypeMembrane.SXY)
-# new_model.plot_field(FieldTypeMembrane.UX)
-# new_model.plot_field(FieldTypeMembrane.UY)
-# new_model.plot_field(FieldTypeMembrane.UMAG)
+# new_model.plot_field(FieldType.EX)
+# new_model.plot_field(FieldType.EY)
+# new_model.plot_field(FieldType.EXY)
+# new_model.plot_field(FieldType.SX)
+# new_model.plot_field(FieldType.SY)
+# new_model.plot_field(FieldType.SXY)
+# new_model.plot_field(FieldType.UX)
+# new_model.plot_field(FieldType.UY)
+# new_model.plot_field(FieldType.UMAG)

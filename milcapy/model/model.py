@@ -1507,7 +1507,7 @@ class SystemMilcaModel:
         """
         return self.results.get(load_pattern_name)
 
-    def get_results_excel(self, load_pattern_name: str) -> object:
+    def get_results_excel(self, load_pattern_name: str) -> None:
         """
         Obtiene los resultados del análisis en formato .xlsx.
 
@@ -1515,7 +1515,6 @@ class SystemMilcaModel:
             Object: Resultados del análisis en formato .xlsx.
         """
         import pandas as pd
-        import os
         nodedf, memberdf = self.results.get(load_pattern_name).get_dataframes()
 
         # Crear el archivo Excel

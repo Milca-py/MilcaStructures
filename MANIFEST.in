@@ -1,0 +1,9 @@
+# Incluir el README y la licencia en el paquete distribuido
+include README.md
+include LICENSE
+
+# Incluir el icono dentro del paquete
+include milcapy/plotter/assets/milca.ico
+
+# (Opcional) incluir cualquier otro recurso adicional, como imágenes o data
+recursive-include milcapy/plotter/assets *.png *.ico *.jpg *.svg

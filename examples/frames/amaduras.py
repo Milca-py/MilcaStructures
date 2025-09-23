@@ -4,7 +4,7 @@ cercha = SystemModel()
 
 dx = 1
 dy = 1
-nt = 17
+nt = 7
 cercha.add_material("concreto", 2.1e6, 0.2)
 cercha.add_rectangular_section("truss", "concreto", 0.3, 0.5)
 for i in range(nt):
@@ -35,8 +35,8 @@ for member in cercha.members.keys():
 
 cercha.solve()
 
-cercha.get_results_excel("Live Load")
-cercha.plotter_options.mod_support_size = 3
+# cercha.get_results_excel("Live Load")
+cercha.plotter_options.mod_support_size = 1.5
 cercha.plotter_options.show_undeformed = False
 cercha.plotter_options.element_line_width = 0.7
 cercha.plotter_options.deformation_line_width = 0.7

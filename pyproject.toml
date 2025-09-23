@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "milcapy"
-version = "0.2.2"
+version = "0.2.4"
 authors = [
     { name = "Amilcar Machacca Mayo", email = "200190@unsaac.edu.pe" }
 ]
@@ -21,6 +21,8 @@ classifiers = [
 [tool.setuptools.packages.find]
 include = ["milcapy*"]
 
+[tool.setuptools.package-data]
+milcapy = ["plotter/assets/milca.ico"]
 
 [project.urls]
 Homepage = "https://github.com/Milca-py/MilcaStructures"

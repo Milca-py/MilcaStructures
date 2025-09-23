@@ -1,3 +1,4 @@
+MANIFEST.in
 README.md
 pyproject.toml
 milcapy/__init__.py
@@ -36,6 +37,7 @@ milcapy/plotter/plotter_values.py
 milcapy/plotter/suports.py
 milcapy/plotter/utils.py
 milcapy/plotter/widgets.py
+milcapy/plotter/assets/milca.ico
 milcapy/postprocess/CST_pp.py
 milcapy/postprocess/__init__.py
 milcapy/postprocess/membranebQ6.py

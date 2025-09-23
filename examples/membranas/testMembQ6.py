@@ -23,4 +23,5 @@ model.add_load_pattern("carga")
 model.add_point_load(2, "carga", fy=-0.5*fy)
 model.add_point_load(3, "carga", fy=-0.5*fy)
 model.solve()
+model.plotter_options.mod_scale_deformation = 1.2
 model.show()
