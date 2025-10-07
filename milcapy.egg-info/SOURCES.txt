@@ -16,6 +16,7 @@ milcapy/elements/CST.py
 milcapy/elements/MQ6.py
 milcapy/elements/MQ6I.py
 milcapy/elements/MQ6IMod.py
+milcapy/elements/MQ6I__.py
 milcapy/elements/__init__.py
 milcapy/elements/member.py
 milcapy/elements/quad4.py
@@ -32,6 +33,7 @@ milcapy/plotter/UIdisplay.py
 milcapy/plotter/__init__.py
 milcapy/plotter/load.py
 milcapy/plotter/options.py
+milcapy/plotter/plot_model.py
 milcapy/plotter/plotter.py
 milcapy/plotter/plotter_values.py
 milcapy/plotter/suports.py

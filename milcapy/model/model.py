@@ -26,7 +26,13 @@ from milcapy.utils.types import (
     LoadType,
     to_enum,
 )
-from milcapy.utils.types import FieldType, InternalForceType, ConstitutiveModelType, IntegrationType, MembraneQuadElementType
+from milcapy.utils.types import (
+    FieldType,
+    InternalForceType,
+    ConstitutiveModelType,
+    IntegrationType,
+    MembraneQuadElementType,
+)
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -1494,6 +1500,19 @@ class SystemMilcaModel:
         print(f"Tiempo de generacion de la visualizacion: {end_time - start_time}")
         main_window(self)
 
+    def plot_model(
+        self,
+        load_pattern: Optional[str] = None,
+        node_labels: bool = True,
+        member_labels: bool = True,
+    ):
+        """
+        Grafica el modelo estructural.
+        """
+        from milcapy.plotter.plot_model import plot_model
+        plot_model(self, load_pattern, node_labels, member_labels)
+
+
     #! RESULTADOS ###########################################################
     def get_results(
         self,
@@ -1524,7 +1543,7 @@ class SystemMilcaModel:
 
     #! PLOT DE ELEMENTOS FINITOS #############################################
 
-    def plot_model(
+    def plot_model2(
         self,
         load_pattern: Optional[str] = None,
         type: Optional[InternalForceType] = None,

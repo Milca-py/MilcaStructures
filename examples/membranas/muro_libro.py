@@ -50,10 +50,11 @@ new_model.add_point_load(6, 'Live Load', -30*tonf, 0)
 
 # Solve the model
 new_model.solve()
+new_model.plot_model('Live Load')
 
 # show
 new_model.plotter_options.mod_support_size = 3
-new_model.show()
+# new_model.show()
 
 # # Plot the deformed shape
 # new_model.plot_model()

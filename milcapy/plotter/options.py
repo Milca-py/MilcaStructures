@@ -230,6 +230,102 @@ class PlotterOptions:        # ✅✅✅
 
 
 
+    def _calculate_params_max(self, pattern_name: str):
+        """
+        Calcula el máximo de los resultados para un patrón.
+        """
+        length_max = 0
+        length_max_mq3dof = 0
+        length_max_mq2dof = 0
+        length_max_cst = 0
+        length_max_truss = 0
+        length_min = 100000000000000
+        q_max = 0
+        p_max = 0
+        for member in self.model.members.values():
+            load_pt = self.model.load_patterns.get(pattern_name)
+            if load_pt:
+                dist_load = load_pt.distributed_loads.get(member.id)
+                q_m = (abs(dist_load.q_i), abs(dist_load.q_j))
+                p_m = (abs(dist_load.p_i), abs(dist_load.p_j))
+
+                q_max = max(q_m) if max(q_m) > q_max else q_max
+                p_max = max(p_m) if max(p_m) > p_max else p_max
+
+            length_max = member.length() if member.length() > length_max else length_max
+            length_min = member.length() if member.length() < length_min else length_min
+
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            minxx = min(membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex))
+            maxxx = max(membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex))
+            length_max_mq3dof = maxxx if maxxx > length_max_mq3dof else length_max_mq3dof
+            length_min = minxx if minxx < length_min else length_min
+
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            maxxx = max(membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex))
+            minxx = min(membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex))
+            length_max_mq2dof = maxxx if maxxx > length_max_mq2dof else length_max_mq2dof
+            length_min = minxx if minxx < length_min else length_min
+
+        for cst in self.model.csts.values():
+            maxxx = max(cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex))
+            minxx = min(cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex))
+            length_max_cst = maxxx if maxxx > length_max_cst else length_max_cst
+            length_min = minxx if minxx < length_min else length_min
+
+        for truss in self.model.trusses.values():
+            length = truss.length()
+            length_max_truss = length if length > length_max_truss else length_max_truss
+            length_min = length if length < length_min else length_min
+
+        length = (max(length_max, length_max_mq3dof, length_max_mq2dof, length_max_cst, length_max_truss) + length_min)/2
+
+        return (length,
+                q_max,
+                p_max)
+
+    def _calculate_params_mean(self, pattern_name: str):
+        """
+        Calcula la media de los resultados para un patrón.
+        """
+        length_mean = 0
+        length_mean_mq3dof = 0
+        length_mean_mq2dof = 0
+        length_mean_cst = 0
+        length_mean_truss = 0
+        q_mean = 0
+        p_mean = 0
+        n = len(self.model.members) + len(self.model.membrane_q3dof) + len(self.model.membrane_q2dof) + len(self.model.csts) + len(self.model.trusses)
+        for member in self.model.members.values():
+            load_pt = self.model.load_patterns.get(pattern_name)
+            if load_pt:
+                dist_load = load_pt.distributed_loads.get(member.id, None)
+                if dist_load:
+                    q_mean += (abs(dist_load.q_i) + abs(dist_load.q_j))/2
+                    p_mean += (abs(dist_load.p_i) + abs(dist_load.p_j))/2
+
+            length_mean += member.length()
+
+        for membrane_q3dof in self.model.membrane_q3dof.values():
+            length_mean_mq3dof += mean([membrane_q3dof.node1.vertex.distance_to(membrane_q3dof.node3.vertex), membrane_q3dof.node2.vertex.distance_to(membrane_q3dof.node4.vertex)])
+
+        for membrane_q2dof in self.model.membrane_q2dof.values():
+            length_mean_mq2dof += mean([membrane_q2dof.node1.vertex.distance_to(membrane_q2dof.node3.vertex), membrane_q2dof.node2.vertex.distance_to(membrane_q2dof.node4.vertex)])
+
+        for cst in self.model.csts.values():
+            length_mean_cst += mean([cst.node1.vertex.distance_to(cst.node2.vertex), cst.node2.vertex.distance_to(cst.node3.vertex), cst.node3.vertex.distance_to(cst.node1.vertex)])
+
+        for truss in self.model.trusses.values():
+            length_mean_truss += truss.length()
+
+        length = (length_mean + length_mean_mq3dof + length_mean_mq2dof + length_mean_cst + length_mean_truss)/n
+        return (length,
+                q_mean/n,
+                p_mean/n)
+
+
+
+
     def reset(self, pattern_name: str):
         """
         Reinicia todas las opciones a sus valores predeterminados.
@@ -265,9 +361,9 @@ class PlotterOptions:        # ✅✅✅
         self.axial_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["axial_mean"] if val["axial_mean"] not in [0, None, nan, inf] else 1
         self.shear_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["shear_mean"] if val["shear_mean"] not in [0, None, nan, inf] else 1
         self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["bending_mean"] if val["bending_mean"] not in [0, None, nan, inf] else 1
-        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan, inf] else 100
+        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["slope_mean"] if val["slope_mean"] not in [0, None, nan, inf] else 1
         # self.deflection_scale[pattern_name] = 0.15 * val["length_mean"] / val["deflection_mean"]
-        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 100*self.mod_scale_deformation
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_mean"] / val["deflection_mean"] if val["deflection_mean"] not in [0, None, nan, inf] else 1*self.mod_scale_deformation
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
@@ -278,8 +374,8 @@ class PlotterOptions:        # ✅✅✅
             self.axial_scale[pattern_name] = 0.1 * val["length_max"] / axial_max if axial_max not in [0, None, nan, inf] else 0.001
             self.shear_scale[pattern_name] = 0.1
             self.moment_scale[pattern_name] = 0.1
-            self.slope_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 100
-            self.UI_deformation_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 100
+            self.slope_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 1
+            self.UI_deformation_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 1
 
     def load_max(self, pattern_name: str, prom: bool = False):
         """
@@ -320,9 +416,14 @@ class PlotterOptions:        # ✅✅✅
         self.axial_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["axial_max"] if val["axial_max"] not in [0, None, nan, inf] else 1
         self.shear_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["shear_max"] if val["shear_max"] not in [0, None, nan, inf] else 1
         self.moment_scale[pattern_name] = self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["bending_max"] if val["bending_max"] not in [0, None, nan, inf] else 1
-        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan, inf] else 100
+        self.slope_scale[pattern_name] =  self.mod_scale_internal_forces * fact * self.internal_forces_ratio_scale * val["length_max"] / val["slope_max"] if val["slope_max"] not in [0, None, nan, inf] else 1
         # self.deflection_scale[pattern_name] = 0.15 * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, np.nan] else 0
-        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 100*self.mod_scale_deformation
+        self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * self.internal_forces_ratio_scale * val["length_max"] / val["deflection_max"] if val["deflection_max"] not in [0, None, nan, inf] else 1*self.mod_scale_deformation
+
+        if self.model.members == {} and self.model.csts == {} and self.model.trusses == {}:
+            self.UI_deformation_scale[pattern_name] = self.mod_scale_deformation * fact * (0.1) * self.internal_forces_ratio_scale * val["length_max"] if val["length_max"] not in [0, None, nan, inf] else 1*self.mod_scale_deformation
+
+
 
         if self.model.members == {} and self.model.membrane_q3dof == {} and self.model.membrane_q2dof == {} and self.model.csts == {}:
             axial_max = 0
@@ -333,8 +434,8 @@ class PlotterOptions:        # ✅✅✅
             self.axial_scale[pattern_name] = 0.1 * val["length_max"] / axial_max if axial_max not in [0, None, nan, inf] else 0.001
             self.shear_scale[pattern_name] = 0.1
             self.moment_scale[pattern_name] = 0.1
-            self.slope_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 100
-            self.UI_deformation_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 100
+            self.slope_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 1
+            self.UI_deformation_scale[pattern_name] = 0.03 * val["length_max"] / def_max if def_max not in [0, None, nan, inf] else 1
 
     def _calculate_max(self, pattern_name: str):
         """
@@ -462,7 +563,7 @@ class PlotterOptions:        # ✅✅✅
         """
         Calcula el número de flechas para un miembro.
         """
-        dx = self.support_size/0.10 * (0.10)
+        dx = self.support_size
         if member_id in self.model.trusses:
             dxx = int(self.model.trusses[member_id].length()/dx)
         else:

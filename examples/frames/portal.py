@@ -49,8 +49,13 @@ model.add_distributed_load(6, "Live Load", -5, -5)
 model.add_prescribed_dof(1, "Live Load", uy=-0.01, CSys="LOCAL")
 model.add_prescribed_dof(5, "Live Load", uy=-0.01, CSys="LOCAL")
 
+
+model.add_distributed_load(1, "Live Load", 10, 10, 'GLOBAL', 'GRAVITY')
+
+
+
 model.postprocessing_options.n = 100
-model.solve()
+# model.solve()
 
 model.plotter_options.mod_scale_dist_qload = 0.7
 model.plotter_options.element_line_width = 0.8
@@ -61,4 +66,6 @@ model.plotter_options.deformation_line_width = 0.8
 model.plotter_options.elastic_support_label = False
 model.plotter_options.internal_forces_label = True
 
-model_viewer(model)
+# model_viewer(model)
+
+model.plot_model('Live Load')

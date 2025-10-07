@@ -31,4 +31,5 @@ model.add_point_load(3, "earthquake", fx=15, fy=15)
 model.solve()
 model.plotter_options.mod_krz_rotation_angle = 180
 model.plotter_options.mod_scale_point_load = 1
-model.show()
+# model.show()
+model.plot_model('wind')

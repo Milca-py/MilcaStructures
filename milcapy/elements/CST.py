@@ -40,6 +40,14 @@ class MembraneTriangle:
         self.current_load_pattern: Optional[str] = None
         self.loads: Dict[str, CSTLoad] = {} # {lp_name: CSTLoad}
 
+    def get_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Retorna las coordenadas de los nodos del elemento.
+        """
+        x = np.array([self.node1.vertex.x, self.node2.vertex.x, self.node3.vertex.x])
+        y = np.array([self.node1.vertex.y, self.node2.vertex.y, self.node3.vertex.y])
+        return x, y
+
     @property
     def A(self) -> float:
         """

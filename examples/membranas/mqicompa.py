@@ -20,6 +20,6 @@ model.add_point_load(3, "carga", fx=-p)
 
 model.add_membrane_q6i(1, 1, 2, 3, 4, "viga")
 model.solve()
-model.show()
-
+# model.show()
+model.plot_model('carga')
 

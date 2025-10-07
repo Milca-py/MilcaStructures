@@ -21,11 +21,11 @@ def main():
     patch_test.add_node(10, 5, 2)
     patch_test.add_node(11, 6, 2)
     patch_test.add_node(12, 10, 2)
-    patch_test.add_membrane_q6i(1, 1, 2, 8, 7, 'section')
-    patch_test.add_membrane_q6i(2, 2, 3, 9, 8, 'section')
-    patch_test.add_membrane_q6i(3, 3, 4, 10, 9, 'section')
-    patch_test.add_membrane_q6i(4, 4, 5, 11, 10, 'section')
-    patch_test.add_membrane_q6i(5, 5, 6, 12, 11, 'section')
+    patch_test.add_membrane_q8(1, 1, 2, 8, 7, 'section')
+    patch_test.add_membrane_q8(2, 2, 3, 9, 8, 'section')
+    patch_test.add_membrane_q8(3, 3, 4, 10, 9, 'section')
+    patch_test.add_membrane_q8(4, 4, 5, 11, 10, 'section')
+    patch_test.add_membrane_q8(5, 5, 6, 12, 11, 'section')
     patch_test.add_restraint(1, True, True, False)
     patch_test.add_restraint(7, True, False, False)
     patch_test.add_load_pattern('CASE A')
@@ -35,7 +35,8 @@ def main():
     patch_test.add_point_load(12, 'CASE B', 0, 150, 0)
     patch_test.add_point_load(6,  'CASE B', 0, 150, 0)
     patch_test.solve()
-    patch_test.show()
+    # patch_test.show()
+    patch_test.plot_model('CASE B', False, True)
 
 
 if __name__ == "__main__":

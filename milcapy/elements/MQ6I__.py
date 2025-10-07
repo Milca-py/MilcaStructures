@@ -72,6 +72,15 @@ class MembraneQuad6I:
         N6 = 1 + eta**2
         return N1, N2, N3, N4, N5, N6
 
+    def get_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Retorna las coordenadas de los nodos del elemento.
+        """
+        x = np.array([self.node1.vertex.x, self.node2.vertex.x, self.node3.vertex.x, self.node4.vertex.x])
+        y = np.array([self.node1.vertex.y, self.node2.vertex.y, self.node3.vertex.y, self.node4.vertex.y])
+        return x, y
+
+
     def coordinates(self, xi: float, eta: float):
         """
         Interpolacion de coordenadas del elemento.

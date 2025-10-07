@@ -11,7 +11,7 @@ l = 2.4 # Longitud de la vigas
 t = 0.4 # Espesor de la pared
 sec = [0.4, 0.4] # Sección de la vigas
 F = 100 # Carga aplicada
-ele_type = MembraneQuadElementType.MQ8Reduced
+ele_type = MembraneQuadElementType.MQ8Complete
 
 wallPortal = SystemModel()
 wallPortal.add_material("concreto", E, v)
@@ -51,7 +51,5 @@ wallPortal.add_point_load(3, "carga", fx=1*F)
 wallPortal.add_point_load(5, "carga", fx=2*F)
 wallPortal.add_point_load(7, "carga", fx=3*F)
 wallPortal.solve()
-wallPortal.show()
-
-
-
+# wallPortal.show()
+wallPortal.plot_model("carga")
