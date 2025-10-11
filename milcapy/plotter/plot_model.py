@@ -113,7 +113,7 @@ def plot_model(
     plt_opt = model.plotter_options
     length_mean, q_mean, p_mean = plt_opt._calculate_params_mean(load_pattern)
 
-    # Plotear los nodos:
+    #% Plotear los nodos:
     for node in model.nodes.values():
         x = [node.vertex.x]
         y = [node.vertex.y]
@@ -125,7 +125,7 @@ def plot_model(
                                 ha='left', va='bottom', color="blue",
                                 clip_on=True)
 
-    # plotear los elementos frame:
+    #% plotear los elementos frame:
     for member in model.members.values():
         x_coords = [member.node_i.vertex.x, member.node_j.vertex.x]
         y_coords = [member.node_i.vertex.y, member.node_j.vertex.y]
@@ -139,7 +139,7 @@ def plot_model(
                                 ha='left', va='bottom', color="black",
                                 clip_on=True)
 
-    # plotear los elementos quad:
+    #% plotear los elementos quad:
     for quad in list(model.membrane_q3dof.values()) + list(model.membrane_q2dof.values()):
         x, y = quad.get_coordinates()
 
@@ -155,7 +155,7 @@ def plot_model(
                 ha='left', va='bottom', color="blue",
                 clip_on=True)
 
-    # plotear los elementos tri:
+    #% plotear los elementos tri:
     for cst in model.csts.values():
         x, y = cst.get_coordinates()
 
@@ -175,7 +175,7 @@ def plot_model(
                                     ha='left', va='bottom', color="blue",
                                 clip_on=True)
 
-    # plotear los elementos truss:
+    #% plotear los elementos truss:
     for truss in model.trusses.values():
         x_coords = [truss.node_i.vertex.x, truss.node_j.vertex.x]
         y_coords = [truss.node_i.vertex.y, truss.node_j.vertex.y]
@@ -189,7 +189,7 @@ def plot_model(
                                 ha='left', va='bottom', color="black",
                                 clip_on=True)
 
-    # plotear los brazos rigidos:
+    #% plotear los brazos rigidos:
     for member in model.members.values():
         la = member.la or 0
         lb = member.lb or 0
@@ -211,7 +211,7 @@ def plot_model(
             line, = ax.plot(coords_b[0], coords_b[1], color=plt_opt.end_length_offset_color,
                                     linewidth=plt_opt.end_length_offset_line_width)
 
-    # plotear los soportes y resortes:
+    #% plotear los soportes y resortes:
     support_functions = {
         (True, True, True): support_ttt,
         (False, False, True): support_fft,
@@ -341,7 +341,7 @@ def plot_model(
                 else:
                     data_artist["krz"] = (x_data, y_data, theta, line)
 
-    # plotear las cargas nodales y distribuidas:
+    #% plotear las cargas nodales y distribuidas:
     if load_pattern and model.load_patterns.get(load_pattern):
         for node_id, load in model.load_patterns[load_pattern].point_loads.items():
             x, y = model.nodes[node_id].vertex.x, model.nodes[node_id].vertex.y
@@ -535,7 +535,7 @@ def plot_model(
                 )
 
 
-    # plotear los releases:
+    #% plotear los releases:
     for member in model.members.values():
         if member.release:
             length = member.length()
@@ -571,6 +571,5 @@ def plot_model(
                     )
                 )
 
-
-    # mostrar grafica:
+    #% mostrar grafica:
     plt.show()

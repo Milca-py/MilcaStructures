@@ -318,10 +318,12 @@ class PlotterOptions:        # ✅✅✅
         for truss in self.model.trusses.values():
             length_mean_truss += truss.length()
 
-        length = (length_mean + length_mean_mq3dof + length_mean_mq2dof + length_mean_cst + length_mean_truss)/n
+        length = (length_mean + length_mean_mq3dof + length_mean_mq2dof + length_mean_cst + length_mean_truss)/n if n != 0 else 0
+        q_mean = q_mean/n if n != 0 else 0
+        p_mean = p_mean/n if n != 0 else 0
         return (length,
-                q_mean/n,
-                p_mean/n)
+                q_mean,
+                p_mean)
 
 
 

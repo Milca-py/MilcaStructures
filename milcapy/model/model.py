@@ -1491,6 +1491,11 @@ class SystemMilcaModel:
         """
         Muestra la interfaz gráfica para visualizar el modelo.
         """
+        if any(list(x.analyzed for x in self.load_patterns.values())):
+            pass
+        else:
+            print("No hay patrones de carga analizados. Por favor, analice el modelo antes de mostrar la visualización.")
+            return
         import time
         start_time = time.time()
         from milcapy.plotter.UIdisplay import main_window

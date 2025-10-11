@@ -35,8 +35,8 @@ def main():
     patch_test.add_point_load(12, 'CASE B', 0, 150, 0)
     patch_test.add_point_load(6,  'CASE B', 0, 150, 0)
     patch_test.solve()
-    # patch_test.show()
-    patch_test.plot_model('CASE B', False, True)
+    patch_test.show()
+    # patch_test.plot_model('CASE B', False, True)
 
 
 if __name__ == "__main__":
